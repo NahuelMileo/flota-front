@@ -88,7 +88,7 @@
   --card: oklch(0.205 0 0);
   --card-foreground: oklch(0.985 0 0);
   --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
+  --popover-foreground: oklch(25.944% 0.00451 17.089);
   --primary: oklch(0.922 0 0);
   --primary-foreground: oklch(0.205 0 0);
   --secondary: oklch(0.269 0 0);
@@ -126,4 +126,20 @@
   html {
     @apply font-sans;
   }
+}
+
+[data-rich-colors='true'][data-sonner-toast][data-type='error'] svg {
+  color: hsl(360, 100%, 45%) !important;
+}
+
+[data-rich-colors='true'][data-sonner-toast][data-type='success'] svg {
+  color: hsl(140, 100%, 27%) !important;
+}
+
+[data-rich-colors='true'][data-sonner-toast][data-type='warning'] svg {
+  color: hsl(31, 92%, 45%) !important;
+}
+
+[data-rich-colors='true'][data-sonner-toast][data-type='info'] svg {
+  color: hsl(210, 92%, 45%) !important;
 }
