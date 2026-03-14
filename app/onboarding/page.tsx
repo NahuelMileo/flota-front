@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field"
 import { toast } from "sonner"
 import OnboardingAuth from "@/components/ui/onboarding-auth"
+import { fetchWithAuth } from "@/lib/api"
 
 export default function OnboardingPage() {
   const [isCreating, setIsCreating] = useState(false)
@@ -23,20 +24,15 @@ export default function OnboardingPage() {
     setIsCreating(true)
     const accessToken = localStorage.getItem("accessToken");
     try {
-      const response = await fetch(
+      const response = await fetchWithAuth(
         `${process.env.NEXT_PUBLIC_API_URL}/api/tenants`,
         {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${accessToken}`,
-          },
           body: JSON.stringify({ companyName }),
         }
       )
 
       const data = await response.json()
-
       if (!response.ok) {
         toast.error("Error al crear la empresa", {
           description:
@@ -48,20 +44,23 @@ export default function OnboardingPage() {
         return
       }
 
-        console.log(data);
       toast.success("Empresa creada exitosamente", {
         description: "Redirigiendote al dashboard...",
         position: "bottom-right",
-        richColors: true,
+        richColors: true, 
       })
 
       if (data.tenantId) {
         localStorage.setItem("tenantId", data.tenantId)
       }
 
+      localStorage.setItem("accessToken", data.accessToken);
+
+
       setTimeout(() => {
         window.location.href = "/dashboard"
-      }, 1500)
+      }, 1500);
+     
     } catch (error) {
       toast.error("Error al crear la empresa", {
         description:
@@ -83,13 +82,10 @@ export default function OnboardingPage() {
 
     setIsJoining(true)
     try {
-      const response = await fetch(
+      const response = await fetchWithAuth(
         `${process.env.NEXT_PUBLIC_API_URL}/api/companies/join`,
         {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
           body: JSON.stringify({ inviteCode }),
         }
       )

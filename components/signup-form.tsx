@@ -65,10 +65,9 @@ export function SignupForm({
       const data = await response.json();
 
       if (!response.ok) {
-        console.log(data);
         setError(data.message || "Ocurrió un error al crear la cuenta");
         toast.error("Error al registrarse",{
-          description: data.error || "Ocurrió un error al crear la cuenta.",
+          description: data.message || "Ocurrió un error al crear la cuenta.",
           position: "bottom-right",
           // richColors: true,
         })
@@ -76,7 +75,6 @@ export function SignupForm({
         return;
       }
     } catch (error) {
-      console.log(error)
       setError("Ocurrió un error al crear la cuenta");
       setIsLoading(false);
       return;

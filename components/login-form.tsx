@@ -50,7 +50,6 @@ export function LoginForm({
         setIsLoading(false);
         return;
       }
-
       toast.success("Inicio de sesión exitoso", {
         description: "Redirigiendote al dashboard...",
         position: "bottom-right",
@@ -59,19 +58,25 @@ export function LoginForm({
 
       localStorage.setItem("accessToken", data.accessToken);
       localStorage.setItem("refreshToken", data.refreshToken);
-      // antes
-      localStorage.setItem("tenantId", data.tenantId);
-      localStorage.setItem("userId", data.userId);
+      localStorage.setItem("username", data.username)
+      localStorage.setItem("email", data.email)
 
       if (data.tenantId) {
         localStorage.setItem("tenantId", data.tenantId);
       } else {
         localStorage.removeItem("tenantId");
       }
+
       if (data.userId) {
         localStorage.setItem("userId", data.userId);
       } else {
         localStorage.removeItem("userId");
+      }
+
+      if (data.tenantName) {
+        localStorage.setItem("tenantName", data.tenantName);
+      } else {
+        localStorage.removeItem("tenantName");
       }
 
       setTimeout(() => {
