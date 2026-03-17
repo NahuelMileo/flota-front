@@ -34,23 +34,27 @@ export default function IncomePage() {
   const [incomes, setIncomes] = useState<Income[]>([]);
   const [trucks, setTrucks] = useState<Truck[]>([]);
   const [selectedTruckId, setSelectedTruckId] = useState<string | null>(null);
+  const [editingTruckId, setEditingTruckId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
   const [editingIncome, setEditingIncome] = useState<Income | null>(null);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  
 
-  const { selectedDate } = useDateFilter()
+  const { selectedDate } = useDateFilter();
 
- const filteredIncomes = selectedDate
-  ? incomes.filter((income) => {
-      const date = new Date(income.dateUtc)
-      return (
-        date.getMonth() === selectedDate.getMonth() &&
-        date.getFullYear() === selectedDate.getFullYear()
-      )
-    })
-  : incomes
+  
+
+  const filteredIncomes = selectedDate
+    ? incomes.filter((income) => {
+        const date = new Date(income.dateUtc);
+        return (
+          date.getMonth() === selectedDate.getMonth() &&
+          date.getFullYear() === selectedDate.getFullYear()
+        );
+      })
+    : incomes;
 
   useEffect(() => {
     fetchIncomes();
@@ -72,7 +76,6 @@ export default function IncomePage() {
         position: "bottom-right",
         richColors: true,
       });
-    } finally {
     }
   };
 
@@ -153,7 +156,7 @@ export default function IncomePage() {
       description: formData.get("description"),
       value: parseFloat(formData.get("value") as string),
       dateUtc: formData.get("dateUtc"),
-      truckId: formData.get("truckId") || null,
+      truckId: editingTruckId, // ← usa el estado en lugar de formData
     };
 
     try {
@@ -170,6 +173,7 @@ export default function IncomePage() {
         prev.map((i) => (i.id === updated.id ? updated : i)),
       );
       setEditingIncome(null);
+      setEditingTruckId(null);
       toast.success("Ingreso actualizado", {
         position: "bottom-right",
         richColors: true,
@@ -205,12 +209,32 @@ export default function IncomePage() {
   }
 
   const columns = getColumns(
-    (income) => setEditingIncome(income),
+    (income) => {
+      setEditingIncome(income);
+      setEditingTruckId(income.truckId ?? null); // ← inicializar con el valor actual
+    },
     handleDeleteIncome,
   );
 
-  // Format today's date as default value for date inputs (YYYY-MM-DD)
   const todayIso = new Date().toISOString().split("T")[0];
+
+  const previousMonthIncomes = selectedDate
+  ? incomes.filter((income) => {
+      const date = new Date(income.dateUtc + "T00:00:00");
+      const prevMonth = new Date(selectedDate.getFullYear(), selectedDate.getMonth() - 1);
+      return (
+        date.getMonth() === prevMonth.getMonth() &&
+        date.getFullYear() === prevMonth.getFullYear()
+      );
+    })
+  : [];
+
+const previousMonthTotal = previousMonthIncomes.reduce((acc, i) => acc + i.value, 0);
+
+const variation =
+  previousMonthTotal === 0
+    ? undefined
+    : Math.round(((filteredIncomes.reduce((acc, i) => acc + i.value, 0) - previousMonthTotal) / previousMonthTotal) * 100);
 
   return (
     <div className="p-6 flex flex-col gap-4">
@@ -273,7 +297,6 @@ export default function IncomePage() {
                       <SelectTrigger className="w-full">
                         <SelectValue placeholder="Seleccionar camión" />
                       </SelectTrigger>
-
                       <SelectContent>
                         <SelectGroup>
                           <SelectLabel>Camiones</SelectLabel>
@@ -305,14 +328,19 @@ export default function IncomePage() {
       </div>
       <div className="grid gap-4 md:grid-cols-4">
         <TotalIncomeCard
-          total={filteredIncomes.reduce((acc, income) => acc + income.value, 0)}
+          total={filteredIncomes.reduce((acc, income) => acc + income.value, 0)} variation={variation}
         />
       </div>
 
       {/* Dialog de editar */}
       <Dialog
         open={!!editingIncome}
-        onOpenChange={(open) => !open && setEditingIncome(null)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setEditingIncome(null);
+            setEditingTruckId(null); // ← limpiar al cerrar
+          }
+        }}
       >
         <DialogContent className="sm:max-w-sm">
           <form key={editingIncome?.id} onSubmit={handleEditIncome}>
@@ -360,14 +388,30 @@ export default function IncomePage() {
                   required
                 />
               </Field>
-              {/* <Field>
-                <Label htmlFor="edit-truckId">ID Camión (opcional)</Label>
-                <Input
-                  id="edit-truckId"
-                  name="truckId"
-                  defaultValue={editingIncome?.truckId ?? ""}
-                />
-              </Field> */}
+              <Field>
+                <Label htmlFor="edit-truckId">Camión (opcional)</Label>
+                <Select
+                  items={truckItems}
+                  value={editingTruckId ?? "none"}
+                  onValueChange={(value) =>
+                    setEditingTruckId(value === "none" ? null : value)
+                  }
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Seleccionar camión" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
+                      <SelectLabel>Camiones</SelectLabel>
+                      {truckItems.map((item) => (
+                        <SelectItem key={item.value} value={item.value}>
+                          {item.label}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+              </Field>
             </FieldGroup>
             <DialogFooter>
               <DialogClose

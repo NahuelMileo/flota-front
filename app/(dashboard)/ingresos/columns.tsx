@@ -59,7 +59,7 @@ export function getColumns(
   header: "Fecha",
   cell: ({ row }) => {
     const date: string = row.getValue("dateUtc");
-    return new Date(date).toLocaleDateString("es-UY");
+    return new Date(date + "T00:00:00").toLocaleDateString("es-UY");
   },
 },
     {
