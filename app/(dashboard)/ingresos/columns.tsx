@@ -13,11 +13,14 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
+import { Badge } from "@/components/ui/badge"
 
 export type Income = {
   id: string
   description: string
   value: number,
+  truckId: string,
+  truckLicensePlate: string | null,
   dateUtc: string
 }
 
@@ -30,10 +33,27 @@ export function getColumns(
       accessorKey: "description",
       header: "Descripción",
     },
-    {
+     {
       accessorKey: "value",
       header: "Valor",
+      cell: ({ row }) => {
+        const value: number = row.getValue("value")
+        return new Intl.NumberFormat("pt-BR", {
+          style: "currency",
+          currency: "BRL",
+          maximumFractionDigits: 0,
+        }).format(value)
+      },
     },
+   {
+  accessorKey: "truckLicensePlate",
+  header: "Camión",
+  cell: ({ row }) => {
+    const plate = row.getValue("truckLicensePlate") as string | null
+    if (!plate) return <span className="text-muted-foreground">—</span>
+    return <Badge variant="outline">{plate}</Badge>
+  },
+},
    {
   accessorKey: "dateUtc",
   header: "Fecha",
@@ -60,9 +80,9 @@ export function getColumns(
               <AlertDialogTrigger render={<Button variant="ghost" size="icon"><Trash2 className="h-4 w-4 text-destructive" /></Button>} />
               <AlertDialogContent size="sm">
                 <AlertDialogHeader>
-                  <AlertDialogTitle>¿Eliminar camión?</AlertDialogTitle>
+                  <AlertDialogTitle>¿Eliminar ingreso?</AlertDialogTitle>
                   <AlertDialogDescription>
-                    Esta acción no se puede deshacer. Se eliminará el camión <span className="font-medium text-foreground">{income.description}</span> de tu flota.
+                    Esta acción no se puede deshacer. Se eliminará el ingreso <span className="font-medium text-foreground">{income.description}</span> de tu registro.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>

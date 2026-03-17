@@ -18,25 +18,70 @@ import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { fetchWithAuth } from "@/lib/api";
 import { getColumns, Income } from "./columns";
+import { TotalIncomeCard } from "@/components/total-income-card";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+  SelectLabel,
+} from "@/components/ui/select";
+import { useDateFilter } from "@/context/date-filter-context";
 
 export default function IncomePage() {
   const [incomes, setIncomes] = useState<Income[]>([]);
+  const [trucks, setTrucks] = useState<Truck[]>([]);
+  const [selectedTruckId, setSelectedTruckId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
   const [editingIncome, setEditingIncome] = useState<Income | null>(null);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
 
+  const { selectedDate } = useDateFilter()
+
+ const filteredIncomes = selectedDate
+  ? incomes.filter((income) => {
+      const date = new Date(income.dateUtc)
+      return (
+        date.getMonth() === selectedDate.getMonth() &&
+        date.getFullYear() === selectedDate.getFullYear()
+      )
+    })
+  : incomes // 👈 sin filtro
+
   useEffect(() => {
     fetchIncomes();
+    fetchTrucks();
   }, []);
+
+  const fetchTrucks = async () => {
+    try {
+      const res = await fetchWithAuth(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/trucks`,
+        { method: "GET" },
+      );
+      if (!res.ok) throw new Error();
+      const data = await res.json();
+      setTrucks(data);
+    } catch (error) {
+      console.error(error);
+      toast.error("Error al cargar camiones", {
+        position: "bottom-right",
+        richColors: true,
+      });
+    } finally {
+    }
+  };
 
   const fetchIncomes = async () => {
     setIsLoading(true);
     try {
       const res = await fetchWithAuth(
         `${process.env.NEXT_PUBLIC_API_URL}/api/incomes`,
-        { method: "GET" }
+        { method: "GET" },
       );
       const data = await res.json();
       if (!res.ok) throw new Error();
@@ -51,6 +96,14 @@ export default function IncomePage() {
     }
   };
 
+  const truckItems = [
+    { label: "Sin asignar", value: "none" },
+    ...trucks.map((truck) => ({
+      label: `${truck.licensePlate}${truck.model ? ` - ${truck.model}` : ""}`,
+      value: truck.id,
+    })),
+  ];
+
   async function handleAddIncome(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setIsSubmitting(true);
@@ -60,7 +113,7 @@ export default function IncomePage() {
       description: formData.get("description"),
       value: parseFloat(formData.get("value") as string),
       dateUtc: formData.get("dateUtc"),
-      truckId: formData.get("truckId") || null,
+      truckId: selectedTruckId,
     };
 
     try {
@@ -69,11 +122,12 @@ export default function IncomePage() {
         {
           method: "POST",
           body: JSON.stringify(body),
-        }
+        },
       );
       if (!res.ok) throw new Error();
       const data = await res.json();
       setIsAddDialogOpen(false);
+      setSelectedTruckId(null);
       setIncomes((prev) => [...prev, data]);
       toast.success("Ingreso agregado exitosamente", {
         position: "bottom-right",
@@ -108,12 +162,12 @@ export default function IncomePage() {
         {
           method: "PUT",
           body: JSON.stringify(body),
-        }
+        },
       );
       if (!res.ok) throw new Error();
       const updated = await res.json();
       setIncomes((prev) =>
-        prev.map((i) => (i.id === updated.id ? updated : i))
+        prev.map((i) => (i.id === updated.id ? updated : i)),
       );
       setEditingIncome(null);
       toast.success("Ingreso actualizado", {
@@ -134,7 +188,7 @@ export default function IncomePage() {
     try {
       const res = await fetchWithAuth(
         `${process.env.NEXT_PUBLIC_API_URL}/api/incomes/${income.id}`,
-        { method: "DELETE" }
+        { method: "DELETE" },
       );
       if (!res.ok) throw new Error();
       setIncomes((prev) => prev.filter((i) => i.id !== income.id));
@@ -152,7 +206,7 @@ export default function IncomePage() {
 
   const columns = getColumns(
     (income) => setEditingIncome(income),
-    handleDeleteIncome
+    handleDeleteIncome,
   );
 
   // Format today's date as default value for date inputs (YYYY-MM-DD)
@@ -160,7 +214,7 @@ export default function IncomePage() {
 
   return (
     <div className="p-6 flex flex-col gap-4">
-      <div className="mb-20">
+      <div>
         <div className="flex justify-between">
           <h1 className="text-xl font-bold">Ingresos</h1>
           <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
@@ -193,7 +247,7 @@ export default function IncomePage() {
                       type="number"
                       step="0.01"
                       min="0.01"
-                      placeholder="1500.00"
+                      placeholder="10000.00"
                       required
                     />
                   </Field>
@@ -208,12 +262,29 @@ export default function IncomePage() {
                     />
                   </Field>
                   <Field>
-                    <Label htmlFor="truckId">ID Camión (opcional)</Label>
-                    <Input
-                      id="truckId"
-                      name="truckId"
-                      placeholder="UUID del camión"
-                    />
+                    <Label htmlFor="truckId">Camión (opcional)</Label>
+                    <Select
+                      items={truckItems}
+                      value={selectedTruckId ?? "none"}
+                      onValueChange={(value) =>
+                        setSelectedTruckId(value === "none" ? null : value)
+                      }
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Seleccionar camión" />
+                      </SelectTrigger>
+
+                      <SelectContent>
+                        <SelectGroup>
+                          <SelectLabel>Camiones</SelectLabel>
+                          {truckItems.map((item) => (
+                            <SelectItem key={item.value} value={item.value}>
+                              {item.label}
+                            </SelectItem>
+                          ))}
+                        </SelectGroup>
+                      </SelectContent>
+                    </Select>
                   </Field>
                 </FieldGroup>
                 <DialogFooter>
@@ -231,6 +302,11 @@ export default function IncomePage() {
         <p className="text-muted-foreground">
           Gestioná los ingresos de tu operación
         </p>
+      </div>
+      <div className="grid gap-4 md:grid-cols-4">
+        <TotalIncomeCard
+          total={filteredIncomes.reduce((acc, income) => acc + income.value, 0)}
+        />
       </div>
 
       {/* Dialog de editar */}
@@ -312,7 +388,7 @@ export default function IncomePage() {
       {isLoading ? (
         <p className="text-sm text-muted-foreground">Cargando ingresos...</p>
       ) : (
-        <DataTable columns={columns} data={incomes} />
+        <DataTable columns={columns} data={filteredIncomes} />
       )}
     </div>
   );

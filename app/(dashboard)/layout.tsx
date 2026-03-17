@@ -5,10 +5,12 @@ import {
   SidebarInset,
   SidebarProvider,
 } from "@/components/ui/sidebar"
+import { DateFilterProvider } from "@/context/date-filter-context"
 
 export default function DashboardLayout({children} : {children:React.ReactNode}) {
   return (
     <AuthGuard>
+      <DateFilterProvider>
     <SidebarProvider
       style={
         {
@@ -16,7 +18,7 @@ export default function DashboardLayout({children} : {children:React.ReactNode})
           "--header-height": "calc(var(--spacing) * 12)",
         } as React.CSSProperties
       }
-    >
+      >
       <AppSidebar variant="inset" />
       <SidebarInset>
         <SiteHeader />
@@ -27,6 +29,7 @@ export default function DashboardLayout({children} : {children:React.ReactNode})
         </div>
       </SidebarInset>
     </SidebarProvider>
+      </DateFilterProvider>
     </AuthGuard>
       )
 }
