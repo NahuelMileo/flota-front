@@ -50,7 +50,7 @@ export default function IncomePage() {
         date.getFullYear() === selectedDate.getFullYear()
       )
     })
-  : incomes // 👈 sin filtro
+  : incomes
 
   useEffect(() => {
     fetchIncomes();
