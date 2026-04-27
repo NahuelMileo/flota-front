@@ -18,6 +18,8 @@ import {
   TruckIcon,
   CommandIcon,
   DollarSign,
+  BanknoteArrowDown,
+  MapPin,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
@@ -50,9 +52,19 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         icon: <TruckIcon />,
       },
       {
+        title: "Viajes",
+        url: "/trips",
+        icon: <MapPin />,
+      },
+      {
         title: "Ingresos",
         url: "/ingresos",
         icon: <DollarSign />,
+      },
+      {
+        title:"Egresos",
+        url:"/egresos",
+        icon:<BanknoteArrowDown/>
       }
     ],
   };

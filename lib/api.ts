@@ -9,12 +9,11 @@ async function refreshAccessToken(): Promise<string> {
 
   if (!res.ok) {
     localStorage.clear();
-    window.location.href = '/login';
+    window.location.href = '/';
     throw new Error("Sesión expirada");
   }
 
   const data = await res.json();
-console.log('Refresh response:', data); // ← agregá esto
 localStorage.setItem('accessToken', data.accessToken);
 return data.accessToken;
 }

@@ -18,6 +18,19 @@ import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { fetchWithAuth } from "@/lib/api";
 import { getColumns, Truck } from "./columns";
+import { Skeleton } from "@/components/ui/skeleton";
+
+function TableSkeleton() {
+  return (
+    <div className="overflow-hidden rounded-md border">
+      <div className="p-4 space-y-3">
+        {Array.from({ length: 6 }).map((_, i) => (
+          <Skeleton key={i} className="h-10 w-full" />
+        ))}
+      </div>
+    </div>
+  )
+}
 
 export default function TruckPage() {
   const [trucks, setTrucks] = useState<Truck[]>([]);
@@ -259,9 +272,9 @@ export default function TruckPage() {
         </DialogContent>
       </Dialog>
       {isLoading ? (
-        <p className="text-sm text-muted-foreground">Cargando camiones...</p>
+        <TableSkeleton />
       ) : (
-        <DataTable columns={columns} data={trucks} />
+        <DataTable columns={columns} data={trucks} emptyMessage="No hay camiones registrados." searchPlaceholder="Buscar camión..." />
       )}
     </div>
   );

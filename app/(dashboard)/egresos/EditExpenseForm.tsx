@@ -17,7 +17,7 @@ import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
-import { Income } from "./columns";
+import { Expense } from "./columns";
 
 type Truck = {
   id: string;
@@ -25,42 +25,49 @@ type Truck = {
   model?: string;
 };
 
-const incomeSchema = z.object({
-  description: z.string().min(1, "La descripción es requerida"),
+const expenseSchema = z.object({
+  name: z.string().optional(),
   value: z
     .number({ invalid_type_error: "Ingresá un valor válido" })
     .positive("El valor debe ser mayor a 0"),
-  dateUtc: z.string().min(1, "La fecha es requerida"),
+  date: z.string().min(1, "La fecha es requerida"),
   truckId: z.string().nullable(),
-  type: z.enum(["1", "2"]),
-  currency: z.enum(["1", "2"]),
+  type: z.enum(["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11"]),
+  kilometers: z.number().positive("Debe ser mayor a 0").nullable().optional(),
+  liters: z.number().positive("Debe ser mayor a 0").nullable().optional(),
 });
 
-type IncomeFormValues = z.infer<typeof incomeSchema>;
+type ExpenseFormValues = z.infer<typeof expenseSchema>;
 
-const incomeTypeItems = [
-  { label: "Flete", value: "1" },
-  { label: "Otro", value: "2" },
+const expenseTypeItems = [
+  { label: "Gasoil", value: "1" },
+  { label: "Arla 32", value: "2" },
+  { label: "Mantenimiento", value: "3" },
+  { label: "Gomería", value: "4" },
+  { label: "Aceite", value: "5" },
+  { label: "Estacionamiento", value: "6" },
+  { label: "Peaje", value: "7" },
+  { label: "Salario", value: "8" },
+  { label: "Contador", value: "9" },
+  { label: "Financiamiento", value: "10" },
+  { label: "Otro", value: "11" },
 ];
 
-const currencyItems = [
-  { label: "BRL — Real brasileño", value: "2" },
-  { label: "USD — Dólar", value: "1" },
-];
+const FUEL_TYPES = new Set(["1", "2", "5"]);
 
-export default function EditIncomeForm({
-  income,
+export default function EditExpenseForm({
+  expense,
   trucks,
   onSuccess,
 }: {
-  income: Income;
+  expense: Expense;
   trucks: Truck[];
-  onSuccess: (income: Income) => void;
+  onSuccess: (expense: Expense) => void;
 }) {
   const truckItems = [
     { label: "Sin asignar", value: "none" },
     ...trucks.map((t) => ({
-      label: `${t.licensePlate}${t.model ? ` - ${t.model}` : ""}`,
+      label: `${t.licensePlate}`,
       value: t.id,
     })),
   ];
@@ -69,32 +76,38 @@ export default function EditIncomeForm({
     register,
     handleSubmit,
     control,
+    watch,
     formState: { errors, isSubmitting },
-  } = useForm<IncomeFormValues>({
-    resolver: zodResolver(incomeSchema),
+  } = useForm<ExpenseFormValues>({
+    resolver: zodResolver(expenseSchema),
     defaultValues: {
-      description: income.description,
-      value: income.value,
-      dateUtc: income.dateUtc.split("T")[0],
-      truckId: income.truckId ?? null,
-      type: (String(income.type) as "1" | "2") ?? "1",
-      currency: (String(income.currency ?? 2) as "1" | "2"),
+      name: expense.name ?? "",
+      value: expense.value,
+      date: expense.date,
+      truckId: expense.truckId ?? null,
+      type: (String(expense.type) as ExpenseFormValues["type"]) ?? "1",
+      kilometers: expense.kilometers ?? null,
+      liters: expense.liters ?? null,
     },
   });
 
-  async function onSubmit(data: IncomeFormValues) {
+  const currentType = watch("type");
+  const isFuelType = FUEL_TYPES.has(currentType);
+
+  async function onSubmit(data: ExpenseFormValues) {
     try {
       const res = await fetchWithAuth(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/incomes/${income.id}`,
+        `${process.env.NEXT_PUBLIC_API_URL}/api/expenses/${expense.id}`,
         {
           method: "PUT",
           body: JSON.stringify({
-            description: data.description,
+            name: data.name || null,
             value: data.value,
-            dateUtc: data.dateUtc,
+            date: data.date,
             truckId: data.truckId === "none" ? null : data.truckId,
             type: parseInt(data.type),
-            currency: parseInt(data.currency),
+            kilometers: data.kilometers ?? null,
+            liters: data.liters ?? null,
           }),
         },
       );
@@ -102,10 +115,10 @@ export default function EditIncomeForm({
       if (!res.ok) throw new Error();
 
       const updated = await res.json();
-      toast.success("Ingreso actualizado");
+      toast.success("Egreso actualizado");
       onSuccess(updated);
     } catch {
-      toast.error("Error al actualizar");
+      toast.error("Error al actualizar egreso");
     }
   }
 
@@ -113,9 +126,12 @@ export default function EditIncomeForm({
     <form onSubmit={handleSubmit(onSubmit)}>
       <FieldGroup>
         <Field>
-          <Label>Descripción</Label>
-          <Input {...register("description")} />
-          <FieldError errors={[errors.description]} />
+          <Label>Nombre</Label>
+          <Input
+            {...register("name")}
+            placeholder="Ej: Nafta viaje Montevideo"
+          />
+          <FieldError errors={[errors.name]} />
         </Field>
 
         <Field>
@@ -130,8 +146,8 @@ export default function EditIncomeForm({
 
         <Field>
           <Label>Fecha</Label>
-          <Input {...register("dateUtc")} type="date" />
-          <FieldError errors={[errors.dateUtc]} />
+          <Input {...register("date")} type="date" />
+          <FieldError errors={[errors.date]} />
         </Field>
 
         <Field>
@@ -171,7 +187,7 @@ export default function EditIncomeForm({
             control={control}
             render={({ field }) => (
               <Select
-                items={incomeTypeItems}
+                items={expenseTypeItems}
                 value={field.value}
                 onValueChange={(value) => field.onChange(value ?? "1")}
               >
@@ -180,7 +196,7 @@ export default function EditIncomeForm({
                 </SelectTrigger>
                 <SelectContent>
                   <SelectGroup>
-                    {incomeTypeItems.map((item) => (
+                    {expenseTypeItems.map((item) => (
                       <SelectItem key={item.value} value={item.value}>
                         {item.label}
                       </SelectItem>
@@ -192,33 +208,35 @@ export default function EditIncomeForm({
           />
         </Field>
 
-        <Field>
-          <Label>Moneda</Label>
-          <Controller
-            name="currency"
-            control={control}
-            render={({ field }) => (
-              <Select
-                items={currencyItems}
-                value={field.value}
-                onValueChange={(value) => field.onChange(value ?? "2")}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Seleccionar moneda" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectGroup>
-                    {currencyItems.map((item) => (
-                      <SelectItem key={item.value} value={item.value}>
-                        {item.label}
-                      </SelectItem>
-                    ))}
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
-            )}
-          />
-        </Field>
+        {isFuelType && (
+          <>
+            <Field>
+              <Label>Kilómetros</Label>
+              <Input
+                {...register("kilometers", {
+                  setValueAs: (v) => (v === "" ? null : parseFloat(v)),
+                })}
+                type="number"
+                step="0.01"
+                placeholder="Opcional"
+              />
+              <FieldError errors={[errors.kilometers]} />
+            </Field>
+
+            <Field>
+              <Label>Litros</Label>
+              <Input
+                {...register("liters", {
+                  setValueAs: (v) => (v === "" ? null : parseFloat(v)),
+                })}
+                type="number"
+                step="0.01"
+                placeholder="Opcional"
+              />
+              <FieldError errors={[errors.liters]} />
+            </Field>
+          </>
+        )}
       </FieldGroup>
 
       <Button className="mt-4 w-full" type="submit" disabled={isSubmitting}>

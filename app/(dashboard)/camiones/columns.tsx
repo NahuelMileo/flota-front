@@ -2,6 +2,7 @@
 import { ColumnDef } from "@tanstack/react-table"
 import { Button } from "@/components/ui/button"
 import { Pencil, Trash2 } from "lucide-react"
+import Link from "next/link"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -29,6 +30,11 @@ export function getColumns(
     {
       accessorKey: "licensePlate",
       header: "Matrícula",
+      cell: ({ row }) => (
+        <Link href={`/camiones/${row.original.id}`} className="font-medium hover:underline">
+          {row.getValue("licensePlate")}
+        </Link>
+      ),
     },
     {
       accessorKey: "model",
@@ -40,6 +46,7 @@ export function getColumns(
     },
     {
       id: "actions",
+      enableSorting: false,
       cell: ({ row }) => {
         const truck = row.original
         return (

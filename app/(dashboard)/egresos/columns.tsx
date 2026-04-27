@@ -15,52 +15,64 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 
-export type Income = {
+export type Expense = {
   id: string;
-  description: string;
+  date: string;
+  type: number;
   value: number;
-  truckId: string;
+  truckId: string | null;
   truckLicensePlate: string | null;
-  dateUtc: string;
-  type: string;
-  currency: number; // 1 = USD, 2 = BRL
-  tripId?: string | null;
+  name: string | null;
+  kilometers: number | null;
+  liters: number | null;
+};
+
+export const expenseTypeLabels: Record<number, string> = {
+  1: "Gasoil",
+  2: "Arla 32",
+  3: "Mantenimiento",
+  4: "Gomería",
+  5: "Aceite",
+  6: "Estacionamiento",
+  7: "Peaje",
+  8: "Salario",
+  9: "Contador",
+  10: "Financiamiento",
+  11: "Otro",
 };
 
 export function getColumns(
-  onEdit: (income: Income) => void,
-  onDelete: (income: Income) => void,
-): ColumnDef<Income>[] {
+  onEdit: (expense: Expense) => void,
+  onDelete: (expense: Expense) => void,
+): ColumnDef<Expense>[] {
   return [
     {
-      accessorKey: "description",
-      header: "Descripción",
+      accessorKey: "name",
+      header: "Nombre",
+      cell: ({ row }) => {
+        const name = row.getValue("name") as string | null;
+        if (!name) return <span className="text-muted-foreground">—</span>;
+        return name;
+      },
+    },
+    {
+      accessorKey: "type",
+      header: "Tipo",
+      cell: ({ row }) => {
+        const type = row.getValue("type") as number;
+        return <Badge variant="outline">{expenseTypeLabels[type] ?? "Desconocido"}</Badge>;
+      },
     },
     {
       accessorKey: "value",
       header: "Valor",
       cell: ({ row }) => {
         const value: number = row.getValue("value");
-        const currency: number = row.original.currency;
-        const currencyCode = currency === 1 ? "USD" : "BRL";
-        const locale = currency === 1 ? "en-US" : "pt-BR";
-        return new Intl.NumberFormat(locale, {
+        return new Intl.NumberFormat("pt-BR", {
           style: "currency",
-          currency: currencyCode,
+          currency: "BRL",
           maximumFractionDigits: 0,
         }).format(value);
-      },
-    },
-    {
-      accessorKey: "currency",
-      header: "Moneda",
-      cell: ({ row }) => {
-        const currency: number = row.getValue("currency");
-        return (
-          <Badge variant="outline" className={currency === 1 ? "text-blue-600 border-blue-300 bg-blue-50" : "text-green-600 border-green-300 bg-green-50"}>
-            {currency === 1 ? "USD" : "BRL"}
-          </Badge>
-        );
       },
     },
     {
@@ -73,31 +85,39 @@ export function getColumns(
       },
     },
     {
-      accessorKey: "dateUtc",
+      accessorKey: "date",
       header: "Fecha",
       cell: ({ row }) => {
-        const date: string = row.getValue("dateUtc");
+        const date: string = row.getValue("date");
         return new Date(date + "T00:00:00").toLocaleDateString("es-UY");
       },
     },
     {
-      accessorKey: "type",
-      header: "Tipo",
+      accessorKey: "kilometers",
+      header: "Km",
       cell: ({ row }) => {
-        const type = row.getValue("type") as string;
-        if (type == "1") return <Badge variant="outline" className="text-green-400 border-green-400 bg-green-100">Flete</Badge>;
-        if (type == "2") return <Badge variant="outline">Otro</Badge>;
-        return <Badge variant="outline">Sin identificar</Badge>;
+        const km = row.getValue("kilometers") as number | null;
+        if (km == null) return <span className="text-muted-foreground">—</span>;
+        return km.toLocaleString("es-UY");
+      },
+    },
+    {
+      accessorKey: "liters",
+      header: "Litros",
+      cell: ({ row }) => {
+        const liters = row.getValue("liters") as number | null;
+        if (liters == null) return <span className="text-muted-foreground">—</span>;
+        return liters.toLocaleString("es-UY");
       },
     },
     {
       id: "actions",
       enableSorting: false,
       cell: ({ row }) => {
-        const income = row.original;
+        const expense = row.original;
         return (
-          <div key={income.id} className="flex gap-2 justify-end">
-            <Button variant="ghost" size="icon" onClick={() => onEdit(income)}>
+          <div key={expense.id} className="flex gap-2 justify-end">
+            <Button variant="ghost" size="icon" onClick={() => onEdit(expense)}>
               <Pencil className="h-4 w-4" />
             </Button>
 
@@ -111,15 +131,15 @@ export function getColumns(
               />
               <AlertDialogContent size="sm">
                 <AlertDialogHeader>
-                  <AlertDialogTitle>¿Eliminar ingreso?</AlertDialogTitle>
+                  <AlertDialogTitle>¿Eliminar egreso?</AlertDialogTitle>
                   <AlertDialogDescription>
-                    Esta acción no se puede deshacer. Se eliminará el ingreso{" "}
+                    Esta acción no se puede deshacer. Se eliminará el egreso{" "}
                     <span className="font-medium text-foreground">
-                      {income.description}
+                      {expense.name ?? expenseTypeLabels[expense.type]}
                     </span>{" "}
                     por valor de{" "}
                     <span className="font-medium text-foreground">
-                      {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 }).format(income.value)}
+                      {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 }).format(expense.value)}
                     </span>{" "}
                     de tu registro.
                   </AlertDialogDescription>
@@ -128,7 +148,7 @@ export function getColumns(
                   <AlertDialogCancel>Cancelar</AlertDialogCancel>
                   <AlertDialogAction
                     variant="destructive"
-                    onClick={() => onDelete(income)}
+                    onClick={() => onDelete(expense)}
                   >
                     Eliminar
                   </AlertDialogAction>

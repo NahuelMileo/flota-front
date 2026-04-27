@@ -2,6 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { DataTable } from "./data-table";
 import {
   Dialog,
@@ -13,12 +14,10 @@ import {
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { fetchWithAuth } from "@/lib/api";
-import { getColumns, Income } from "./columns";
-import { TotalIncomeCard } from "@/components/total-income-card";
-import { IncomeByTruckChart } from "@/components/income-by-truck-chart";
+import { getColumns, Trip } from "./columns";
 import { useDateFilter } from "@/context/date-filter-context";
-import AddIncomeForm from "./AddIncomeForm";
-import EditIncomeForm from "./EditIncomeForm";
+import AddTripForm from "./AddTripForm";
+import EditTripForm from "./EditTripForm";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Select,
@@ -35,10 +34,12 @@ type Truck = {
   model?: string;
 };
 
-const incomeTypeItems = [
-  { label: "Todos los tipos", value: "all" },
-  { label: "Flete", value: "1" },
-  { label: "Otro", value: "2" },
+const tripStatusItems = [
+  { label: "Todos los estados", value: "all" },
+  { label: "Programado", value: "1" },
+  { label: "En progreso", value: "2" },
+  { label: "Completado", value: "3" },
+  { label: "Cancelado", value: "4" },
 ];
 
 function TableSkeleton() {
@@ -53,22 +54,23 @@ function TableSkeleton() {
   );
 }
 
-export default function IncomePage() {
-  const [incomes, setIncomes] = useState<Income[]>([]);
+export default function TripsPage() {
+  const router = useRouter();
+  const [trips, setTrips] = useState<Trip[]>([]);
   const [trucks, setTrucks] = useState<Truck[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-  const [editingIncome, setEditingIncome] = useState<Income | null>(null);
+  const [editingTrip, setEditingTrip] = useState<Trip | null>(null);
 
   const [selectedTruckId, setSelectedTruckId] = useState<string | null>(null);
-  const [selectedTypeFilter, setSelectedTypeFilter] = useState<string | null>(null);
+  const [selectedStatus, setSelectedStatus] = useState<string | null>(null);
 
   const { selectedDate } = useDateFilter();
 
   // ================= FETCH =================
   useEffect(() => {
-    fetchIncomes();
+    fetchTrips();
     fetchTrucks();
   }, []);
 
@@ -86,110 +88,80 @@ export default function IncomePage() {
     }
   };
 
-  const fetchIncomes = async () => {
+  const fetchTrips = async () => {
     setIsLoading(true);
     try {
       const res = await fetchWithAuth(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/incomes`,
+        `${process.env.NEXT_PUBLIC_API_URL}/api/trips`,
         { method: "GET" }
       );
       if (!res.ok) throw new Error();
       const data = await res.json();
-      setIncomes(data);
+      setTrips(data);
     } catch {
-      toast.error("Error al cargar ingresos", { position: "bottom-right", richColors: true });
+      toast.error("Error al cargar viajes", { position: "bottom-right", richColors: true });
     } finally {
       setIsLoading(false);
     }
   };
 
   // ================= DERIVADOS =================
-  const filteredIncomes = useMemo(() => {
-    return incomes.filter((income) => {
+  const filteredTrips = useMemo(() => {
+    return trips.filter((trip) => {
       if (selectedDate) {
-        const date = new Date(income.dateUtc);
+        const date = new Date(trip.departureDate);
         if (
           date.getMonth() !== selectedDate.getMonth() ||
           date.getFullYear() !== selectedDate.getFullYear()
         )
           return false;
       }
-      if (selectedTruckId && income.truckId !== selectedTruckId) return false;
-      if (selectedTypeFilter !== null && String(income.type) !== selectedTypeFilter)
+      if (selectedTruckId && trip.truckId !== selectedTruckId) return false;
+      if (selectedStatus !== null && String(trip.status) !== selectedStatus)
         return false;
       return true;
     });
-  }, [incomes, selectedDate, selectedTruckId, selectedTypeFilter]);
+  }, [trips, selectedDate, selectedTruckId, selectedStatus]);
 
-  const total = useMemo(
-    () => filteredIncomes.reduce((acc, i) => acc + i.value, 0),
-    [filteredIncomes]
+  const totalTrips = useMemo(() => filteredTrips.length, [filteredTrips]);
+  const totalKm = useMemo(
+    () => filteredTrips.reduce((acc, t) => acc + (t.kilometers ?? 0), 0),
+    [filteredTrips]
   );
 
-  const previousMonthTotal = useMemo(() => {
-    if (!selectedDate) return 0;
-
-    const prevMonth = new Date(
-      selectedDate.getFullYear(),
-      selectedDate.getMonth() - 1
-    );
-
-    return incomes
-      .filter((income) => {
-        const date = new Date(income.dateUtc);
-        if (
-          date.getMonth() !== prevMonth.getMonth() ||
-          date.getFullYear() !== prevMonth.getFullYear()
-        )
-          return false;
-        if (selectedTruckId && income.truckId !== selectedTruckId) return false;
-        if (selectedTypeFilter !== null && String(income.type) !== selectedTypeFilter)
-          return false;
-        return true;
-      })
-      .reduce((acc, i) => acc + i.value, 0);
-  }, [incomes, selectedDate, selectedTruckId, selectedTypeFilter]);
-
-  const variation = useMemo(() => {
-    if (previousMonthTotal === 0) return undefined;
-    return Math.round(((total - previousMonthTotal) / previousMonthTotal) * 100);
-  }, [total, previousMonthTotal]);
-
   // ================= CRUD =================
-  const handleAddIncome = (newIncome: Income) => {
-    setIncomes((prev) => [...prev, newIncome]);
+  const handleAddTrip = (newTrip: Trip) => {
+    setTrips((prev) => [...prev, newTrip]);
     setIsAddDialogOpen(false);
   };
 
-  const handleUpdateIncome = (updated: Income) => {
-    setIncomes((prev) =>
-      prev.map((i) => (i.id === updated.id ? updated : i))
-    );
-    setEditingIncome(null);
+  const handleUpdateTrip = (updated: Trip) => {
+    setTrips((prev) => prev.map((t) => (t.id === updated.id ? updated : t)));
+    setEditingTrip(null);
   };
 
-  const handleDeleteIncome = useCallback(async (income: Income) => {
+  const handleDeleteTrip = useCallback(async (trip: Trip) => {
     try {
       const res = await fetchWithAuth(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/incomes/${income.id}`,
+        `${process.env.NEXT_PUBLIC_API_URL}/api/trips/${trip.id}`,
         { method: "DELETE" }
       );
       if (!res.ok) throw new Error();
 
-      setIncomes((prev) => prev.filter((i) => i.id !== income.id));
-      toast.success("Ingreso eliminado", { position: "bottom-right", richColors: true });
+      setTrips((prev) => prev.filter((t) => t.id !== trip.id));
+      toast.success("Viaje eliminado", { position: "bottom-right", richColors: true });
     } catch {
-      toast.error("Error al eliminar ingreso", { position: "bottom-right", richColors: true });
+      toast.error("Error al eliminar viaje", { position: "bottom-right", richColors: true });
     }
   }, []);
 
   const columns = useMemo(
-    () =>
-      getColumns(
-        (income) => setEditingIncome(income),
-        handleDeleteIncome
-      ),
-    [handleDeleteIncome]
+    () => getColumns(
+      (trip) => router.push(`/trips/${trip.id}`),
+      (trip) => setEditingTrip(trip),
+      handleDeleteTrip
+    ),
+    [handleDeleteTrip, router]
   );
 
   // ================= FILTER OPTIONS =================
@@ -208,23 +180,23 @@ export default function IncomePage() {
   return (
     <div className="p-6 flex flex-col gap-4">
       <div className="flex justify-between">
-        <h1 className="text-xl font-bold">Ingresos</h1>
+        <h1 className="text-xl font-bold">Viajes</h1>
 
         <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-          <DialogTrigger render={<Button variant="outline">Añadir ingreso</Button>}>
+          <DialogTrigger render={<Button variant="outline">Añadir viaje</Button>}>
           </DialogTrigger>
 
           <DialogContent className="sm:max-w-sm">
             <DialogHeader>
-              <DialogTitle>Agregar ingreso</DialogTitle>
+              <DialogTitle>Agregar viaje</DialogTitle>
               <DialogDescription>
-                Registrá un nuevo ingreso.
+                Registrá un nuevo viaje.
               </DialogDescription>
             </DialogHeader>
 
-            <AddIncomeForm
+            <AddTripForm
               trucks={trucks}
-              onSuccess={handleAddIncome}
+              onSuccess={handleAddTrip}
             />
           </DialogContent>
         </Dialog>
@@ -254,18 +226,18 @@ export default function IncomePage() {
         </Select>
 
         <Select
-          items={incomeTypeItems}
-          value={selectedTypeFilter ?? "all"}
+          items={tripStatusItems}
+          value={selectedStatus ?? "all"}
           onValueChange={(value) =>
-            setSelectedTypeFilter(value === "all" ? null : value)
+            setSelectedStatus(value === "all" ? null : value)
           }
         >
           <SelectTrigger className="w-48">
-            <SelectValue placeholder="Todos los tipos" />
+            <SelectValue placeholder="Todos los estados" />
           </SelectTrigger>
           <SelectContent>
             <SelectGroup>
-              {incomeTypeItems.map((item) => (
+              {tripStatusItems.map((item) => (
                 <SelectItem key={item.value} value={item.value}>
                   {item.label}
                 </SelectItem>
@@ -275,25 +247,31 @@ export default function IncomePage() {
         </Select>
       </div>
 
-      {/* CARD */}
-      <TotalIncomeCard total={total} variation={variation} />
-
-      {/* CHART */}
-      <IncomeByTruckChart incomes={filteredIncomes} />
+      {/* STATS CARDS */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="rounded-lg border p-4">
+          <p className="text-sm text-muted-foreground">Total de viajes</p>
+          <p className="text-2xl font-bold">{totalTrips}</p>
+        </div>
+        <div className="rounded-lg border p-4">
+          <p className="text-sm text-muted-foreground">Kilómetros totales</p>
+          <p className="text-2xl font-bold">{totalKm.toLocaleString("es-UY")} km</p>
+        </div>
+      </div>
 
       {/* EDIT DIALOG */}
       <Dialog
-        open={!!editingIncome}
+        open={!!editingTrip}
         onOpenChange={(open) => {
-          if (!open) setEditingIncome(null);
+          if (!open) setEditingTrip(null);
         }}
       >
         <DialogContent className="sm:max-w-sm">
-          {editingIncome && (
-            <EditIncomeForm
-              income={editingIncome}
+          {editingTrip && (
+            <EditTripForm
+              trip={editingTrip}
               trucks={trucks}
-              onSuccess={handleUpdateIncome}
+              onSuccess={handleUpdateTrip}
             />
           )}
         </DialogContent>
@@ -304,17 +282,9 @@ export default function IncomePage() {
       ) : (
         <DataTable
           columns={columns}
-          data={filteredIncomes}
-          emptyMessage="No hay ingresos para el período seleccionado."
-          searchPlaceholder="Buscar ingreso..."
-          csvFilename="ingresos"
-          csvHeaders={[
-            { key: "description", label: "Descripción" },
-            { key: "value", label: "Valor" },
-            { key: "truckLicensePlate", label: "Camión" },
-            { key: "dateUtc", label: "Fecha" },
-            { key: "type", label: "Tipo" },
-          ]}
+          data={filteredTrips}
+          emptyMessage="No hay viajes para el período seleccionado."
+          searchPlaceholder="Buscar viaje..."
         />
       )}
     </div>

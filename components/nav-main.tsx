@@ -7,6 +7,7 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  useSidebar,
 } from "@/components/ui/sidebar"
 import { usePathname } from "next/navigation"
 
@@ -21,6 +22,7 @@ export function NavMain({
 }) {
 
   const pathname = usePathname();
+  const { setOpenMobile } = useSidebar();
   return (
     <SidebarGroup>
       <SidebarGroupContent className="flex flex-col gap-2">
@@ -29,7 +31,7 @@ export function NavMain({
         <SidebarMenu>
           {items.map((item) => (
             <SidebarMenuItem key={item.title}>
-              <SidebarMenuButton tooltip={item.title} render={<Link href={item.url}/>} isActive={pathname === item.url}>
+              <SidebarMenuButton tooltip={item.title} render={<Link href={item.url} onClick={() => setOpenMobile(false)}/>} isActive={pathname === item.url}>
                 {item.icon}
                 <span>{item.title}</span>
               </SidebarMenuButton>
