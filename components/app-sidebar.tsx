@@ -20,6 +20,7 @@ import {
   DollarSign,
   BanknoteArrowDown,
   MapPin,
+  ReceiptIcon,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
@@ -62,10 +63,15 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         icon: <DollarSign />,
       },
       {
-        title:"Egresos",
-        url:"/egresos",
-        icon:<BanknoteArrowDown/>
-      }
+        title: "Egresos",
+        url: "/egresos",
+        icon: <BanknoteArrowDown />,
+      },
+      {
+        title: "Costos fijos",
+        url: "/costos",
+        icon: <ReceiptIcon />,
+      },
     ],
   };
   return (

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { fetchWithAuth } from "@/lib/api";
 import { toast } from "sonner";
+import { getExpenseTypeLabel } from "@/lib/expense-types";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Edit2, Trash2 } from "lucide-react";
 import {
@@ -53,7 +54,7 @@ type Income = {
 type Expense = {
   id: string;
   date: string;
-  type: number;
+  type: number | string;
   value: number;
   truckId: string | null;
   truckLicensePlate: string | null;
@@ -72,18 +73,18 @@ type TripDetail = Trip & {
   costPerKm: number | null;
 };
 
-const tripStatusLabels: Record<number, string> = {
-  1: "Programado",
-  2: "En progreso",
-  3: "Completado",
-  4: "Cancelado",
+const tripStatusLabels: Record<string, string> = {
+  Scheduled: "Programado",
+  InProgress: "En progreso",
+  Completed: "Completado",
+  Cancelled: "Cancelado",
 };
 
-const tripStatusColorMap: Record<number, string> = {
-  1: "bg-yellow-100 text-yellow-800 border-yellow-300",
-  2: "bg-blue-100 text-blue-800 border-blue-300",
-  3: "bg-green-100 text-green-800 border-green-300",
-  4: "bg-red-100 text-red-800 border-red-300",
+const tripStatusColorMap: Record<string, string> = {
+  Scheduled: "bg-yellow-100 text-yellow-800 border-yellow-300",
+  InProgress: "bg-blue-100 text-blue-800 border-blue-300",
+  Completed: "bg-green-100 text-green-800 border-green-300",
+  Cancelled: "bg-red-100 text-red-800 border-red-300",
 };
 
 export default function TripDetailPage() {
@@ -266,7 +267,7 @@ export default function TripDetailPage() {
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">Llegada:</span>
-              <span className="font-medium">{new Date(trip.arrivalDate).toLocaleDateString("es-UY")}</span>
+              <span className="font-medium">{trip.arrivalDate ? new Date(trip.arrivalDate).toLocaleDateString("es-UY") : <span className="text-muted-foreground">—</span>}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">Camión:</span>
@@ -445,13 +446,9 @@ export default function TripDetailPage() {
 
       {/* Breakdown de egresos por categoría */}
       {trip.expenses.length > 0 && (() => {
-        const expenseTypeLabels: Record<number, string> = {
-          1: "Gasoil", 2: "Arla 32", 3: "Mantenimiento", 4: "Gomería",
-          5: "Aceite", 6: "Estacionamiento", 7: "Peaje", 8: "Salario",
-          9: "Contador", 10: "Financiamiento", 11: "Otro",
-        };
-        const breakdown = trip.expenses.reduce<Record<number, number>>((acc, e) => {
-          acc[e.type] = (acc[e.type] ?? 0) + e.value;
+        const breakdown = trip.expenses.reduce<Record<string, number>>((acc, e) => {
+          const key = String(e.type)
+          acc[key] = (acc[key] ?? 0) + e.value;
           return acc;
         }, {});
         const sorted = Object.entries(breakdown).sort(([, a], [, b]) => b - a);
@@ -461,7 +458,7 @@ export default function TripDetailPage() {
             <div className="space-y-2 text-sm">
               {sorted.map(([type, total]) => (
                 <div key={type} className="flex justify-between items-center">
-                  <span className="text-muted-foreground">{expenseTypeLabels[Number(type)] ?? "Otro"}</span>
+                  <span className="text-muted-foreground">{getExpenseTypeLabel(type)}</span>
                   <div className="flex items-center gap-3">
                     <span className="text-xs text-muted-foreground">
                       {Math.round((total / trip.totalExpense) * 100)}%

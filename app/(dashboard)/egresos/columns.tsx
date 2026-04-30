@@ -14,11 +14,14 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
+import { expenseTypeLabels, getExpenseTypeLabel } from "@/lib/expense-types";
+
+export { expenseTypeLabels };
 
 export type Expense = {
   id: string;
   date: string;
-  type: number;
+  type: number | string;
   value: number;
   truckId: string | null;
   truckLicensePlate: string | null;
@@ -27,19 +30,6 @@ export type Expense = {
   liters: number | null;
 };
 
-export const expenseTypeLabels: Record<number, string> = {
-  1: "Gasoil",
-  2: "Arla 32",
-  3: "Mantenimiento",
-  4: "Gomería",
-  5: "Aceite",
-  6: "Estacionamiento",
-  7: "Peaje",
-  8: "Salario",
-  9: "Contador",
-  10: "Financiamiento",
-  11: "Otro",
-};
 
 export function getColumns(
   onEdit: (expense: Expense) => void,
@@ -59,8 +49,8 @@ export function getColumns(
       accessorKey: "type",
       header: "Tipo",
       cell: ({ row }) => {
-        const type = row.getValue("type") as number;
-        return <Badge variant="outline">{expenseTypeLabels[type] ?? "Desconocido"}</Badge>;
+        const type = row.getValue("type") as number | string;
+        return <Badge variant="outline">{getExpenseTypeLabel(type)}</Badge>;
       },
     },
     {
@@ -135,7 +125,7 @@ export function getColumns(
                   <AlertDialogDescription>
                     Esta acción no se puede deshacer. Se eliminará el egreso{" "}
                     <span className="font-medium text-foreground">
-                      {expense.name ?? expenseTypeLabels[expense.type]}
+                      {expense.name ?? getExpenseTypeLabel(expense.type)}
                     </span>{" "}
                     por valor de{" "}
                     <span className="font-medium text-foreground">

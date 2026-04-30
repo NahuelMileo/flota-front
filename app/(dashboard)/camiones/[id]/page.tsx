@@ -1,47 +1,49 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
 import Link from "next/link"
 import { fetchWithAuth } from "@/lib/api"
 import { toast } from "sonner"
-import { ArrowLeft } from "lucide-react"
+import { ArrowLeft, Eye, Pencil, Trash2 } from "lucide-react"
+import { useDateFilter } from "@/context/date-filter-context"
 import { TotalIncomeCard } from "@/components/total-income-card"
 import { TotalExpenseCard } from "@/components/total-expense-card"
 import { NetBalanceCard } from "@/components/net-balance-card"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { DataTable } from "../data-table"
 import { ColumnDef } from "@tanstack/react-table"
+import { getExpenseTypeLabel } from "@/lib/expense-types"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import EditIncomeForm from "@/app/(dashboard)/ingresos/EditIncomeForm"
+import EditExpenseForm from "@/app/(dashboard)/egresos/EditExpenseForm"
+import type { Income } from "@/app/(dashboard)/ingresos/columns"
+import type { Expense } from "@/app/(dashboard)/egresos/columns"
 
 type Truck = {
   id: string
   licensePlate: string
   model: string
   year: number
-}
-
-type Income = {
-  id: string
-  description: string
-  value: number
-  truckId: string
-  truckLicensePlate: string | null
-  dateUtc: string
-  type: string
-}
-
-type Expense = {
-  id: string
-  date: string
-  type: number
-  value: number
-  truckId: string | null
-  truckLicensePlate: string | null
-  name: string | null
-  kilometers: number | null
-  liters: number | null
 }
 
 type Trip = {
@@ -54,25 +56,22 @@ type Trip = {
   truckLicensePlate: string
   driverName: string | null
   kilometers: number | null
-  status: number
+  status: string
   notes: string | null
 }
 
-const tripStatusLabels: Record<number, string> = {
-  1: "Programado", 2: "En progreso", 3: "Completado", 4: "Cancelado",
+const tripStatusLabels: Record<string, string> = {
+  Scheduled: "Programado",
+  InProgress: "En progreso",
+  Completed: "Completado",
+  Cancelled: "Cancelado",
 }
 
-const tripStatusColorMap: Record<number, string> = {
-  1: "bg-yellow-100 text-yellow-800 border-yellow-300",
-  2: "bg-blue-100 text-blue-800 border-blue-300",
-  3: "bg-green-100 text-green-800 border-green-300",
-  4: "bg-red-100 text-red-800 border-red-300",
-}
-
-const expenseTypeLabels: Record<number, string> = {
-  1: "Gasoil", 2: "Arla 32", 3: "Mantenimiento", 4: "Gomería",
-  5: "Aceite", 6: "Estacionamiento", 7: "Peaje", 8: "Salario",
-  9: "Contador", 10: "Financiamiento", 11: "Otro",
+const tripStatusColorMap: Record<string, string> = {
+  Scheduled: "bg-yellow-100 text-yellow-800 border-yellow-300",
+  InProgress: "bg-blue-100 text-blue-800 border-blue-300",
+  Completed: "bg-green-100 text-green-800 border-green-300",
+  Cancelled: "bg-red-100 text-red-800 border-red-300",
 }
 
 function formatBRL(value: number) {
@@ -97,100 +96,199 @@ function MetricCard({ title, value, subtitle }: { title: string; value: string; 
   )
 }
 
-const tripColumns: ColumnDef<Trip>[] = [
-  {
-    accessorKey: "departureDate",
-    header: "Salida",
-    cell: ({ row }) => new Date(row.getValue("departureDate")).toLocaleDateString("es-UY"),
-  },
-  {
-    id: "route",
-    header: "Ruta",
-    cell: ({ row }) => `${row.original.origin} → ${row.original.destination}`,
-  },
-  {
-    accessorKey: "driverName",
-    header: "Chofer",
-    cell: ({ row }) => row.getValue("driverName") ?? <span className="text-muted-foreground">—</span>,
-  },
-  {
-    accessorKey: "kilometers",
-    header: "Km",
-    cell: ({ row }) => {
-      const km = row.getValue("kilometers") as number | null
-      return km != null ? `${km.toLocaleString("es-UY")} km` : <span className="text-muted-foreground">—</span>
+function buildTripColumns(): ColumnDef<Trip>[] {
+  return [
+    {
+      accessorKey: "departureDate",
+      header: "Salida",
+      cell: ({ row }) => new Date(row.getValue("departureDate")).toLocaleDateString("es-UY"),
     },
-  },
-  {
-    accessorKey: "status",
-    header: "Estado",
-    cell: ({ row }) => {
-      const status = row.getValue("status") as number
-      return (
-        <Badge variant="outline" className={tripStatusColorMap[status] || "bg-gray-100 text-gray-800 border-gray-300"}>
-          {tripStatusLabels[status] || "Desconocido"}
-        </Badge>
-      )
+    {
+      id: "route",
+      header: "Ruta",
+      cell: ({ row }) => `${row.original.origin} → ${row.original.destination}`,
     },
-  },
-]
+    {
+      accessorKey: "driverName",
+      header: "Chofer",
+      cell: ({ row }) => row.getValue("driverName") ?? <span className="text-muted-foreground">—</span>,
+    },
+    {
+      accessorKey: "kilometers",
+      header: "Km",
+      cell: ({ row }) => {
+        const km = row.getValue("kilometers") as number | null
+        return km != null ? `${km.toLocaleString("es-UY")} km` : <span className="text-muted-foreground">—</span>
+      },
+    },
+    {
+      accessorKey: "status",
+      header: "Estado",
+      cell: ({ row }) => {
+        const status = row.getValue("status") as string
+        return (
+          <Badge variant="outline" className={tripStatusColorMap[status] || "bg-gray-100 text-gray-800 border-gray-300"}>
+            {tripStatusLabels[status] || "Desconocido"}
+          </Badge>
+        )
+      },
+    },
+    {
+      id: "actions",
+      enableSorting: false,
+      cell: ({ row }) => (
+        <div className="flex justify-end">
+          <Link href={`/trips/${row.original.id}`}>
+            <Button variant="ghost" size="icon">
+              <Eye className="h-4 w-4" />
+            </Button>
+          </Link>
+        </div>
+      ),
+    },
+  ]
+}
 
-const incomeColumns: ColumnDef<Income>[] = [
-  { accessorKey: "description", header: "Descripción" },
-  {
-    accessorKey: "value",
-    header: "Valor",
-    cell: ({ row }) => formatBRL(row.getValue("value")),
-  },
-  {
-    accessorKey: "type",
-    header: "Tipo",
-    cell: ({ row }) => {
-      const type = row.getValue("type") as string
-      return type === "1"
-        ? <Badge variant="outline" className="text-green-400 border-green-400 bg-green-100">Flete</Badge>
-        : <Badge variant="outline">Otro</Badge>
+function buildIncomeColumns(
+  onEdit: (income: Income) => void,
+  onDelete: (income: Income) => void,
+): ColumnDef<Income>[] {
+  return [
+    { accessorKey: "description", header: "Descripción" },
+    {
+      accessorKey: "value",
+      header: "Valor",
+      cell: ({ row }) => formatBRL(row.getValue("value")),
     },
-  },
-  {
-    accessorKey: "dateUtc",
-    header: "Fecha",
-    cell: ({ row }) => new Date(row.getValue("dateUtc")).toLocaleDateString("es-UY"),
-  },
-]
+    {
+      accessorKey: "type",
+      header: "Tipo",
+      cell: ({ row }) => {
+        const type = row.getValue("type") as string
+        return type === "1"
+          ? <Badge variant="outline" className="text-green-400 border-green-400 bg-green-100">Flete</Badge>
+          : <Badge variant="outline">Otro</Badge>
+      },
+    },
+    {
+      accessorKey: "dateUtc",
+      header: "Fecha",
+      cell: ({ row }) => new Date(row.getValue("dateUtc")).toLocaleDateString("es-UY"),
+    },
+    {
+      id: "actions",
+      enableSorting: false,
+      cell: ({ row }) => {
+        const income = row.original
+        return (
+          <div className="flex gap-1 justify-end">
+            <Button variant="ghost" size="icon" onClick={() => onEdit(income)}>
+              <Pencil className="h-4 w-4" />
+            </Button>
+            <AlertDialog>
+              <AlertDialogTrigger render={
+                <Button variant="ghost" size="icon">
+                  <Trash2 className="h-4 w-4 text-destructive" />
+                </Button>
+              } />
+              <AlertDialogContent size="sm">
+                <AlertDialogHeader>
+                  <AlertDialogTitle>¿Eliminar ingreso?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Esta acción no se puede deshacer. Se eliminará{" "}
+                    <span className="font-medium text-foreground">{income.description}</span>.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                  <AlertDialogAction variant="destructive" onClick={() => onDelete(income)}>
+                    Eliminar
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </div>
+        )
+      },
+    },
+  ]
+}
 
-const expenseColumns: ColumnDef<Expense>[] = [
-  {
-    accessorKey: "name",
-    header: "Nombre",
-    cell: ({ row }) => row.getValue("name") ?? <span className="text-muted-foreground">—</span>,
-  },
-  {
-    accessorKey: "type",
-    header: "Tipo",
-    cell: ({ row }) => (
-      <Badge variant="outline">{expenseTypeLabels[row.getValue("type") as number] ?? "Desconocido"}</Badge>
-    ),
-  },
-  {
-    accessorKey: "value",
-    header: "Valor",
-    cell: ({ row }) => formatBRL(row.getValue("value")),
-  },
-  {
-    accessorKey: "date",
-    header: "Fecha",
-    cell: ({ row }) => new Date((row.getValue("date") as string) + "T00:00:00").toLocaleDateString("es-UY"),
-  },
-  {
-    accessorKey: "kilometers",
-    header: "Km",
-    cell: ({ row }) => {
-      const km = row.getValue("kilometers") as number | null
-      return km != null ? km.toLocaleString("es-UY") : <span className="text-muted-foreground">—</span>
+function buildExpenseColumns(
+  onEdit: (expense: Expense) => void,
+  onDelete: (expense: Expense) => void,
+): ColumnDef<Expense>[] {
+  return [
+    {
+      accessorKey: "name",
+      header: "Nombre",
+      cell: ({ row }) => row.getValue("name") ?? <span className="text-muted-foreground">—</span>,
     },
-  },
-]
+    {
+      accessorKey: "type",
+      header: "Tipo",
+      cell: ({ row }) => (
+        <Badge variant="outline">{getExpenseTypeLabel(row.getValue("type") as number | string)}</Badge>
+      ),
+    },
+    {
+      accessorKey: "value",
+      header: "Valor",
+      cell: ({ row }) => formatBRL(row.getValue("value")),
+    },
+    {
+      accessorKey: "date",
+      header: "Fecha",
+      cell: ({ row }) => new Date((row.getValue("date") as string) + "T00:00:00").toLocaleDateString("es-UY"),
+    },
+    {
+      accessorKey: "kilometers",
+      header: "Km",
+      cell: ({ row }) => {
+        const km = row.getValue("kilometers") as number | null
+        return km != null ? km.toLocaleString("es-UY") : <span className="text-muted-foreground">—</span>
+      },
+    },
+    {
+      id: "actions",
+      enableSorting: false,
+      cell: ({ row }) => {
+        const expense = row.original
+        return (
+          <div className="flex gap-1 justify-end">
+            <Button variant="ghost" size="icon" onClick={() => onEdit(expense)}>
+              <Pencil className="h-4 w-4" />
+            </Button>
+            <AlertDialog>
+              <AlertDialogTrigger render={
+                <Button variant="ghost" size="icon">
+                  <Trash2 className="h-4 w-4 text-destructive" />
+                </Button>
+              } />
+              <AlertDialogContent size="sm">
+                <AlertDialogHeader>
+                  <AlertDialogTitle>¿Eliminar egreso?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Esta acción no se puede deshacer. Se eliminará{" "}
+                    <span className="font-medium text-foreground">
+                      {expense.name ?? getExpenseTypeLabel(expense.type)}
+                    </span>.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                  <AlertDialogAction variant="destructive" onClick={() => onDelete(expense)}>
+                    Eliminar
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </div>
+        )
+      },
+    },
+  ]
+}
 
 function CardSkeleton() {
   return <Skeleton className="h-24 w-full rounded-xl" />
@@ -199,39 +297,93 @@ function CardSkeleton() {
 export default function TruckDetailPage() {
   const { id } = useParams<{ id: string }>()
   const router = useRouter()
+  const { selectedDate } = useDateFilter()
   const [truck, setTruck] = useState<Truck | null>(null)
-  const [trips, setTrips] = useState<Trip[]>([])
-  const [incomes, setIncomes] = useState<Income[]>([])
-  const [expenses, setExpenses] = useState<Expense[]>([])
+  const [trucks, setTrucks] = useState<Truck[]>([])
+  const [allTrips, setAllTrips] = useState<Trip[]>([])
+  const [allIncomes, setAllIncomes] = useState<Income[]>([])
+  const [allExpenses, setAllExpenses] = useState<Expense[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [editingIncome, setEditingIncome] = useState<Income | null>(null)
+  const [editingExpense, setEditingExpense] = useState<Expense | null>(null)
 
   useEffect(() => {
     Promise.all([
-      fetchWithAuth(`${process.env.NEXT_PUBLIC_API_URL}/api/trucks/${id}`, { method: "GET" }),
-      fetchWithAuth(`${process.env.NEXT_PUBLIC_API_URL}/api/trips`, { method: "GET" }),
-      fetchWithAuth(`${process.env.NEXT_PUBLIC_API_URL}/api/incomes`, { method: "GET" }),
-      fetchWithAuth(`${process.env.NEXT_PUBLIC_API_URL}/api/expenses`, { method: "GET" }),
+      fetchWithAuth(`${process.env.NEXT_PUBLIC_API_URL}/api/trucks/${id}`),
+      fetchWithAuth(`${process.env.NEXT_PUBLIC_API_URL}/api/trucks`),
+      fetchWithAuth(`${process.env.NEXT_PUBLIC_API_URL}/api/trips`),
+      fetchWithAuth(`${process.env.NEXT_PUBLIC_API_URL}/api/incomes`),
+      fetchWithAuth(`${process.env.NEXT_PUBLIC_API_URL}/api/expenses`),
     ])
-      .then(async ([truckRes, tripsRes, incRes, expRes]) => {
-        if (!truckRes.ok) { router.push("/camiones"); return; }
-        if (!tripsRes.ok || !incRes.ok || !expRes.ok) throw new Error()
-        const [truckData, allTrips, allIncomes, allExpenses] = await Promise.all([
-          truckRes.json(), tripsRes.json(), incRes.json(), expRes.json(),
+      .then(async ([truckRes, trucksRes, tripsRes, incRes, expRes]) => {
+        if (!truckRes.ok) { router.push("/camiones"); return }
+        if (!trucksRes.ok || !tripsRes.ok || !incRes.ok || !expRes.ok) throw new Error()
+        const [truckData, trucksData, tripsData, incomesData, expensesData] = await Promise.all([
+          truckRes.json(), trucksRes.json(), tripsRes.json(), incRes.json(), expRes.json(),
         ])
         setTruck(truckData)
-        setTrips(allTrips.filter((t: Trip) => t.truckId === id))
-        setIncomes(allIncomes.filter((i: Income) => i.truckId === id))
-        setExpenses(allExpenses.filter((e: Expense) => e.truckId === id))
+        setTrucks(Array.isArray(trucksData) ? trucksData : [])
+        setAllTrips(tripsData.filter((t: Trip) => t.truckId === id))
+        setAllIncomes(incomesData.filter((i: Income) => i.truckId === id))
+        setAllExpenses(expensesData.filter((e: Expense) => e.truckId === id))
       })
       .catch(() => toast.error("Error al cargar datos del camión"))
       .finally(() => setIsLoading(false))
   }, [id, router])
+
+  const handleDeleteIncome = useCallback(async (income: Income) => {
+    const res = await fetchWithAuth(`${process.env.NEXT_PUBLIC_API_URL}/api/incomes/${income.id}`, { method: "DELETE" })
+    if (!res.ok) { toast.error("Error al eliminar ingreso"); return }
+    toast.success("Ingreso eliminado")
+    setAllIncomes((prev) => prev.filter((i) => i.id !== income.id))
+  }, [])
+
+  const handleDeleteExpense = useCallback(async (expense: Expense) => {
+    const res = await fetchWithAuth(`${process.env.NEXT_PUBLIC_API_URL}/api/expenses/${expense.id}`, { method: "DELETE" })
+    if (!res.ok) { toast.error("Error al eliminar egreso"); return }
+    toast.success("Egreso eliminado")
+    setAllExpenses((prev) => prev.filter((e) => e.id !== expense.id))
+  }, [])
+
+  const trips = useMemo(() => {
+    if (!selectedDate) return allTrips
+    return allTrips.filter((t) => {
+      const d = new Date(t.departureDate)
+      return d.getMonth() === selectedDate.getMonth() && d.getFullYear() === selectedDate.getFullYear()
+    })
+  }, [allTrips, selectedDate])
+
+  const incomes = useMemo(() => {
+    if (!selectedDate) return allIncomes
+    return allIncomes.filter((i) => {
+      const d = new Date(i.dateUtc)
+      return d.getMonth() === selectedDate.getMonth() && d.getFullYear() === selectedDate.getFullYear()
+    })
+  }, [allIncomes, selectedDate])
+
+  const expenses = useMemo(() => {
+    if (!selectedDate) return allExpenses
+    return allExpenses.filter((e) => {
+      const d = new Date(e.date + "T00:00:00")
+      return d.getMonth() === selectedDate.getMonth() && d.getFullYear() === selectedDate.getFullYear()
+    })
+  }, [allExpenses, selectedDate])
 
   const totalIncome = useMemo(() => incomes.reduce((acc, i) => acc + i.value, 0), [incomes])
   const totalExpense = useMemo(() => expenses.reduce((acc, e) => acc + e.value, 0), [expenses])
   const totalKm = useMemo(() => trips.reduce((acc, t) => acc + (t.kilometers ?? 0), 0), [trips])
   const costPerKm = useMemo(() => totalKm > 0 ? totalExpense / totalKm : null, [totalExpense, totalKm])
   const revenuePerKm = useMemo(() => totalKm > 0 ? totalIncome / totalKm : null, [totalIncome, totalKm])
+
+  const tripCols = useMemo(() => buildTripColumns(), [])
+  const incomeCols = useMemo(
+    () => buildIncomeColumns(setEditingIncome, handleDeleteIncome),
+    [handleDeleteIncome],
+  )
+  const expenseCols = useMemo(
+    () => buildExpenseColumns(setEditingExpense, handleDeleteExpense),
+    [handleDeleteExpense],
+  )
 
   return (
     <div className="p-6 flex flex-col gap-4">
@@ -252,6 +404,14 @@ export default function TruckDetailPage() {
           </h1>
         ) : (
           <h1 className="text-xl font-bold">Camión no encontrado</h1>
+        )}
+        {truck && (
+          <Link
+            href={`/camiones/${id}/costos`}
+            className="ml-auto text-sm font-medium text-muted-foreground border rounded-md px-3 py-1.5 hover:bg-muted transition-colors"
+          >
+            Costos fijos
+          </Link>
         )}
       </div>
 
@@ -293,7 +453,7 @@ export default function TruckDetailPage() {
           <Skeleton className="h-40 w-full" />
         ) : (
           <DataTable
-            columns={tripColumns}
+            columns={tripCols}
             data={trips}
             emptyMessage="No hay viajes registrados para este camión."
             searchPlaceholder="Buscar viaje..."
@@ -307,7 +467,7 @@ export default function TruckDetailPage() {
           <Skeleton className="h-40 w-full" />
         ) : (
           <DataTable
-            columns={incomeColumns}
+            columns={incomeCols}
             data={incomes}
             emptyMessage="No hay ingresos registrados para este camión."
             searchPlaceholder="Buscar ingreso..."
@@ -321,13 +481,49 @@ export default function TruckDetailPage() {
           <Skeleton className="h-40 w-full" />
         ) : (
           <DataTable
-            columns={expenseColumns}
+            columns={expenseCols}
             data={expenses}
             emptyMessage="No hay egresos registrados para este camión."
             searchPlaceholder="Buscar egreso..."
           />
         )}
       </div>
+
+      <Dialog open={!!editingIncome} onOpenChange={(open) => { if (!open) setEditingIncome(null) }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Editar ingreso</DialogTitle>
+          </DialogHeader>
+          {editingIncome && (
+            <EditIncomeForm
+              income={editingIncome}
+              trucks={trucks}
+              onSuccess={(updated) => {
+                setAllIncomes((prev) => prev.map((i) => i.id === updated.id ? updated : i))
+                setEditingIncome(null)
+              }}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!editingExpense} onOpenChange={(open) => { if (!open) setEditingExpense(null) }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Editar egreso</DialogTitle>
+          </DialogHeader>
+          {editingExpense && (
+            <EditExpenseForm
+              expense={editingExpense}
+              trucks={trucks}
+              onSuccess={(updated) => {
+                setAllExpenses((prev) => prev.map((e) => e.id === updated.id ? updated : e))
+                setEditingExpense(null)
+              }}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

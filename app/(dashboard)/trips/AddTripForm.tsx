@@ -27,7 +27,7 @@ type Truck = {
 
 const tripSchema = z.object({
   departureDate: z.string().min(1, "La fecha de salida es requerida"),
-  arrivalDate: z.string().min(1, "La fecha de llegada es requerida"),
+  arrivalDate: z.string().optional(),
   origin: z.string().min(1, "El origen es requerido"),
   destination: z.string().min(1, "El destino es requerido"),
   truckId: z.string().min(1, "Seleccioná un camión").refine(
@@ -75,7 +75,6 @@ export default function AddTripForm({
     resolver: zodResolver(tripSchema),
     defaultValues: {
       departureDate: todayIso,
-      arrivalDate: todayIso,
       truckId: "none",
       status: "1",
     },
@@ -89,7 +88,7 @@ export default function AddTripForm({
           method: "POST",
           body: JSON.stringify({
             departureDate: data.departureDate,
-            arrivalDate: data.arrivalDate,
+            arrivalDate: data.arrivalDate ?? null,
             origin: data.origin,
             destination: data.destination,
             truckId: data.truckId,
@@ -118,12 +117,6 @@ export default function AddTripForm({
           <Label>Fecha de salida</Label>
           <Input {...register("departureDate")} type="date" />
           <FieldError errors={[errors.departureDate]} />
-        </Field>
-
-        <Field>
-          <Label>Fecha de llegada</Label>
-          <Input {...register("arrivalDate")} type="date" />
-          <FieldError errors={[errors.arrivalDate]} />
         </Field>
 
         <Field>

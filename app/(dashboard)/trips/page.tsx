@@ -36,10 +36,10 @@ type Truck = {
 
 const tripStatusItems = [
   { label: "Todos los estados", value: "all" },
-  { label: "Programado", value: "1" },
-  { label: "En progreso", value: "2" },
-  { label: "Completado", value: "3" },
-  { label: "Cancelado", value: "4" },
+  { label: "Programado", value: "Scheduled" },
+  { label: "En progreso", value: "InProgress" },
+  { label: "Completado", value: "Completed" },
+  { label: "Cancelado", value: "Cancelled" },
 ];
 
 function TableSkeleton() {

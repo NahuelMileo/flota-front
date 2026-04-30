@@ -19,29 +19,29 @@ import { useRouter } from "next/navigation";
 export type Trip = {
   id: string;
   departureDate: string;
-  arrivalDate: string;
+  arrivalDate: string | null;
   origin: string;
   destination: string;
   truckId: string;
   truckLicensePlate: string;
   driverName: string | null;
   kilometers: number | null;
-  status: number;
+  status: string;
   notes: string | null;
 };
 
-const tripStatusLabels: Record<number, string> = {
-  1: "Programado",
-  2: "En progreso",
-  3: "Completado",
-  4: "Cancelado",
+const tripStatusLabels: Record<string, string> = {
+  Scheduled: "Programado",
+  InProgress: "En progreso",
+  Completed: "Completado",
+  Cancelled: "Cancelado",
 };
 
-const tripStatusColorMap: Record<number, string> = {
-  1: "bg-yellow-100 text-yellow-800 border-yellow-300",
-  2: "bg-blue-100 text-blue-800 border-blue-300",
-  3: "bg-green-100 text-green-800 border-green-300",
-  4: "bg-red-100 text-red-800 border-red-300",
+const tripStatusColorMap: Record<string, string> = {
+  Scheduled: "bg-yellow-100 text-yellow-800 border-yellow-300",
+  InProgress: "bg-blue-100 text-blue-800 border-blue-300",
+  Completed: "bg-green-100 text-green-800 border-green-300",
+  Cancelled: "bg-red-100 text-red-800 border-red-300",
 };
 
 export function getColumns(
@@ -97,7 +97,7 @@ export function getColumns(
       accessorKey: "status",
       header: "Estado",
       cell: ({ row }) => {
-        const status = row.getValue("status") as number;
+        const status = row.getValue("status") as string;
         const label = tripStatusLabels[status] || "Desconocido";
         const colorClass = tripStatusColorMap[status] || "bg-gray-100 text-gray-800 border-gray-300";
         return (

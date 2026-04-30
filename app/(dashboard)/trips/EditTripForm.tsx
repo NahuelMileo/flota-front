@@ -49,6 +49,13 @@ const tripStatusItems = [
   { label: "Cancelado", value: "4" },
 ];
 
+const statusApiToFormValue: Record<string, string> = {
+  Scheduled: "1",
+  InProgress: "2",
+  Completed: "3",
+  Cancelled: "4",
+};
+
 export default function EditTripForm({
   trip,
   trucks,
@@ -75,13 +82,13 @@ export default function EditTripForm({
     resolver: zodResolver(tripSchema),
     defaultValues: {
       departureDate: trip.departureDate.split("T")[0],
-      arrivalDate: trip.arrivalDate.split("T")[0],
+      arrivalDate: trip.arrivalDate?.split("T")[0] ?? "",
       origin: trip.origin,
       destination: trip.destination,
       truckId: trip.truckId ?? "none",
       driverName: trip.driverName ?? "",
       kilometers: trip.kilometers ?? null,
-      status: (String(trip.status) as TripFormValues["status"]) ?? "1",
+      status: (statusApiToFormValue[trip.status] ?? String(trip.status)) as TripFormValues["status"],
       notes: trip.notes ?? "",
     },
   });
