@@ -43,6 +43,32 @@ export function getExpenseTypeLabel(type: number | string): string {
   return expenseTypeLabels[type] ?? "Otro"
 }
 
+export const expenseTypeStringToNumber: Record<string, number> = {
+  Gasoil: 1,
+  Arla32: 2,
+  Maintenance: 3,
+  TireCenter: 4,
+  Oil: 5,
+  Parking: 6,
+  Toll: 7,
+  Salary: 8,
+  Accountant: 9,
+  Financing: 10,
+  Other: 11,
+  Administrative: 12,
+  Ipva: 13,
+  Tracker: 14,
+  Cooperative: 15,
+  Insurance: 16,
+  OperationalEquipment: 17,
+}
+
+export function normalizeExpenseType(type: string | number): string {
+  const str = String(type)
+  const num = expenseTypeStringToNumber[str]
+  return num ? String(num) : str
+}
+
 export const FIXED_EXPENSE_TYPES = [
   { label: "Administrativo",           value: "12" },
   { label: "IPVA",                     value: "13" },

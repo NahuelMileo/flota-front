@@ -1,19 +1,16 @@
+"use client"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { formatCurrency } from "@/lib/format"
+import { useCurrency } from "@/context/currency-context"
 
 type Props = {
   total: number
   variation?: number // % vs mes anterior (opcional)
 }
 
-function formatBRL(value: number) {
-  return new Intl.NumberFormat("pt-BR", {
-    style: "currency",
-    currency: "BRL",
-    maximumFractionDigits: 0,
-  }).format(value)
-}
-
 export function TotalIncomeCard({ total, variation }: Props) {
+  const { displayCurrency } = useCurrency()
+
   return (
     <Card>
       <CardHeader className="pb-2">
@@ -24,7 +21,7 @@ export function TotalIncomeCard({ total, variation }: Props) {
 
       <CardContent>
         <div className="text-2xl font-bold">
-          {formatBRL(total)}
+          {formatCurrency(total, displayCurrency)}
         </div>
 
         {variation !== undefined && (

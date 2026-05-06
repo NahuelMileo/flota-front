@@ -13,12 +13,14 @@ import {
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { fetchWithAuth } from "@/lib/api";
+import type { Truck } from "@/types/truck";
 import { getColumns, Expense, expenseTypeLabels } from "./columns";
+import { expenseTypeStringToNumber } from "@/lib/expense-types";
 import { TotalExpenseCard } from "@/components/total-expense-card";
 import { ExpenseBreakdownChart } from "@/components/expense-breakdown-chart";
 import { CostPerKmCard } from "@/components/cost-per-km-card";
-import { FuelEfficiencyCard } from "@/components/fuel-efficiency-card";
 import { useDateFilter } from "@/context/date-filter-context";
+import { useCurrency } from "@/context/currency-context";
 import AddExpenseForm from "./AddExpenseForm";
 import EditExpenseForm from "./EditExpenseForm";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -31,11 +33,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-type Truck = {
-  id: string;
-  licensePlate: string;
-  model?: string;
-};
 
 function TableSkeleton() {
   return (
@@ -61,6 +58,7 @@ export default function ExpensePage() {
   const [selectedTypeFilter, setSelectedTypeFilter] = useState<number | null>(null);
 
   const { selectedDate } = useDateFilter();
+  const { displayCurrency, getDisplayValue } = useCurrency();
 
   // ================= FETCH =================
   useEffect(() => {
@@ -100,6 +98,21 @@ export default function ExpensePage() {
   };
 
   // ================= DERIVADOS =================
+  const selectedTruck = useMemo(
+    () => trucks.find((t) => t.id === selectedTruckId) ?? null,
+    [trucks, selectedTruckId]
+  );
+
+  const matchesTruckFilter = useCallback(
+    (expense: Expense) => {
+      if (!selectedTruckId) return true;
+      if (expense.truckId === selectedTruckId) return true;
+      if (!expense.truckId && selectedTruck && expense.truckLicensePlate === selectedTruck.licensePlate) return true;
+      return false;
+    },
+    [selectedTruckId, selectedTruck]
+  );
+
   const filteredExpenses = useMemo(() => {
     return expenses.filter((expense) => {
       if (selectedDate) {
@@ -110,16 +123,20 @@ export default function ExpensePage() {
         )
           return false;
       }
-      if (selectedTruckId && expense.truckId !== selectedTruckId) return false;
-      if (selectedTypeFilter !== null && expense.type !== selectedTypeFilter)
-        return false;
+      if (!matchesTruckFilter(expense)) return false;
+      if (selectedTypeFilter !== null) {
+        const typeNum = typeof expense.type === "string"
+          ? expenseTypeStringToNumber[expense.type]
+          : expense.type;
+        if (typeNum !== selectedTypeFilter) return false;
+      }
       return true;
     });
-  }, [expenses, selectedDate, selectedTruckId, selectedTypeFilter]);
+  }, [expenses, selectedDate, matchesTruckFilter, selectedTypeFilter]);
 
   const total = useMemo(
-    () => filteredExpenses.reduce((acc, e) => acc + e.value, 0),
-    [filteredExpenses]
+    () => filteredExpenses.reduce((acc, e) => acc + getDisplayValue(e), 0),
+    [filteredExpenses, getDisplayValue]
   );
 
   const previousMonthTotal = useMemo(() => {
@@ -138,13 +155,13 @@ export default function ExpensePage() {
           date.getFullYear() !== prevMonth.getFullYear()
         )
           return false;
-        if (selectedTruckId && expense.truckId !== selectedTruckId) return false;
-        if (selectedTypeFilter !== null && expense.type !== selectedTypeFilter)
+        if (!matchesTruckFilter(expense)) return false;
+        if (selectedTypeFilter !== null && Number(expense.type) !== selectedTypeFilter)
           return false;
         return true;
       })
-      .reduce((acc, e) => acc + e.value, 0);
-  }, [expenses, selectedDate, selectedTruckId, selectedTypeFilter]);
+      .reduce((acc, e) => acc + getDisplayValue(e), 0);
+  }, [expenses, selectedDate, matchesTruckFilter, selectedTypeFilter, getDisplayValue]);
 
   const variation = useMemo(() => {
     if (previousMonthTotal === 0) return undefined;
@@ -183,9 +200,10 @@ export default function ExpensePage() {
     () =>
       getColumns(
         (expense) => setEditingExpense(expense),
-        handleDeleteExpense
+        handleDeleteExpense,
+        displayCurrency
       ),
-    [handleDeleteExpense]
+    [handleDeleteExpense, displayCurrency]
   );
 
   // ================= FILTER OPTIONS =================
@@ -218,8 +236,7 @@ export default function ExpensePage() {
         <h1 className="text-xl font-bold">Egresos</h1>
 
         <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-          <DialogTrigger render={<Button variant="outline">Añadir egreso</Button>}>
-          </DialogTrigger>
+          <DialogTrigger render={<Button variant="outline">Añadir egreso</Button>} />
 
           <DialogContent className="sm:max-w-sm">
             <DialogHeader>
@@ -264,7 +281,7 @@ export default function ExpensePage() {
           items={typeItems}
           value={selectedTypeFilter !== null ? String(selectedTypeFilter) : "all"}
           onValueChange={(value) =>
-            setSelectedTypeFilter(value === "all" ? null : parseInt(value))
+            setSelectedTypeFilter(value === "all" || !value ? null : parseInt(value))
           }
         >
           <SelectTrigger className="w-48">
@@ -289,10 +306,9 @@ export default function ExpensePage() {
       </div>
 
       {/* CHART */}
-      <ExpenseBreakdownChart expenses={filteredExpenses} />
+      <ExpenseBreakdownChart expenses={filteredExpenses} displayCurrency={displayCurrency} />
 
       {/* FUEL EFFICIENCY */}
-      <FuelEfficiencyCard expenses={filteredExpenses} truckId={selectedTruckId ?? undefined} />
 
       {/* EDIT DIALOG */}
       <Dialog

@@ -13,27 +13,21 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { fetchWithAuth } from "@/lib/api";
+import type { Truck } from "@/types/truck";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
-import { Income } from "./columns";
+import { Income, normalizeIncomeType } from "./columns";
 
-type Truck = {
-  id: string;
-  licensePlate: string;
-  model?: string;
-};
 
 const incomeSchema = z.object({
   description: z.string().min(1, "La descripción es requerida"),
-  value: z
-    .number({ invalid_type_error: "Ingresá un valor válido" })
-    .positive("El valor debe ser mayor a 0"),
+  value: z.number().positive("El valor debe ser mayor a 0"),
   dateUtc: z.string().min(1, "La fecha es requerida"),
   truckId: z.string().nullable(),
   type: z.enum(["1", "2"]),
-  currency: z.enum(["1", "2"]),
+  currency: z.enum(["USD", "BRL", "UYU"]),
 });
 
 type IncomeFormValues = z.infer<typeof incomeSchema>;
@@ -44,8 +38,9 @@ const incomeTypeItems = [
 ];
 
 const currencyItems = [
-  { label: "BRL — Real brasileño", value: "2" },
-  { label: "USD — Dólar", value: "1" },
+  { label: "BRL — Real brasileño", value: "BRL" },
+  { label: "USD — Dólar", value: "USD" },
+  { label: "UYU — Peso uruguayo", value: "UYU" },
 ];
 
 export default function EditIncomeForm({
@@ -77,8 +72,8 @@ export default function EditIncomeForm({
       value: income.value,
       dateUtc: income.dateUtc.split("T")[0],
       truckId: income.truckId ?? null,
-      type: (String(income.type) as "1" | "2") ?? "1",
-      currency: (String(income.currency ?? 2) as "1" | "2"),
+      type: normalizeIncomeType(String(income.type)),
+      currency: (income.currency as "USD" | "BRL" | "UYU") ?? "BRL",
     },
   });
 
@@ -94,7 +89,7 @@ export default function EditIncomeForm({
             dateUtc: data.dateUtc,
             truckId: data.truckId === "none" ? null : data.truckId,
             type: parseInt(data.type),
-            currency: parseInt(data.currency),
+            currency: data.currency,
           }),
         },
       );
@@ -121,7 +116,12 @@ export default function EditIncomeForm({
         <Field>
           <Label>Valor</Label>
           <Input
-            {...register("value", { valueAsNumber: true })}
+            {...register("value", {
+              setValueAs: (v) =>
+                v === "" || v === null || v === undefined
+                  ? undefined
+                  : parseFloat(String(v).replace(",", ".")),
+            })}
             type="number"
             step="0.01"
           />
@@ -201,7 +201,7 @@ export default function EditIncomeForm({
               <Select
                 items={currencyItems}
                 value={field.value}
-                onValueChange={(value) => field.onChange(value ?? "2")}
+                onValueChange={(value) => field.onChange(value ?? "BRL")}
               >
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="Seleccionar moneda" />

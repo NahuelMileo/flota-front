@@ -14,13 +14,9 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
+import type { Truck } from "@/types/truck"
 
-export type Truck = {
-  id: string
-  licensePlate: string
-  model: string
-  year: number
-}
+export type { Truck } from "@/types/truck"
 
 export function getColumns(
   onEdit: (truck: Truck) => void,
@@ -43,6 +39,26 @@ export function getColumns(
     {
       accessorKey: "year",
       header: "Año",
+    },
+    {
+      accessorKey: "currentKm",
+      header: "Km actual",
+      cell: ({ row }) => {
+        const km = row.getValue("currentKm") as number | null | undefined
+        return km != null
+          ? km.toLocaleString("es-UY")
+          : <span className="text-muted-foreground">—</span>
+      },
+    },
+    {
+      accessorKey: "estimatedMonthlyKm",
+      header: "Km/mes estimado",
+      cell: ({ row }) => {
+        const km = row.getValue("estimatedMonthlyKm") as number | null | undefined
+        return km != null
+          ? km.toLocaleString("es-UY")
+          : <span className="text-muted-foreground">—</span>
+      },
     },
     {
       id: "actions",

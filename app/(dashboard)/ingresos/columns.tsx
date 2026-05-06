@@ -14,22 +14,45 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
+import { formatCurrency, formatDate, DisplayCurrency } from "@/lib/format";
+
+const incomeTypeMap: Record<string, "1" | "2"> = {
+  "1": "1", Freight: "1", Flete: "1",
+  "2": "2", Other: "2", Otro: "2",
+}
+
+export function normalizeIncomeType(type: string): "1" | "2" {
+  return incomeTypeMap[type] ?? "1"
+}
 
 export type Income = {
   id: string;
   description: string;
   value: number;
-  truckId: string;
+  valueUSD: number | null;
+  valueBRL: number | null;
+  valueUYU: number | null;
+  truckId: string | null;
   truckLicensePlate: string | null;
   dateUtc: string;
   type: string;
-  currency: number; // 1 = USD, 2 = BRL
+  currency: string; // "USD" | "BRL" | "UYU"
   tripId?: string | null;
 };
+
+function getDisplayValue(
+  item: Pick<Income, "value" | "valueUSD" | "valueBRL" | "valueUYU">,
+  currency: DisplayCurrency
+): number {
+  if (currency === "USD") return item.valueUSD ?? item.value;
+  if (currency === "UYU") return item.valueUYU ?? item.value;
+  return item.valueBRL ?? item.value;
+}
 
 export function getColumns(
   onEdit: (income: Income) => void,
   onDelete: (income: Income) => void,
+  displayCurrency: DisplayCurrency = "BRL",
 ): ColumnDef<Income>[] {
   return [
     {
@@ -40,25 +63,23 @@ export function getColumns(
       accessorKey: "value",
       header: "Valor",
       cell: ({ row }) => {
-        const value: number = row.getValue("value");
-        const currency: number = row.original.currency;
-        const currencyCode = currency === 1 ? "USD" : "BRL";
-        const locale = currency === 1 ? "en-US" : "pt-BR";
-        return new Intl.NumberFormat(locale, {
-          style: "currency",
-          currency: currencyCode,
-          maximumFractionDigits: 0,
-        }).format(value);
+        const displayVal = getDisplayValue(row.original, displayCurrency);
+        return formatCurrency(displayVal, displayCurrency);
       },
     },
     {
       accessorKey: "currency",
       header: "Moneda",
       cell: ({ row }) => {
-        const currency: number = row.getValue("currency");
+        const currency = row.original.currency;
+        const colorMap: Record<string, string> = {
+          USD: "text-blue-600 border-blue-300 bg-blue-50",
+          BRL: "text-green-600 border-green-300 bg-green-50",
+          UYU: "text-purple-600 border-purple-300 bg-purple-50",
+        };
         return (
-          <Badge variant="outline" className={currency === 1 ? "text-blue-600 border-blue-300 bg-blue-50" : "text-green-600 border-green-300 bg-green-50"}>
-            {currency === 1 ? "USD" : "BRL"}
+          <Badge variant="outline" className={colorMap[currency] ?? ""}>
+            {currency}
           </Badge>
         );
       },
@@ -77,7 +98,7 @@ export function getColumns(
       header: "Fecha",
       cell: ({ row }) => {
         const date: string = row.getValue("dateUtc");
-        return new Date(date + "T00:00:00").toLocaleDateString("es-UY");
+        return formatDate(date);
       },
     },
     {
@@ -85,9 +106,9 @@ export function getColumns(
       header: "Tipo",
       cell: ({ row }) => {
         const type = row.getValue("type") as string;
-        if (type == "1") return <Badge variant="outline" className="text-green-400 border-green-400 bg-green-100">Flete</Badge>;
-        if (type == "2") return <Badge variant="outline">Otro</Badge>;
-        return <Badge variant="outline">Sin identificar</Badge>;
+        const normalized = normalizeIncomeType(type);
+        if (normalized === "1") return <Badge variant="outline" className="text-green-400 border-green-400 bg-green-100">Flete</Badge>;
+        return <Badge variant="outline">Otro</Badge>;
       },
     },
     {
@@ -119,7 +140,7 @@ export function getColumns(
                     </span>{" "}
                     por valor de{" "}
                     <span className="font-medium text-foreground">
-                      {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 }).format(income.value)}
+                      {formatCurrency(getDisplayValue(income, displayCurrency), displayCurrency)}
                     </span>{" "}
                     de tu registro.
                   </AlertDialogDescription>

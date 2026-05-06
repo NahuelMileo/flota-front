@@ -13,27 +13,23 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { fetchWithAuth } from "@/lib/api";
+import type { Truck } from "@/types/truck";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
 import { Income } from "./columns";
+import { useState } from "react";
+import { Checkbox } from "@/components/ui/checkbox";
 
-type Truck = {
-  id: string;
-  licensePlate: string;
-  model?: string;
-};
 
 const incomeSchema = z.object({
   description: z.string().min(1, "La descripción es requerida"),
-  value: z
-    .number({ invalid_type_error: "Ingresá un valor válido" })
-    .positive("El valor debe ser mayor a 0"),
+  value: z.number().positive("El valor debe ser mayor a 0"),
   dateUtc: z.string().min(1, "La fecha es requerida"),
   truckId: z.string().nullable(),
   type: z.enum(["1", "2"]),
-  currency: z.enum(["1", "2"]),
+  currency: z.enum(["USD", "BRL", "UYU"]),
 });
 
 type IncomeFormValues = z.infer<typeof incomeSchema>;
@@ -44,8 +40,9 @@ const incomeTypeItems = [
 ];
 
 const currencyItems = [
-  { label: "BRL — Real brasileño", value: "2" },
-  { label: "USD — Dólar", value: "1" },
+  { label: "BRL — Real brasileño", value: "BRL" },
+  { label: "USD — Dólar", value: "USD" },
+  { label: "UYU — Peso uruguayo", value: "UYU" },
 ];
 
 export default function AddIncomeForm({
@@ -69,10 +66,15 @@ export default function AddIncomeForm({
     })),
   ];
 
+  const [createDriverExpense, setCreateDriverExpense] = useState(false);
+  const [driverPercentage, setDriverPercentage] = useState(15);
+  const [driverPercentageError, setDriverPercentageError] = useState<string | null>(null);
+
   const {
     register,
     handleSubmit,
     control,
+    watch,
     formState: { errors, isSubmitting },
   } = useForm<IncomeFormValues>({
     resolver: zodResolver(incomeSchema),
@@ -80,11 +82,21 @@ export default function AddIncomeForm({
       dateUtc: todayIso,
       truckId: defaultTruckId ?? null,
       type: "1",
-      currency: "2",
+      currency: "BRL",
     },
   });
 
+  const currentType = watch("type");
+  const isFlete = currentType === "1";
+
   async function onSubmit(data: IncomeFormValues) {
+    if (createDriverExpense && isFlete) {
+      if (driverPercentage < 0 || driverPercentage > 100) {
+        setDriverPercentageError("Debe estar entre 0 y 100");
+        return;
+      }
+      setDriverPercentageError(null);
+    }
     try {
       const res = await fetchWithAuth(
         `${process.env.NEXT_PUBLIC_API_URL}/api/incomes`,
@@ -96,7 +108,7 @@ export default function AddIncomeForm({
             dateUtc: data.dateUtc,
             truckId: data.truckId === "none" ? null : data.truckId,
             type: parseInt(data.type),
-            currency: parseInt(data.currency),
+            currency: data.currency,
             ...(tripId && { tripId }),
           }),
         },
@@ -105,6 +117,28 @@ export default function AddIncomeForm({
       if (!res.ok) throw new Error();
 
       const result = await res.json();
+
+      if (createDriverExpense && isFlete) {
+        const driverValue = result.value * (driverPercentage / 100);
+        try {
+          await fetchWithAuth(`${process.env.NEXT_PUBLIC_API_URL}/api/expenses`, {
+            method: "POST",
+            body: JSON.stringify({
+              name: "Salario chofer",
+              value: driverValue,
+              date: data.dateUtc,
+              truckId: data.truckId === "none" ? null : data.truckId,
+              type: 8,
+              kilometers: null,
+              liters: null,
+              ...(tripId && { tripId }),
+            }),
+          });
+        } catch {
+          toast.error("Ingreso creado, pero no se pudo crear el egreso de salario");
+        }
+      }
+
       toast.success("Ingreso agregado");
       onSuccess(result);
     } catch {
@@ -124,7 +158,12 @@ export default function AddIncomeForm({
         <Field>
           <Label>Valor</Label>
           <Input
-            {...register("value", { valueAsNumber: true })}
+            {...register("value", {
+              setValueAs: (v) =>
+                v === "" || v === null || v === undefined
+                  ? undefined
+                  : parseFloat(String(v).replace(",", ".")),
+            })}
             type="number"
             step="0.01"
             placeholder="12000"
@@ -208,7 +247,7 @@ export default function AddIncomeForm({
             <Select
               items={currencyItems}
               value={field.value}
-              onValueChange={(value) => field.onChange(value ?? "2")}
+              onValueChange={(value) => field.onChange(value ?? "BRL")}
             >
               <SelectTrigger className="w-full">
                 <SelectValue placeholder="Seleccionar moneda" />
@@ -225,6 +264,40 @@ export default function AddIncomeForm({
             </Select>
           )}
         />
+        {isFlete && (
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <Checkbox
+                id="driver-expense"
+                checked={createDriverExpense}
+                onCheckedChange={(checked) => setCreateDriverExpense(!!checked)}
+              />
+              <Label htmlFor="driver-expense" className="text-sm cursor-pointer">
+                Crear egreso de salario para chofer
+              </Label>
+            </div>
+
+            {createDriverExpense && (
+              <Field>
+                <Label>Porcentaje del chofer (%)</Label>
+                <Input
+                  type="number"
+                  min={0}
+                  max={100}
+                  step={0.1}
+                  value={driverPercentage}
+                  onChange={(e) => {
+                    setDriverPercentage(parseFloat(e.target.value) || 0);
+                    setDriverPercentageError(null);
+                  }}
+                />
+                {driverPercentageError && (
+                  <p className="text-sm text-destructive">{driverPercentageError}</p>
+                )}
+              </Field>
+            )}
+          </div>
+        )}
       </FieldGroup>
 
       <Button className="mt-4 w-full" type="submit" disabled={isSubmitting}>

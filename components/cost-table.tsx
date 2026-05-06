@@ -25,35 +25,36 @@ import { Trash2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import type { CostRow, SummaryMonth } from "@/types/costs"
 import type { UseTruckCostsReturn } from "@/hooks/use-truck-costs"
+import { formatCurrency, formatCurrency2, formatKm, type DisplayCurrency } from "@/lib/format"
+import { useCurrency } from "@/context/currency-context"
+import type { CostEntry } from "@/types/costs"
+
+function getEntryDisplayAmount(entry: CostEntry, currency: DisplayCurrency): number {
+  if (currency === "USD") return entry.valueUSD ?? entry.amount
+  if (currency === "UYU") return entry.valueUYU ?? entry.amount
+  return entry.valueBRL ?? entry.amount
+}
 
 const MONTHS = [
   "Ene", "Feb", "Mar", "Abr", "May", "Jun",
   "Jul", "Ago", "Sep", "Oct", "Nov", "Dic",
 ]
 
-function formatBRL(value: number) {
-  return new Intl.NumberFormat("pt-BR", {
-    style: "currency",
-    currency: "BRL",
-    maximumFractionDigits: 0,
-  }).format(value)
-}
+
 
 function CellPopover({
-  entryId,
+  entry,
   month,
-  amount,
-  isPaid,
   onMarkPaid,
   onUpdateAmount,
 }: {
-  entryId: string
+  entry: CostEntry
   month: number
-  amount: number
-  isPaid: boolean
   onMarkPaid: (id: string, month: number, isPaid: boolean) => void
   onUpdateAmount: (id: string, month: number, amount: number) => void
 }) {
+  const { displayCurrency } = useCurrency()
+  const { id: entryId, amount, isPaid } = entry
   const [editAmount, setEditAmount] = useState(String(amount))
   const [open, setOpen] = useState(false)
 
@@ -75,7 +76,7 @@ function CellPopover({
               isPaid && "line-through text-muted-foreground"
             )}
           >
-            {formatBRL(amount)}
+            {formatCurrency(getEntryDisplayAmount(entry, displayCurrency), displayCurrency)}
           </button>
         }
       />
@@ -112,6 +113,7 @@ function CellPopover({
 interface CostTableProps {
   costRows: CostRow[]
   summary: SummaryMonth[]
+  estimatedMonthlyKm?: number
   isLoading: boolean
   onMarkPaid: UseTruckCostsReturn["markAsPaid"]
   onUpdateAmount: UseTruckCostsReturn["updateAmount"]
@@ -123,6 +125,7 @@ interface CostTableProps {
 export function CostTable({
   costRows,
   summary,
+  estimatedMonthlyKm,
   isLoading,
   onMarkPaid,
   onUpdateAmount,
@@ -130,11 +133,13 @@ export function CostTable({
   onDeleteEntry,
   onDeleteInstallmentPlan,
 }: CostTableProps) {
+  const { displayCurrency } = useCurrency()
+
   const monthTotals = MONTHS.map((_, i) => {
     const m = i + 1
     return costRows.reduce((acc, row) => {
       const entry = row.months[m]
-      return acc + (entry?.amount ?? 0)
+      return acc + (entry ? getEntryDisplayAmount(entry, displayCurrency) : 0)
     }, 0)
   })
 
@@ -295,10 +300,8 @@ export function CostTable({
                   <td key={m} className="px-0 py-0 text-right">
                     {entry ? (
                       <CellPopover
-                        entryId={entry.id}
+                        entry={entry}
                         month={m}
-                        amount={entry.amount}
-                        isPaid={entry.isPaid}
                         onMarkPaid={onMarkPaid}
                         onUpdateAmount={onUpdateAmount}
                       />
@@ -320,32 +323,78 @@ export function CostTable({
             </td>
             {monthTotals.map((total, i) => (
               <td key={i} className="px-2 py-2 text-right text-xs tabular-nums">
-                {total > 0 ? formatBRL(total) : <span className="text-muted-foreground/40">—</span>}
+                {total > 0 ? formatCurrency(total, displayCurrency) : <span className="text-muted-foreground/40">—</span>}
               </td>
             ))}
           </tr>
 
-          {/* Costo x KM row */}
-          <tr className="bg-cyan-50 dark:bg-cyan-950/20">
-            <td className="sticky left-0 z-10 bg-cyan-50 dark:bg-cyan-950/20 px-3 py-2 text-xs font-medium text-cyan-700 dark:text-cyan-300">
-              Costo x KM
+          {/* Km reales row */}
+          <tr className="bg-muted/20">
+            <td className="sticky left-0 z-10 bg-muted/20 px-3 py-1.5 text-xs text-muted-foreground">
+              Km reales
             </td>
             {MONTHS.map((_, i) => {
               const m = i + 1
               const s = summary.find((s) => s.month === m)
-              const cpk = s?.costPerKm ?? null
+              const realKm = s?.realKm ?? null
+              return (
+                <td key={m} className="px-2 py-1.5 text-right text-xs tabular-nums text-muted-foreground">
+                  {realKm != null ? formatKm(realKm) : <span className="text-muted-foreground/40">—</span>}
+                </td>
+              )
+            })}
+          </tr>
+
+          {/* Km estimados row */}
+          <tr className="bg-muted/20">
+            <td className="sticky left-0 z-10 bg-muted/20 px-3 py-1.5 text-xs text-muted-foreground">
+              Km estimados
+            </td>
+            {MONTHS.map((_, i) => {
+              const m = i + 1
+              const s = summary.find((s) => s.month === m)
+              const estKm = s?.estimatedKm ?? estimatedMonthlyKm ?? null
+              return (
+                <td key={m} className="px-2 py-1.5 text-right text-xs tabular-nums text-muted-foreground">
+                  {estKm != null ? formatKm(estKm) : <span className="text-muted-foreground/40">—</span>}
+                </td>
+              )
+            })}
+          </tr>
+
+          {/* Costo x KM real row */}
+          <tr className="bg-cyan-50 dark:bg-cyan-950/20">
+            <td className="sticky left-0 z-10 bg-cyan-50 dark:bg-cyan-950/20 px-3 py-2 text-xs font-medium text-cyan-700 dark:text-cyan-300">
+              Costo x KM real
+            </td>
+            {MONTHS.map((_, i) => {
+              const m = i + 1
+              const s = summary.find((s) => s.month === m)
+              const cpkReal = s?.costPerKmReal ?? null
               return (
                 <td key={m} className="px-2 py-2 text-right text-xs tabular-nums text-cyan-700 dark:text-cyan-300">
-                  {cpk != null ? (
-                    new Intl.NumberFormat("pt-BR", {
-                      style: "currency",
-                      currency: "BRL",
-                      minimumFractionDigits: 2,
-                      maximumFractionDigits: 2,
-                    }).format(cpk)
-                  ) : (
-                    <span className="text-muted-foreground/40">—</span>
-                  )}
+                  {cpkReal != null ? formatCurrency2(cpkReal, displayCurrency) : <span className="text-muted-foreground/40">—</span>}
+                </td>
+              )
+            })}
+          </tr>
+
+          {/* Costo x KM estimado row */}
+          <tr className="bg-cyan-50/60 dark:bg-cyan-950/10">
+            <td className="sticky left-0 z-10 bg-cyan-50/60 dark:bg-cyan-950/10 px-3 py-2 text-xs font-medium text-cyan-600 dark:text-cyan-400">
+              Costo x KM estimado
+            </td>
+            {MONTHS.map((_, i) => {
+              const m = i + 1
+              const s = summary.find((s) => s.month === m)
+              const monthTotal = monthTotals[i]
+              const cpkEst =
+                s?.costPerKmEstimated ??
+                s?.costPerKm ??
+                (estimatedMonthlyKm && monthTotal > 0 ? monthTotal / estimatedMonthlyKm : null)
+              return (
+                <td key={m} className="px-2 py-2 text-right text-xs tabular-nums text-cyan-600 dark:text-cyan-400">
+                  {cpkEst != null ? formatCurrency2(cpkEst, displayCurrency) : <span className="text-muted-foreground/40">—</span>}
                 </td>
               )
             })}

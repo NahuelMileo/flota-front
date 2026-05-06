@@ -4,8 +4,10 @@ import { useCallback, useEffect, useMemo, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
 import Link from "next/link"
 import { fetchWithAuth } from "@/lib/api"
+import { formatCurrency, formatCurrency2, formatDate } from "@/lib/format"
+import { useCurrency } from "@/context/currency-context"
 import { toast } from "sonner"
-import { ArrowLeft, Eye, Pencil, Trash2 } from "lucide-react"
+import { AlertTriangle, ArrowLeft, Eye, Pencil, Trash2 } from "lucide-react"
 import { useDateFilter } from "@/context/date-filter-context"
 import { TotalIncomeCard } from "@/components/total-income-card"
 import { TotalExpenseCard } from "@/components/total-expense-card"
@@ -38,13 +40,8 @@ import EditIncomeForm from "@/app/(dashboard)/ingresos/EditIncomeForm"
 import EditExpenseForm from "@/app/(dashboard)/egresos/EditExpenseForm"
 import type { Income } from "@/app/(dashboard)/ingresos/columns"
 import type { Expense } from "@/app/(dashboard)/egresos/columns"
-
-type Truck = {
-  id: string
-  licensePlate: string
-  model: string
-  year: number
-}
+import type { Truck } from "@/types/truck"
+import type { SummaryMonth } from "@/types/costs"
 
 type Trip = {
   id: string
@@ -74,13 +71,6 @@ const tripStatusColorMap: Record<string, string> = {
   Cancelled: "bg-red-100 text-red-800 border-red-300",
 }
 
-function formatBRL(value: number) {
-  return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 }).format(value)
-}
-
-function formatBRL2(value: number) {
-  return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value)
-}
 
 function MetricCard({ title, value, subtitle }: { title: string; value: string; subtitle?: string }) {
   return (
@@ -101,7 +91,7 @@ function buildTripColumns(): ColumnDef<Trip>[] {
     {
       accessorKey: "departureDate",
       header: "Salida",
-      cell: ({ row }) => new Date(row.getValue("departureDate")).toLocaleDateString("es-UY"),
+      cell: ({ row }) => formatDate(row.getValue("departureDate")),
     },
     {
       id: "route",
@@ -152,13 +142,15 @@ function buildTripColumns(): ColumnDef<Trip>[] {
 function buildIncomeColumns(
   onEdit: (income: Income) => void,
   onDelete: (income: Income) => void,
+  displayCurrency: import("@/lib/format").DisplayCurrency,
+  getDisplayValue: (item: { value: number; valueUSD?: number | null; valueBRL?: number | null; valueUYU?: number | null }) => number,
 ): ColumnDef<Income>[] {
   return [
     { accessorKey: "description", header: "Descripción" },
     {
       accessorKey: "value",
       header: "Valor",
-      cell: ({ row }) => formatBRL(row.getValue("value")),
+      cell: ({ row }) => formatCurrency(getDisplayValue(row.original), displayCurrency),
     },
     {
       accessorKey: "type",
@@ -173,7 +165,7 @@ function buildIncomeColumns(
     {
       accessorKey: "dateUtc",
       header: "Fecha",
-      cell: ({ row }) => new Date(row.getValue("dateUtc")).toLocaleDateString("es-UY"),
+      cell: ({ row }) => formatDate(row.getValue("dateUtc")),
     },
     {
       id: "actions",
@@ -217,6 +209,8 @@ function buildIncomeColumns(
 function buildExpenseColumns(
   onEdit: (expense: Expense) => void,
   onDelete: (expense: Expense) => void,
+  displayCurrency: import("@/lib/format").DisplayCurrency,
+  getDisplayValue: (item: { value: number; valueUSD?: number | null; valueBRL?: number | null; valueUYU?: number | null }) => number,
 ): ColumnDef<Expense>[] {
   return [
     {
@@ -234,12 +228,12 @@ function buildExpenseColumns(
     {
       accessorKey: "value",
       header: "Valor",
-      cell: ({ row }) => formatBRL(row.getValue("value")),
+      cell: ({ row }) => formatCurrency(getDisplayValue(row.original), displayCurrency),
     },
     {
       accessorKey: "date",
       header: "Fecha",
-      cell: ({ row }) => new Date((row.getValue("date") as string) + "T00:00:00").toLocaleDateString("es-UY"),
+      cell: ({ row }) => formatDate(row.getValue("date")),
     },
     {
       accessorKey: "kilometers",
@@ -298,38 +292,44 @@ export default function TruckDetailPage() {
   const { id } = useParams<{ id: string }>()
   const router = useRouter()
   const { selectedDate } = useDateFilter()
+  const { displayCurrency, getDisplayValue } = useCurrency()
   const [truck, setTruck] = useState<Truck | null>(null)
   const [trucks, setTrucks] = useState<Truck[]>([])
   const [allTrips, setAllTrips] = useState<Trip[]>([])
   const [allIncomes, setAllIncomes] = useState<Income[]>([])
   const [allExpenses, setAllExpenses] = useState<Expense[]>([])
+  const [costSummary, setCostSummary] = useState<SummaryMonth[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [editingIncome, setEditingIncome] = useState<Income | null>(null)
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null)
 
   useEffect(() => {
+    const year = (selectedDate ?? new Date()).getFullYear()
     Promise.all([
       fetchWithAuth(`${process.env.NEXT_PUBLIC_API_URL}/api/trucks/${id}`),
       fetchWithAuth(`${process.env.NEXT_PUBLIC_API_URL}/api/trucks`),
       fetchWithAuth(`${process.env.NEXT_PUBLIC_API_URL}/api/trips`),
       fetchWithAuth(`${process.env.NEXT_PUBLIC_API_URL}/api/incomes`),
       fetchWithAuth(`${process.env.NEXT_PUBLIC_API_URL}/api/expenses`),
+      fetchWithAuth(`${process.env.NEXT_PUBLIC_API_URL}/api/costs/summary?truckId=${id}&year=${year}`),
     ])
-      .then(async ([truckRes, trucksRes, tripsRes, incRes, expRes]) => {
+      .then(async ([truckRes, trucksRes, tripsRes, incRes, expRes, summaryRes]) => {
         if (!truckRes.ok) { router.push("/camiones"); return }
         if (!trucksRes.ok || !tripsRes.ok || !incRes.ok || !expRes.ok) throw new Error()
         const [truckData, trucksData, tripsData, incomesData, expensesData] = await Promise.all([
           truckRes.json(), trucksRes.json(), tripsRes.json(), incRes.json(), expRes.json(),
         ])
+        const summaryData = summaryRes.ok ? await summaryRes.json() : []
         setTruck(truckData)
         setTrucks(Array.isArray(trucksData) ? trucksData : [])
         setAllTrips(tripsData.filter((t: Trip) => t.truckId === id))
         setAllIncomes(incomesData.filter((i: Income) => i.truckId === id))
         setAllExpenses(expensesData.filter((e: Expense) => e.truckId === id))
+        setCostSummary(Array.isArray(summaryData) ? summaryData : [])
       })
       .catch(() => toast.error("Error al cargar datos del camión"))
       .finally(() => setIsLoading(false))
-  }, [id, router])
+  }, [id, router, selectedDate])
 
   const handleDeleteIncome = useCallback(async (income: Income) => {
     const res = await fetchWithAuth(`${process.env.NEXT_PUBLIC_API_URL}/api/incomes/${income.id}`, { method: "DELETE" })
@@ -369,20 +369,27 @@ export default function TruckDetailPage() {
     })
   }, [allExpenses, selectedDate])
 
-  const totalIncome = useMemo(() => incomes.reduce((acc, i) => acc + i.value, 0), [incomes])
-  const totalExpense = useMemo(() => expenses.reduce((acc, e) => acc + e.value, 0), [expenses])
+  const totalIncome = useMemo(() => incomes.reduce((acc, i) => acc + getDisplayValue(i), 0), [incomes, getDisplayValue])
+  const totalExpense = useMemo(() => expenses.reduce((acc, e) => acc + getDisplayValue(e), 0), [expenses, getDisplayValue])
   const totalKm = useMemo(() => trips.reduce((acc, t) => acc + (t.kilometers ?? 0), 0), [trips])
   const costPerKm = useMemo(() => totalKm > 0 ? totalExpense / totalKm : null, [totalExpense, totalKm])
   const revenuePerKm = useMemo(() => totalKm > 0 ? totalIncome / totalKm : null, [totalIncome, totalKm])
 
+  const costPerKmFromSummary = useMemo(() => {
+    if (!truck?.estimatedMonthlyKm) return null
+    const month = (selectedDate ?? new Date()).getMonth() + 1
+    const monthlyCost = costSummary.find((s) => s.month === month)?.total ?? 0
+    return monthlyCost / truck.estimatedMonthlyKm
+  }, [truck, costSummary, selectedDate])
+
   const tripCols = useMemo(() => buildTripColumns(), [])
   const incomeCols = useMemo(
-    () => buildIncomeColumns(setEditingIncome, handleDeleteIncome),
-    [handleDeleteIncome],
+    () => buildIncomeColumns(setEditingIncome, handleDeleteIncome, displayCurrency, getDisplayValue),
+    [handleDeleteIncome, displayCurrency, getDisplayValue],
   )
   const expenseCols = useMemo(
-    () => buildExpenseColumns(setEditingExpense, handleDeleteExpense),
-    [handleDeleteExpense],
+    () => buildExpenseColumns(setEditingExpense, handleDeleteExpense, displayCurrency, getDisplayValue),
+    [handleDeleteExpense, displayCurrency, getDisplayValue],
   )
 
   return (
@@ -404,6 +411,15 @@ export default function TruckDetailPage() {
           </h1>
         ) : (
           <h1 className="text-xl font-bold">Camión no encontrado</h1>
+        )}
+        {truck && !truck.estimatedMonthlyKm && (
+          <Badge
+            variant="outline"
+            className="text-orange-700 border-orange-300 bg-orange-50 dark:bg-orange-950/30 gap-1"
+          >
+            <AlertTriangle className="size-3" />
+            Falta configurar km estimados
+          </Badge>
         )}
         {truck && (
           <Link
@@ -434,15 +450,48 @@ export default function TruckDetailPage() {
               subtitle={`${trips.length} viaje${trips.length !== 1 ? "s" : ""} registrado${trips.length !== 1 ? "s" : ""}`}
             />
             <MetricCard
-              title="Costo por km"
-              value={costPerKm !== null ? `${formatBRL2(costPerKm)}/km` : "—"}
-              subtitle={totalKm === 0 ? "Sin km registrados" : "Egresos totales / km"}
+              title="Costo por km (viajes)"
+              value={costPerKm !== null ? `${formatCurrency2(costPerKm, displayCurrency)}/km` : "—"}
+              subtitle={totalKm === 0 ? "Sin km registrados" : "Egresos totales / km viajes"}
             />
             <MetricCard
               title="Ingreso por km"
-              value={revenuePerKm !== null ? `${formatBRL2(revenuePerKm)}/km` : "—"}
+              value={revenuePerKm !== null ? `${formatCurrency2(revenuePerKm, displayCurrency)}/km` : "—"}
               subtitle={totalKm === 0 ? "Sin km registrados" : "Ingresos totales / km"}
             />
+          </div>
+          {/* Km info + costs-based metric */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <MetricCard
+              title="Costo/km (costos fijos)"
+              value={costPerKmFromSummary !== null ? `${formatCurrency2(costPerKmFromSummary, displayCurrency)}/km` : "Sin datos"}
+              subtitle={
+                !truck?.estimatedMonthlyKm
+                  ? "Configurar km estimados en el camión"
+                  : `Costos del mes / ${truck.estimatedMonthlyKm.toLocaleString("es-UY")} km est.`
+              }
+            />
+            {truck?.currentKm != null && (
+              <MetricCard
+                title="Km actual"
+                value={`${truck.currentKm.toLocaleString("es-UY")} km`}
+                subtitle={
+                  truck.lastKmUpdatedAt
+                    ? `Hace ${Math.floor(
+                        (Date.now() - new Date(truck.lastKmUpdatedAt).getTime()) /
+                          (1000 * 60 * 60 * 24)
+                      )} días`
+                    : undefined
+                }
+              />
+            )}
+            {truck?.estimatedMonthlyKm != null && (
+              <MetricCard
+                title="Km mensuales estimados"
+                value={`${truck.estimatedMonthlyKm.toLocaleString("es-UY")} km`}
+                subtitle="Usado para calcular costo/km"
+              />
+            )}
           </div>
         </>
       )}

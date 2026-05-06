@@ -182,7 +182,9 @@ export function AddFixedCostModal({ onSuccess }: AddFixedCostModalProps) {
             <Field>
               <Label>Monto mensual</Label>
               <Input
-                {...register("amount", { valueAsNumber: true })}
+                {...register("amount", {
+                  setValueAs: (v) => v === "" || v == null ? undefined : parseFloat(String(v)),
+                })}
                 type="number"
                 step="0.01"
                 placeholder="5000"
@@ -249,7 +251,9 @@ export function AddFixedCostModal({ onSuccess }: AddFixedCostModalProps) {
               <Field className="flex-1">
                 <Label>Año inicio</Label>
                 <Input
-                  {...register("startYear", { valueAsNumber: true })}
+                  {...register("startYear", {
+                    setValueAs: (v) => v === "" || v == null ? undefined : parseInt(String(v), 10),
+                  })}
                   type="number"
                   placeholder="2026"
                 />

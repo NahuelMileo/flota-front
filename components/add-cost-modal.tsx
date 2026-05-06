@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useForm, Controller, useWatch } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
@@ -33,6 +33,7 @@ import {
 } from "@/components/ui/select"
 import { PlusIcon } from "lucide-react"
 import { FIXED_EXPENSE_TYPES } from "@/lib/expense-types"
+import type { Truck } from "@/types/truck"
 
 const MONTHS_OPTIONS = [
   { label: "Enero", value: "1" },
@@ -64,6 +65,8 @@ const singleSchema = z.object({
   amount: z.number().positive("El valor debe ser mayor a 0"),
   month: z.string().min(1, "Seleccioná un mes"),
   year: z.number().int().min(2000).max(2100),
+  odometerKm: z.number().min(0, "El km debe ser 0 o mayor").optional(),
+  odometerNotes: z.string().max(200).optional(),
 })
 
 const installmentsSchema = z.object({
@@ -85,9 +88,11 @@ type InstallmentsFormValues = z.infer<typeof installmentsSchema>
 
 function FixedCostForm({
   truckId,
+  trucks,
   onSuccess,
 }: {
-  truckId: string
+  truckId?: string
+  trucks?: Truck[]
   onSuccess: () => void
 }) {
   const {
@@ -108,8 +113,11 @@ function FixedCostForm({
   })
 
   const fixedExpenseType = useWatch({ control, name: "expenseType" })
+  const scope = useWatch({ control, name: "scope" })
+  const [selectedTruckId, setSelectedTruckId] = useState<string>("")
 
   async function onSubmit(data: FixedFormValues) {
+    const resolvedTruckId = truckId ?? (data.scope === "PerTruck" ? selectedTruckId || null : null)
     try {
       const res = await fetchWithAuth(
         `${process.env.NEXT_PUBLIC_API_URL}/api/costs/templates`,
@@ -117,7 +125,7 @@ function FixedCostForm({
           method: "POST",
           body: JSON.stringify({
             ...data,
-            truckId,
+            truckId: resolvedTruckId,
             type: 1,
             expenseType: parseInt(data.expenseType),
             startMonth: parseInt(data.startMonth),
@@ -128,6 +136,7 @@ function FixedCostForm({
       if (!res.ok) throw new Error()
       toast.success("Costo fijo creado")
       reset()
+      setSelectedTruckId("")
       onSuccess()
     } catch {
       toast.error("Error al crear costo fijo")
@@ -167,7 +176,9 @@ function FixedCostForm({
         <Field>
           <Label>Monto mensual</Label>
           <Input
-            {...register("amount", { valueAsNumber: true })}
+            {...register("amount", {
+              setValueAs: (v) => v === "" || v == null ? undefined : parseFloat(String(v)),
+            })}
             type="number"
             step="0.01"
             placeholder="5000"
@@ -204,7 +215,9 @@ function FixedCostForm({
           <Field className="flex-1">
             <Label>Año inicio</Label>
             <Input
-              {...register("startYear", { valueAsNumber: true })}
+              {...register("startYear", {
+                setValueAs: (v) => v === "" || v == null ? undefined : parseInt(String(v), 10),
+              })}
               type="number"
               placeholder="2026"
             />
@@ -239,6 +252,36 @@ function FixedCostForm({
             </Field>
           )}
         />
+        {!truckId && trucks && scope === "PerTruck" && (
+          <Field>
+            <Label>Camión</Label>
+            <Select
+              items={[
+                { label: "Sin asignar", value: "" },
+                ...trucks.map((t) => ({
+                  label: `${t.licensePlate}${t.model ? ` — ${t.model}` : ""}`,
+                  value: t.id,
+                })),
+              ]}
+              value={selectedTruckId}
+              onValueChange={(v) => setSelectedTruckId(v ?? "")}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Seleccionar camión (opcional)" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectGroup>
+                  <SelectItem value="">Sin asignar</SelectItem>
+                  {trucks.map((t) => (
+                    <SelectItem key={t.id} value={t.id}>
+                      {t.licensePlate}{t.model ? ` — ${t.model}` : ""}
+                    </SelectItem>
+                  ))}
+                </SelectGroup>
+              </SelectContent>
+            </Select>
+          </Field>
+        )}
       </FieldGroup>
       <Button className="w-full" type="submit" disabled={isSubmitting}>
         Crear costo fijo
@@ -249,14 +292,17 @@ function FixedCostForm({
 
 function VariableCostForm({
   truckId,
+  trucks,
   defaultYear,
   onSuccess,
 }: {
-  truckId: string
+  truckId?: string
+  trucks?: Truck[]
   defaultYear: number
   onSuccess: () => void
 }) {
   const [paymentType, setPaymentType] = useState<"single" | "installments">("single")
+  const [selectedTruckId, setSelectedTruckId] = useState<string>("")
 
   const singleForm = useForm({
     resolver: zodResolver(singleSchema),
@@ -272,23 +318,44 @@ function VariableCostForm({
   const installmentsExpenseType = useWatch({ control: installmentsForm.control, name: "expenseType" })
 
   async function onSubmitSingle(data: SingleFormValues) {
+    const resolvedTruckId = truckId ?? (selectedTruckId || null)
+    const odometerKm =
+      data.odometerKm != null && !isNaN(data.odometerKm) ? data.odometerKm : undefined
+    const payload = {
+      name: data.name,
+      expenseType: parseInt(data.expenseType),
+      amount: data.amount,
+      month: parseInt(data.month),
+      year: data.year,
+      truckId: resolvedTruckId,
+      ...(odometerKm != null && {
+        odometerKm,
+        odometerNotes: data.odometerNotes || undefined,
+      }),
+    }
     try {
       const res = await fetchWithAuth(
         `${process.env.NEXT_PUBLIC_API_URL}/api/costs/entries`,
         {
           method: "POST",
-          body: JSON.stringify({
-            name: data.name,
-            expenseType: parseInt(data.expenseType),
-            amount: data.amount,
-            month: parseInt(data.month),
-            year: data.year,
-            truckId,
-          }),
+          body: JSON.stringify(payload),
           headers: { "Content-Type": "application/json" },
         }
       )
-      if (!res.ok) throw new Error()
+      if (!res.ok) {
+        let errorMsg = "Error al crear costo variable"
+        try {
+          const errData = await res.json()
+          const msg: string = errData?.message ?? ""
+          if (msg.toLowerCase().includes("decrease") || msg.toLowerCase().includes("menor")) {
+            errorMsg = "El kilometraje no puede ser menor al último registrado."
+          } else if (msg.toLowerCase().includes("negative") || msg.toLowerCase().includes("negativo")) {
+            errorMsg = "El kilometraje no puede ser negativo."
+          }
+        } catch { /* ignore */ }
+        toast.error(errorMsg)
+        return
+      }
       toast.success("Costo variable creado")
       singleForm.reset({ year: defaultYear, month: "", expenseType: "" })
       onSuccess()
@@ -298,6 +365,7 @@ function VariableCostForm({
   }
 
   async function onSubmitInstallments(data: InstallmentsFormValues) {
+    const resolvedTruckId = truckId ?? (selectedTruckId || null)
     try {
       const res = await fetchWithAuth(
         `${process.env.NEXT_PUBLIC_API_URL}/api/costs/installments`,
@@ -310,7 +378,7 @@ function VariableCostForm({
             installmentCount: data.installmentCount,
             startMonth: parseInt(data.startMonth),
             startYear: data.startYear,
-            truckId,
+            truckId: resolvedTruckId,
           }),
           headers: { "Content-Type": "application/json" },
         }
@@ -354,6 +422,36 @@ function VariableCostForm({
       {paymentType === "single" ? (
         <form onSubmit={singleForm.handleSubmit(onSubmitSingle)}>
           <FieldGroup className="py-3">
+            {!truckId && trucks && (
+              <Field>
+                <Label>Camión (opcional)</Label>
+                <Select
+                  items={[
+                    { label: "Sin asignar", value: "" },
+                    ...trucks.map((t) => ({
+                      label: `${t.licensePlate}${t.model ? ` — ${t.model}` : ""}`,
+                      value: t.id,
+                    })),
+                  ]}
+                  value={selectedTruckId}
+                  onValueChange={(v) => setSelectedTruckId(v ?? "")}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Seleccionar camión" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
+                      <SelectItem value="">Sin asignar</SelectItem>
+                      {trucks.map((t) => (
+                        <SelectItem key={t.id} value={t.id}>
+                          {t.licensePlate}{t.model ? ` — ${t.model}` : ""}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+              </Field>
+            )}
             <Field>
               <Label>Nombre</Label>
               <Input
@@ -385,7 +483,9 @@ function VariableCostForm({
             <Field>
               <Label>Monto</Label>
               <Input
-                {...singleForm.register("amount", { valueAsNumber: true })}
+                {...singleForm.register("amount", {
+                  setValueAs: (v) => v === "" || v == null ? undefined : parseFloat(String(v)),
+                })}
                 type="number"
                 step="0.01"
                 placeholder="15000"
@@ -424,12 +524,45 @@ function VariableCostForm({
               <Field className="flex-1">
                 <Label>Año</Label>
                 <Input
-                  {...singleForm.register("year", { valueAsNumber: true })}
+                  {...singleForm.register("year", {
+                    setValueAs: (v) => v === "" || v == null ? undefined : parseInt(String(v), 10),
+                  })}
                   type="number"
                   placeholder="2025"
                 />
                 <FieldError errors={[singleForm.formState.errors.year]} />
               </Field>
+            </div>
+
+            <div className="border-t pt-3 flex flex-col gap-3">
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                Kilometraje <span className="font-normal normal-case">(opcional)</span>
+              </p>
+              <Field>
+                <Label>Km actual del camión</Label>
+                <Input
+                  {...singleForm.register("odometerKm", {
+                    setValueAs: (v) =>
+                      v === "" || v === undefined ? undefined : parseFloat(v),
+                  })}
+                  type="number"
+                  min="0"
+                  step="1"
+                  placeholder="Ej: 125500"
+                />
+                <FieldError errors={[singleForm.formState.errors.odometerKm]} />
+              </Field>
+              <Field>
+                <Label>Nota del odómetro</Label>
+                <Input
+                  {...singleForm.register("odometerNotes")}
+                  placeholder="Ej: carga de gasoil en ruta / taller"
+                />
+                <FieldError errors={[singleForm.formState.errors.odometerNotes]} />
+              </Field>
+              <p className="text-xs text-muted-foreground">
+                Si informás el kilometraje, se actualizará el km actual del camión y se guardará en el historial.
+              </p>
             </div>
           </FieldGroup>
           <Button
@@ -443,6 +576,36 @@ function VariableCostForm({
       ) : (
         <form onSubmit={installmentsForm.handleSubmit(onSubmitInstallments)}>
           <FieldGroup className="py-3">
+            {!truckId && trucks && (
+              <Field>
+                <Label>Camión (opcional)</Label>
+                <Select
+                  items={[
+                    { label: "Sin asignar", value: "" },
+                    ...trucks.map((t) => ({
+                      label: `${t.licensePlate}${t.model ? ` — ${t.model}` : ""}`,
+                      value: t.id,
+                    })),
+                  ]}
+                  value={selectedTruckId}
+                  onValueChange={(v) => setSelectedTruckId(v ?? "")}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Seleccionar camión" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
+                      <SelectItem value="">Sin asignar</SelectItem>
+                      {trucks.map((t) => (
+                        <SelectItem key={t.id} value={t.id}>
+                          {t.licensePlate}{t.model ? ` — ${t.model}` : ""}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+              </Field>
+            )}
             <Field>
               <Label>Nombre</Label>
               <Input
@@ -474,7 +637,9 @@ function VariableCostForm({
             <Field>
               <Label>Monto total</Label>
               <Input
-                {...installmentsForm.register("totalAmount", { valueAsNumber: true })}
+                {...installmentsForm.register("totalAmount", {
+                  setValueAs: (v) => v === "" || v == null ? undefined : parseFloat(String(v)),
+                })}
                 type="number"
                 step="0.01"
                 placeholder="60000"
@@ -484,7 +649,9 @@ function VariableCostForm({
             <Field>
               <Label>Cantidad de cuotas</Label>
               <Input
-                {...installmentsForm.register("installmentCount", { valueAsNumber: true })}
+                {...installmentsForm.register("installmentCount", {
+                  setValueAs: (v) => v === "" || v == null ? undefined : parseInt(String(v), 10),
+                })}
                 type="number"
                 min="2"
                 max="60"
@@ -524,7 +691,9 @@ function VariableCostForm({
               <Field className="flex-1">
                 <Label>Año inicio</Label>
                 <Input
-                  {...installmentsForm.register("startYear", { valueAsNumber: true })}
+                  {...installmentsForm.register("startYear", {
+                    setValueAs: (v) => v === "" || v == null ? undefined : parseInt(String(v), 10),
+                  })}
                   type="number"
                   placeholder="2025"
                 />
@@ -546,13 +715,24 @@ function VariableCostForm({
 }
 
 interface AddCostModalProps {
-  truckId: string
-  year: number
+  truckId?: string
+  year?: number
   onSuccess: () => void
 }
 
 export function AddCostModal({ truckId, year, onSuccess }: AddCostModalProps) {
   const [open, setOpen] = useState(false)
+  const [trucks, setTrucks] = useState<Truck[]>([])
+  const defaultYear = year ?? new Date().getFullYear()
+
+  useEffect(() => {
+    if (open && !truckId) {
+      fetchWithAuth(`${process.env.NEXT_PUBLIC_API_URL}/api/trucks`)
+        .then((r) => r.ok ? r.json() : [])
+        .then(setTrucks)
+        .catch(() => {})
+    }
+  }, [open, truckId])
 
   function handleSuccess() {
     setOpen(false)
@@ -576,12 +756,13 @@ export function AddCostModal({ truckId, year, onSuccess }: AddCostModalProps) {
             </TabsTrigger>
           </TabsList>
           <TabsContent value="fixed">
-            <FixedCostForm truckId={truckId} onSuccess={handleSuccess} />
+            <FixedCostForm truckId={truckId} trucks={truckId ? undefined : trucks} onSuccess={handleSuccess} />
           </TabsContent>
           <TabsContent value="variable">
             <VariableCostForm
               truckId={truckId}
-              defaultYear={year}
+              trucks={truckId ? undefined : trucks}
+              defaultYear={defaultYear}
               onSuccess={handleSuccess}
             />
           </TabsContent>

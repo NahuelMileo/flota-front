@@ -3,6 +3,14 @@
 import { useCallback, useEffect, useState } from "react"
 import Link from "next/link"
 import { fetchWithAuth } from "@/lib/api"
+import { formatCurrency, type DisplayCurrency } from "@/lib/format"
+import { useCurrency } from "@/context/currency-context"
+
+function getTemplateDisplayAmount(t: CostTemplate, currency: DisplayCurrency): number {
+  if (currency === "USD") return t.valueUSD ?? t.amount
+  if (currency === "UYU") return t.valueUYU ?? t.amount
+  return t.valueBRL ?? t.amount
+}
 import { toast } from "sonner"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Badge } from "@/components/ui/badge"
@@ -35,9 +43,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { Pencil, Trash2, TruckIcon } from "lucide-react"
+import { CalendarDays, Pencil, Trash2, TruckIcon } from "lucide-react"
 import { expenseTypeStringLabels, FIXED_EXPENSE_TYPES } from "@/lib/expense-types"
-import { AddFixedCostModal } from "@/components/add-fixed-cost-modal"
+import { AddCostModal } from "@/components/add-cost-modal"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
@@ -46,6 +54,9 @@ type CostTemplate = {
   id: string
   name: string
   amount: number
+  valueUSD: number | null
+  valueBRL: number | null
+  valueUYU: number | null
   type: string
   scope: "PerTruck" | "CompanyWide"
   truckId: string | null
@@ -54,13 +65,7 @@ type CostTemplate = {
   truckLicensePlate: string | null
 }
 
-function formatBRL(value: number) {
-  return new Intl.NumberFormat("pt-BR", {
-    style: "currency",
-    currency: "BRL",
-    maximumFractionDigits: 0,
-  }).format(value)
-}
+
 
 const editSchema = z.object({
   name: z.string().min(1, "El nombre es requerido"),
@@ -154,7 +159,7 @@ function EditFixedCostModal({
             <Field>
               <Label>Monto mensual</Label>
               <Input
-                {...register("amount", { valueAsNumber: true })}
+                {...register("amount", { setValueAs: (v) => v === "" ? undefined : Number(v) })}
                 type="number"
                 step="0.01"
               />
@@ -171,6 +176,7 @@ function EditFixedCostModal({
 }
 
 export default function CostosPage() {
+  const { displayCurrency } = useCurrency()
   const [templates, setTemplates] = useState<CostTemplate[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [editingTemplate, setEditingTemplate] = useState<CostTemplate | null>(null)
@@ -182,7 +188,7 @@ export default function CostosPage() {
         `${process.env.NEXT_PUBLIC_API_URL}/api/costs/templates`
       )
       if (!res.ok) throw new Error()
-      const data = await res.json()                                                
+      const data = await res.json()
       setTemplates(data)
     } catch {
       toast.error("Error al cargar costos fijos")
@@ -205,15 +211,15 @@ export default function CostosPage() {
 
   const monthlyTotal = templates
     .filter((t) => t.isActive)
-    .reduce((acc, t) => acc + t.amount, 0)
+    .reduce((acc, t) => acc + getTemplateDisplayAmount(t, displayCurrency), 0)
 
   const companyWideTotal = templates
     .filter((t) => t.isActive && t.scope === "CompanyWide")
-    .reduce((acc, t) => acc + t.amount, 0)
+    .reduce((acc, t) => acc + getTemplateDisplayAmount(t, displayCurrency), 0)
 
   const perTruckTotal = templates
     .filter((t) => t.isActive && t.scope === "PerTruck")
-    .reduce((acc, t) => acc + t.amount, 0)
+    .reduce((acc, t) => acc + getTemplateDisplayAmount(t, displayCurrency), 0)
 
   return (
     <div className="p-6 flex flex-col gap-5">
@@ -224,7 +230,16 @@ export default function CostosPage() {
             Todos los costos fijos activos de la empresa
           </p>
         </div>
-        <AddFixedCostModal onSuccess={fetchTemplates} />
+        <div className="flex items-center gap-2">
+          <Link
+            href={`/costos/mensual?month=${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, "0")}`}
+            className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors border rounded-md px-3 py-1.5"
+          >
+            <CalendarDays className="size-4" />
+            Vista mensual
+          </Link>
+          <AddCostModal onSuccess={fetchTemplates} />
+        </div>
       </div>
 
       {/* KPI cards */}
@@ -238,15 +253,15 @@ export default function CostosPage() {
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div className="rounded-xl border p-4">
             <p className="text-xs text-muted-foreground">Total mensual</p>
-            <p className="text-2xl font-bold mt-1">{formatBRL(monthlyTotal)}</p>
+            <p className="text-2xl font-bold mt-1">{formatCurrency(monthlyTotal, displayCurrency)}</p>
           </div>
           <div className="rounded-xl border p-4">
             <p className="text-xs text-muted-foreground">Por camión (suma)</p>
-            <p className="text-2xl font-bold mt-1">{formatBRL(perTruckTotal)}</p>
+            <p className="text-2xl font-bold mt-1">{formatCurrency(perTruckTotal, displayCurrency)}</p>
           </div>
           <div className="rounded-xl border p-4">
             <p className="text-xs text-muted-foreground">Toda la empresa</p>
-            <p className="text-2xl font-bold mt-1">{formatBRL(companyWideTotal)}</p>
+            <p className="text-2xl font-bold mt-1">{formatCurrency(companyWideTotal, displayCurrency)}</p>
           </div>
         </div>
       )}
@@ -317,7 +332,7 @@ export default function CostosPage() {
                     )}
                   </td>
                   <td className="px-4 py-3 text-right tabular-nums">
-                    <span className="font-medium">{formatBRL(t.amount)}</span>
+                    <span className="font-medium">{formatCurrency(getTemplateDisplayAmount(t, displayCurrency), displayCurrency)}</span>
                     {t.scope === "CompanyWide" && (
                       <p className="text-xs text-muted-foreground">total empresa</p>
                     )}

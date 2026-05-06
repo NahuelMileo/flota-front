@@ -11,6 +11,7 @@ import {
   YAxis,
 } from "recharts"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { formatBRL } from "@/lib/format"
 
 type MonthlyData = {
   month: string
@@ -22,13 +23,6 @@ type Props = {
   data: MonthlyData[]
 }
 
-function formatBRL(value: number) {
-  return new Intl.NumberFormat("pt-BR", {
-    style: "currency",
-    currency: "BRL",
-    maximumFractionDigits: 0,
-  }).format(value)
-}
 
 export function MonthlyComparisonChart({ data }: Props) {
   if (data.every(d => d.ingresos === 0 && d.egresos === 0)) return null

@@ -13,10 +13,12 @@ import {
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { fetchWithAuth } from "@/lib/api";
-import { getColumns, Income } from "./columns";
+import type { Truck } from "@/types/truck";
+import { getColumns, Income, normalizeIncomeType } from "./columns";
 import { TotalIncomeCard } from "@/components/total-income-card";
 import { IncomeByTruckChart } from "@/components/income-by-truck-chart";
 import { useDateFilter } from "@/context/date-filter-context";
+import { useCurrency } from "@/context/currency-context";
 import AddIncomeForm from "./AddIncomeForm";
 import EditIncomeForm from "./EditIncomeForm";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -29,11 +31,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-type Truck = {
-  id: string;
-  licensePlate: string;
-  model?: string;
-};
 
 const incomeTypeItems = [
   { label: "Todos los tipos", value: "all" },
@@ -65,6 +62,7 @@ export default function IncomePage() {
   const [selectedTypeFilter, setSelectedTypeFilter] = useState<string | null>(null);
 
   const { selectedDate } = useDateFilter();
+  const { displayCurrency, getDisplayValue } = useCurrency();
 
   // ================= FETCH =================
   useEffect(() => {
@@ -115,15 +113,15 @@ export default function IncomePage() {
           return false;
       }
       if (selectedTruckId && income.truckId !== selectedTruckId) return false;
-      if (selectedTypeFilter !== null && String(income.type) !== selectedTypeFilter)
+      if (selectedTypeFilter !== null && normalizeIncomeType(String(income.type)) !== selectedTypeFilter)
         return false;
       return true;
     });
   }, [incomes, selectedDate, selectedTruckId, selectedTypeFilter]);
 
   const total = useMemo(
-    () => filteredIncomes.reduce((acc, i) => acc + i.value, 0),
-    [filteredIncomes]
+    () => filteredIncomes.reduce((acc, i) => acc + getDisplayValue(i), 0),
+    [filteredIncomes, getDisplayValue]
   );
 
   const previousMonthTotal = useMemo(() => {
@@ -143,12 +141,12 @@ export default function IncomePage() {
         )
           return false;
         if (selectedTruckId && income.truckId !== selectedTruckId) return false;
-        if (selectedTypeFilter !== null && String(income.type) !== selectedTypeFilter)
+        if (selectedTypeFilter !== null && normalizeIncomeType(String(income.type)) !== selectedTypeFilter)
           return false;
         return true;
       })
-      .reduce((acc, i) => acc + i.value, 0);
-  }, [incomes, selectedDate, selectedTruckId, selectedTypeFilter]);
+      .reduce((acc, i) => acc + getDisplayValue(i), 0);
+  }, [incomes, selectedDate, selectedTruckId, selectedTypeFilter, getDisplayValue]);
 
   const variation = useMemo(() => {
     if (previousMonthTotal === 0) return undefined;
@@ -187,9 +185,10 @@ export default function IncomePage() {
     () =>
       getColumns(
         (income) => setEditingIncome(income),
-        handleDeleteIncome
+        handleDeleteIncome,
+        displayCurrency
       ),
-    [handleDeleteIncome]
+    [handleDeleteIncome, displayCurrency]
   );
 
   // ================= FILTER OPTIONS =================
@@ -211,8 +210,7 @@ export default function IncomePage() {
         <h1 className="text-xl font-bold">Ingresos</h1>
 
         <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-          <DialogTrigger render={<Button variant="outline">Añadir ingreso</Button>}>
-          </DialogTrigger>
+          <DialogTrigger render={<Button variant="outline">Añadir ingreso</Button>} />
 
           <DialogContent className="sm:max-w-sm">
             <DialogHeader>
@@ -279,7 +277,7 @@ export default function IncomePage() {
       <TotalIncomeCard total={total} variation={variation} />
 
       {/* CHART */}
-      <IncomeByTruckChart incomes={filteredIncomes} />
+      <IncomeByTruckChart incomes={filteredIncomes} displayCurrency={displayCurrency} />
 
       {/* EDIT DIALOG */}
       <Dialog

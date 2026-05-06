@@ -10,14 +10,9 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { Button } from "@/components/ui/button"
 import { CostTable } from "@/components/cost-table"
 import { AddCostModal } from "@/components/add-cost-modal"
+import { OdometerReadingsPanel } from "@/components/odometer-readings-panel"
 import { useTruckCosts } from "@/hooks/use-truck-costs"
-
-type Truck = {
-  id: string
-  licensePlate: string
-  model: string
-  year: number
-}
+import type { Truck } from "@/types/truck"
 
 export default function TruckCostsPage() {
   const { id } = useParams<{ id: string }>()
@@ -102,7 +97,7 @@ export default function TruckCostsPage() {
       </div>
 
       {/* Legend */}
-      <div className="flex gap-4 text-xs text-muted-foreground">
+      <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
         <span className="flex items-center gap-1.5">
           <span className="inline-block size-3 rounded-sm bg-green-200 dark:bg-green-800" />
           Costo fijo
@@ -113,7 +108,14 @@ export default function TruckCostsPage() {
         </span>
         <span className="flex items-center gap-1.5">
           <span className="inline-block size-3 rounded-sm bg-cyan-200 dark:bg-cyan-800" />
-          Costo x km
+          Costo x km real
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span className="inline-block size-3 rounded-sm bg-cyan-100 dark:bg-cyan-900" />
+          Costo x km estimado
+        </span>
+        <span className="text-muted-foreground/60">
+          · Costo/km real usa lecturas de odómetro; si no hay suficientes, se usa el estimado mensual.
         </span>
       </div>
 
@@ -121,6 +123,7 @@ export default function TruckCostsPage() {
       <CostTable
         costRows={costRows}
         summary={summary}
+        estimatedMonthlyKm={truck?.estimatedMonthlyKm}
         isLoading={isLoading}
         onMarkPaid={markAsPaid}
         onUpdateAmount={updateAmount}
@@ -152,6 +155,9 @@ export default function TruckCostsPage() {
           refetch()
         }}
       />
+
+      {/* Odometer readings */}
+      <OdometerReadingsPanel truckId={id} year={year} />
     </div>
   )
 }

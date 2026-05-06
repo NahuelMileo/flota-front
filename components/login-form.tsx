@@ -79,6 +79,10 @@ export function LoginForm({
         localStorage.removeItem("tenantName");
       }
 
+      if (data.displayCurrency) {
+        localStorage.setItem("displayCurrency", data.displayCurrency);
+      }
+
       setTimeout(() => {
         data.tenantId
           ? (window.location.href = "/dashboard")

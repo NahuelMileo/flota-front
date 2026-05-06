@@ -13,17 +13,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { fetchWithAuth } from "@/lib/api";
+import type { Truck } from "@/types/truck";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
 import { Trip } from "./columns";
 
-type Truck = {
-  id: string;
-  licensePlate: string;
-  model?: string;
-};
 
 const tripSchema = z.object({
   departureDate: z.string().min(1, "La fecha de salida es requerida"),
@@ -35,7 +31,7 @@ const tripSchema = z.object({
     { message: "Seleccioná un camión" }
   ),
   driverName: z.string().optional(),
-  kilometers: z.number().positive("Debe ser mayor a 0").nullable().optional(),
+  initialKm: z.number().positive("Debe ser mayor a 0").nullable().optional(),
   status: z.enum(["1", "2", "3", "4"]),
   notes: z.string().optional(),
 });
@@ -88,12 +84,12 @@ export default function AddTripForm({
           method: "POST",
           body: JSON.stringify({
             departureDate: data.departureDate,
-            arrivalDate: data.arrivalDate ?? null,
+            arrivalDate: data.arrivalDate || null,
             origin: data.origin,
             destination: data.destination,
             truckId: data.truckId,
             driverName: data.driverName || null,
-            kilometers: data.kilometers ?? null,
+            initialKm: data.initialKm ?? null,
             status: parseInt(data.status),
             notes: data.notes || null,
           }),
@@ -165,16 +161,16 @@ export default function AddTripForm({
         </Field>
 
         <Field>
-          <Label>Kilómetros (opcional)</Label>
+          <Label>Km inicial (opcional)</Label>
           <Input
-            {...register("kilometers", {
+            {...register("initialKm", {
               setValueAs: (v) => (v === "" ? null : parseFloat(v)),
             })}
             type="number"
             step="0.01"
-            placeholder="480"
+            placeholder="120000"
           />
-          <FieldError errors={[errors.kilometers]} />
+          <FieldError errors={[errors.initialKm]} />
         </Field>
 
         <Controller

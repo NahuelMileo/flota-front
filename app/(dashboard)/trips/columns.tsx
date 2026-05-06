@@ -1,5 +1,6 @@
 "use client";
 import { ColumnDef } from "@tanstack/react-table";
+import { formatDate } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { Pencil, Trash2, Eye } from "lucide-react";
 import {
@@ -26,6 +27,8 @@ export type Trip = {
   truckLicensePlate: string;
   driverName: string | null;
   kilometers: number | null;
+  initialKm: number | null;
+  finalKm: number | null;
   status: string;
   notes: string | null;
 };
@@ -55,7 +58,7 @@ export function getColumns(
       header: "Salida",
       cell: ({ row }) => {
         const date: string = row.getValue("departureDate");
-        return new Date(date).toLocaleDateString("es-UY");
+        return formatDate(date);
       },
     },
     {

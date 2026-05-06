@@ -1,19 +1,15 @@
+"use client"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { formatCurrency } from "@/lib/format"
+import { useCurrency } from "@/context/currency-context"
 
 type Props = {
   income: number
   expense: number
 }
 
-function formatBRL(value: number) {
-  return new Intl.NumberFormat("pt-BR", {
-    style: "currency",
-    currency: "BRL",
-    maximumFractionDigits: 0,
-  }).format(value)
-}
-
 export function NetBalanceCard({ income, expense }: Props) {
+  const { displayCurrency } = useCurrency()
   const balance = income - expense
   const isPositive = balance >= 0
 
@@ -26,7 +22,7 @@ export function NetBalanceCard({ income, expense }: Props) {
       </CardHeader>
       <CardContent>
         <div className={`text-2xl font-bold ${isPositive ? "text-green-500" : "text-red-500"}`}>
-          {isPositive ? "+" : ""}{formatBRL(balance)}
+          {isPositive ? "+" : ""}{formatCurrency(balance, displayCurrency)}
         </div>
         <p className="text-xs text-muted-foreground mt-1">
           Ingresos − Egresos

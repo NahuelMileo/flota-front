@@ -13,21 +13,17 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { fetchWithAuth } from "@/lib/api";
+import type { Truck } from "@/types/truck";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
 import { Trip } from "./columns";
 
-type Truck = {
-  id: string;
-  licensePlate: string;
-  model?: string;
-};
 
 const tripSchema = z.object({
   departureDate: z.string().min(1, "La fecha de salida es requerida"),
-  arrivalDate: z.string().min(1, "La fecha de llegada es requerida"),
+  arrivalDate: z.string().optional(),
   origin: z.string().min(1, "El origen es requerido"),
   destination: z.string().min(1, "El destino es requerido"),
   truckId: z.string().min(1, "Seleccioná un camión").refine(
@@ -35,7 +31,8 @@ const tripSchema = z.object({
     { message: "Seleccioná un camión" }
   ),
   driverName: z.string().optional(),
-  kilometers: z.number().positive("Debe ser mayor a 0").nullable().optional(),
+  initialKm: z.number().positive("Debe ser mayor a 0").nullable().optional(),
+  finalKm: z.number().positive("Debe ser mayor a 0").nullable().optional(),
   status: z.enum(["1", "2", "3", "4"]),
   notes: z.string().optional(),
 });
@@ -77,6 +74,7 @@ export default function EditTripForm({
     register,
     handleSubmit,
     control,
+    watch,
     formState: { errors, isSubmitting },
   } = useForm<TripFormValues>({
     resolver: zodResolver(tripSchema),
@@ -87,11 +85,19 @@ export default function EditTripForm({
       destination: trip.destination,
       truckId: trip.truckId ?? "none",
       driverName: trip.driverName ?? "",
-      kilometers: trip.kilometers ?? null,
+      initialKm: trip.initialKm ?? null,
+      finalKm: trip.finalKm ?? null,
       status: (statusApiToFormValue[trip.status] ?? String(trip.status)) as TripFormValues["status"],
       notes: trip.notes ?? "",
     },
   });
+
+  const watchedInitialKm = watch("initialKm");
+  const watchedFinalKm = watch("finalKm");
+  const computedKm =
+    watchedInitialKm != null && watchedFinalKm != null && watchedFinalKm > watchedInitialKm
+      ? watchedFinalKm - watchedInitialKm
+      : null;
 
   async function onSubmit(data: TripFormValues) {
     try {
@@ -101,12 +107,13 @@ export default function EditTripForm({
           method: "PUT",
           body: JSON.stringify({
             departureDate: data.departureDate,
-            arrivalDate: data.arrivalDate,
+            arrivalDate: data.arrivalDate || null,
             origin: data.origin,
             destination: data.destination,
             truckId: data.truckId,
             driverName: data.driverName || null,
-            kilometers: data.kilometers ?? null,
+            initialKm: data.initialKm ?? null,
+            finalKm: data.finalKm ?? null,
             status: parseInt(data.status),
             notes: data.notes || null,
           }),
@@ -126,29 +133,31 @@ export default function EditTripForm({
   return (
     <form onSubmit={handleSubmit(onSubmit)}>
       <FieldGroup>
-        <Field>
-          <Label>Fecha de salida</Label>
-          <Input {...register("departureDate")} type="date" />
-          <FieldError errors={[errors.departureDate]} />
-        </Field>
+        <div className="grid grid-cols-2 gap-3">
+          <Field>
+            <Label>Fecha salida</Label>
+            <Input {...register("departureDate")} type="date" />
+            <FieldError errors={[errors.departureDate]} />
+          </Field>
+          <Field>
+            <Label>Fecha llegada</Label>
+            <Input {...register("arrivalDate")} type="date" />
+            <FieldError errors={[errors.arrivalDate]} />
+          </Field>
+        </div>
 
-        <Field>
-          <Label>Fecha de llegada</Label>
-          <Input {...register("arrivalDate")} type="date" />
-          <FieldError errors={[errors.arrivalDate]} />
-        </Field>
-
-        <Field>
-          <Label>Origen</Label>
-          <Input {...register("origin")} />
-          <FieldError errors={[errors.origin]} />
-        </Field>
-
-        <Field>
-          <Label>Destino</Label>
-          <Input {...register("destination")} />
-          <FieldError errors={[errors.destination]} />
-        </Field>
+        <div className="grid grid-cols-2 gap-3">
+          <Field>
+            <Label>Origen</Label>
+            <Input {...register("origin")} />
+            <FieldError errors={[errors.origin]} />
+          </Field>
+          <Field>
+            <Label>Destino</Label>
+            <Input {...register("destination")} />
+            <FieldError errors={[errors.destination]} />
+          </Field>
+        </div>
 
         <Field>
           <Label>Camión</Label>
@@ -186,18 +195,37 @@ export default function EditTripForm({
           <Input {...register("driverName")} placeholder="Juan Pérez" />
         </Field>
 
-        <Field>
-          <Label>Kilómetros (opcional)</Label>
-          <Input
-            {...register("kilometers", {
-              setValueAs: (v) => (v === "" ? null : parseFloat(v)),
-            })}
-            type="number"
-            step="0.01"
-            placeholder="480"
-          />
-          <FieldError errors={[errors.kilometers]} />
-        </Field>
+        <div className="grid grid-cols-2 gap-3">
+          <Field>
+            <Label>Km inicial</Label>
+            <Input
+              {...register("initialKm", {
+                setValueAs: (v) => (v === "" ? null : parseFloat(v)),
+              })}
+              type="number"
+              step="0.01"
+              placeholder="120000"
+            />
+            <FieldError errors={[errors.initialKm]} />
+          </Field>
+          <Field>
+            <Label>Km final</Label>
+            <Input
+              {...register("finalKm", {
+                setValueAs: (v) => (v === "" ? null : parseFloat(v)),
+              })}
+              type="number"
+              step="0.01"
+              placeholder="120480"
+            />
+            <FieldError errors={[errors.finalKm]} />
+          </Field>
+        </div>
+        {computedKm !== null && (
+          <p className="text-sm text-muted-foreground">
+            Total: <span className="font-medium text-foreground">{computedKm.toLocaleString("es-UY")} km</span>
+          </p>
+        )}
 
         <Field>
           <Label>Estado</Label>

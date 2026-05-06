@@ -13,45 +13,35 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { fetchWithAuth } from "@/lib/api";
+import type { Truck } from "@/types/truck";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
 import { Expense } from "./columns";
+import { expenseTypeLabels } from "@/lib/expense-types";
 
-type Truck = {
-  id: string;
-  licensePlate: string;
-  model?: string;
-};
+const expenseTypeItems = Object.entries(expenseTypeLabels).map(([value, label]) => ({ value, label }));
+const expenseTypeValues = Object.keys(expenseTypeLabels) as [string, ...string[]];
+
+const currencyItems = [
+  { label: "BRL — Real brasileño", value: "BRL" },
+  { label: "USD — Dólar", value: "USD" },
+  { label: "UYU — Peso uruguayo", value: "UYU" },
+];
 
 const expenseSchema = z.object({
   name: z.string().optional(),
-  value: z
-    .number({ invalid_type_error: "Ingresá un valor válido" })
-    .positive("El valor debe ser mayor a 0"),
+  value: z.number().positive("El valor debe ser mayor a 0"),
   date: z.string().min(1, "La fecha es requerida"),
   truckId: z.string().nullable(),
-  type: z.enum(["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11"]),
-  kilometers: z.number().positive("Debe ser mayor a 0").nullable().optional(),
-  liters: z.number().positive("Debe ser mayor a 0").nullable().optional(),
+  type: z.enum(expenseTypeValues),
+  currency: z.enum(["USD", "BRL", "UYU"]),
+  kilometers: z.number().positive("Debe ser mayor a 0").nullable(),
+  liters: z.number().positive("Debe ser mayor a 0").nullable(),
 });
 
 type ExpenseFormValues = z.infer<typeof expenseSchema>;
-
-const expenseTypeItems = [
-  { label: "Gasoil", value: "1" },
-  { label: "Arla 32", value: "2" },
-  { label: "Mantenimiento", value: "3" },
-  { label: "Gomería", value: "4" },
-  { label: "Aceite", value: "5" },
-  { label: "Estacionamiento", value: "6" },
-  { label: "Peaje", value: "7" },
-  { label: "Salario", value: "8" },
-  { label: "Contador", value: "9" },
-  { label: "Financiamiento", value: "10" },
-  { label: "Otro", value: "11" },
-];
 
 const FUEL_TYPES = new Set(["1", "2", "5"]);
 
@@ -88,6 +78,7 @@ export default function AddExpenseForm({
       date: todayIso,
       truckId: defaultTruckId ?? null,
       type: "1",
+      currency: "BRL",
     },
   });
 
@@ -106,6 +97,7 @@ export default function AddExpenseForm({
             date: data.date,
             truckId: data.truckId === "none" ? null : data.truckId,
             type: parseInt(data.type),
+            currency: data.currency,
             kilometers: data.kilometers ?? null,
             liters: data.liters ?? null,
             ...(tripId && { tripId }),
@@ -135,13 +127,43 @@ export default function AddExpenseForm({
         <Field>
           <Label>Valor</Label>
           <Input
-            {...register("value", { valueAsNumber: true })}
+            {...register("value", {
+              setValueAs: (v) =>
+                v === "" || v === null || v === undefined
+                  ? undefined
+                  : parseFloat(String(v).replace(",", ".")),
+            })}
             type="number"
             step="0.01"
             placeholder="12000"
           />
           <FieldError errors={[errors.value]} />
         </Field>
+
+        <Controller
+          name="currency"
+          control={control}
+          render={({ field }) => (
+            <Select
+              items={currencyItems}
+              value={field.value}
+              onValueChange={(value) => field.onChange(value ?? "BRL")}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Seleccionar moneda" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectGroup>
+                  {currencyItems.map((item) => (
+                    <SelectItem key={item.value} value={item.value}>
+                      {item.label}
+                    </SelectItem>
+                  ))}
+                </SelectGroup>
+              </SelectContent>
+            </Select>
+          )}
+        />
 
         <Field>
           <Label>Fecha</Label>
@@ -218,10 +240,13 @@ export default function AddExpenseForm({
               <Label>Kilómetros</Label>
               <Input
                 {...register("kilometers", {
-                  setValueAs: (v) => (v === "" ? null : parseFloat(v)),
+                  setValueAs: (v) =>
+                    v === "" || v === null || v === undefined
+                      ? null
+                      : parseFloat(String(v).replace(",", ".")),
                 })}
-                type="number"
-                step="0.01"
+                type="text"
+                inputMode="decimal"
                 placeholder="Opcional"
               />
               <FieldError errors={[errors.kilometers]} />
@@ -231,10 +256,13 @@ export default function AddExpenseForm({
               <Label>Litros</Label>
               <Input
                 {...register("liters", {
-                  setValueAs: (v) => (v === "" ? null : parseFloat(v)),
+                  setValueAs: (v) =>
+                    v === "" || v === null || v === undefined
+                      ? null
+                      : parseFloat(String(v).replace(",", ".")),
                 })}
-                type="number"
-                step="0.01"
+                type="text"
+                inputMode="decimal"
                 placeholder="Opcional"
               />
               <FieldError errors={[errors.liters]} />

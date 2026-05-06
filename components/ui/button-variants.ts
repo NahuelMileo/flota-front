@@ -5,7 +5,7 @@ export const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: "bg-primary text-primary-foreground [a]:hover:bg-primary/80",
+        default: "bg-neutral-900 text-white shadow-[0_3px_6px_rgba(0,0,0,0.2),inset_0_0_6px_2px_rgba(255,255,255,0.24),0_0_0_1px_rgba(0,0,0,1)] hover:bg-neutral-800 active:translate-y-px active:shadow-[0_1px_3px_rgba(0,0,0,0.2),inset_0_0_6px_2px_rgba(255,255,255,0.24),0_0_0_1px_rgba(0,0,0,1)]",
         outline:
           "border-border bg-background hover:bg-muted hover:text-foreground aria-expanded:bg-muted aria-expanded:text-foreground dark:border-input dark:bg-input/30 dark:hover:bg-input/50",
         secondary:

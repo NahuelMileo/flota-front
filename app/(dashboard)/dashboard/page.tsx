@@ -4,7 +4,9 @@ import { useEffect, useMemo, useState } from "react"
 import { fetchWithAuth } from "@/lib/api"
 import { toast } from "sonner"
 import { useDateFilter } from "@/context/date-filter-context"
+import { useCurrency } from "@/context/currency-context"
 import { TotalIncomeCard } from "@/components/total-income-card"
+import type { Expense as ColumnExpense } from "@/app/(dashboard)/egresos/columns"
 import { TotalExpenseCard } from "@/components/total-expense-card"
 import { NetBalanceCard } from "@/components/net-balance-card"
 import { CostPerKmCard } from "@/components/cost-per-km-card"
@@ -14,6 +16,9 @@ import { Skeleton } from "@/components/ui/skeleton"
 type Income = {
   id: string
   value: number
+  valueUSD: number | null
+  valueBRL: number | null
+  valueUYU: number | null
   dateUtc: string
   truckLicensePlate: string | null
   type: string
@@ -22,6 +27,9 @@ type Income = {
 type Expense = {
   id: string
   value: number
+  valueUSD: number | null
+  valueBRL: number | null
+  valueUYU: number | null
   date: string
   type: number
   truckId: string | null
@@ -41,6 +49,7 @@ export default function DashboardPage() {
   const [isLoading, setIsLoading] = useState(true)
 
   const { selectedDate } = useDateFilter()
+  const { getDisplayValue } = useCurrency()
 
   useEffect(() => {
     Promise.all([
@@ -74,8 +83,8 @@ export default function DashboardPage() {
     })
   }, [expenses, selectedDate])
 
-  const totalIncome = useMemo(() => filteredIncomes.reduce((acc, i) => acc + i.value, 0), [filteredIncomes])
-  const totalExpense = useMemo(() => filteredExpenses.reduce((acc, e) => acc + e.value, 0), [filteredExpenses])
+  const totalIncome = useMemo(() => filteredIncomes.reduce((acc, i) => acc + getDisplayValue(i), 0), [filteredIncomes, getDisplayValue])
+  const totalExpense = useMemo(() => filteredExpenses.reduce((acc, e) => acc + getDisplayValue(e), 0), [filteredExpenses, getDisplayValue])
 
   // Previous month totals for variation
   const prevMonthIncome = useMemo(() => {
@@ -86,8 +95,8 @@ export default function DashboardPage() {
         const d = new Date(i.dateUtc)
         return d.getMonth() === prev.getMonth() && d.getFullYear() === prev.getFullYear()
       })
-      .reduce((acc, i) => acc + i.value, 0)
-  }, [incomes, selectedDate])
+      .reduce((acc, i) => acc + getDisplayValue(i), 0)
+  }, [incomes, selectedDate, getDisplayValue])
 
   const prevMonthExpense = useMemo(() => {
     if (!selectedDate) return 0
@@ -97,8 +106,8 @@ export default function DashboardPage() {
         const d = new Date(e.date + "T00:00:00")
         return d.getMonth() === prev.getMonth() && d.getFullYear() === prev.getFullYear()
       })
-      .reduce((acc, e) => acc + e.value, 0)
-  }, [expenses, selectedDate])
+      .reduce((acc, e) => acc + getDisplayValue(e), 0)
+  }, [expenses, selectedDate, getDisplayValue])
 
   const incomeVariation = useMemo(() => {
     if (prevMonthIncome === 0) return undefined
@@ -123,18 +132,18 @@ export default function DashboardPage() {
           const id = new Date(inc.dateUtc)
           return id.getMonth() === d.getMonth() && id.getFullYear() === d.getFullYear()
         })
-        .reduce((acc, inc) => acc + inc.value, 0)
+        .reduce((acc, inc) => acc + getDisplayValue(inc), 0)
 
       const monthExpense = expenses
         .filter((exp) => {
           const ed = new Date(exp.date + "T00:00:00")
           return ed.getMonth() === d.getMonth() && ed.getFullYear() === d.getFullYear()
         })
-        .reduce((acc, exp) => acc + exp.value, 0)
+        .reduce((acc, exp) => acc + getDisplayValue(exp), 0)
 
       return { month: label, ingresos: monthIncome, egresos: monthExpense }
     })
-  }, [incomes, expenses])
+  }, [incomes, expenses, getDisplayValue])
 
   return (
     <div className="p-6 flex flex-col gap-4">
@@ -153,7 +162,7 @@ export default function DashboardPage() {
           <TotalIncomeCard total={totalIncome} variation={incomeVariation} />
           <TotalExpenseCard total={totalExpense} variation={expenseVariation} />
           <NetBalanceCard income={totalIncome} expense={totalExpense} />
-          <CostPerKmCard expenses={filteredExpenses} />
+          <CostPerKmCard expenses={filteredExpenses as unknown as ColumnExpense[]} />
         </div>
       )}
 

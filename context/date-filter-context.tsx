@@ -9,7 +9,7 @@ interface DateFilterContextType {
 const DateFilterContext = createContext<DateFilterContextType | null>(null)
 
 export function DateFilterProvider({ children }: { children: React.ReactNode }) {
-  const [selectedDate, setSelectedDate] = useState<Date | null>(null)
+  const [selectedDate, setSelectedDate] = useState<Date | null>(new Date())
   return (
     <DateFilterContext.Provider value={{ selectedDate, setSelectedDate }}>
       {children}

@@ -1,5 +1,8 @@
+"use client"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Expense } from "@/app/(dashboard)/egresos/columns";
+import { formatCurrency2 } from "@/lib/format";
+import { useCurrency } from "@/context/currency-context";
 
 // Gasoil (1), Arla 32 (2), Aceite (5)
 const FUEL_TYPES = new Set([1, 2, 5]);
@@ -8,21 +11,14 @@ type Props = {
   expenses: Expense[];
 };
 
-function formatBRL(value: number) {
-  return new Intl.NumberFormat("pt-BR", {
-    style: "currency",
-    currency: "BRL",
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(value);
-}
-
 export function CostPerKmCard({ expenses }: Props) {
+  const { displayCurrency, getDisplayValue } = useCurrency();
+
   const fuelExpenses = expenses.filter(
-    (e) => FUEL_TYPES.has(e.type) && e.value && e.kilometers
+    (e) => FUEL_TYPES.has(Number(e.type)) && e.value && e.kilometers
   );
 
-  const totalValue = fuelExpenses.reduce((acc, e) => acc + e.value, 0);
+  const totalValue = fuelExpenses.reduce((acc, e) => acc + getDisplayValue(e), 0);
   const totalKm = fuelExpenses.reduce((acc, e) => acc + (e.kilometers ?? 0), 0);
 
   if (totalKm === 0) return null;
@@ -37,7 +33,7 @@ export function CostPerKmCard({ expenses }: Props) {
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="text-2xl font-bold">{formatBRL(costPerKm)}/km</div>
+        <div className="text-2xl font-bold">{formatCurrency2(costPerKm, displayCurrency)}/km</div>
         <p className="text-xs text-muted-foreground mt-1">
           {totalKm.toLocaleString("es-UY")} km registrados
         </p>

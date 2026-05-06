@@ -2,7 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import { useCurrency } from "@/context/currency-context";
+import { formatCurrency, formatCurrency2, formatDate } from "@/lib/format";
 import { fetchWithAuth } from "@/lib/api";
+import type { Truck } from "@/types/truck";
 import { toast } from "sonner";
 import { getExpenseTypeLabel } from "@/lib/expense-types";
 import { Button } from "@/components/ui/button";
@@ -33,21 +36,19 @@ import { FuelEfficiencyCard } from "@/components/fuel-efficiency-card";
 import AddIncomeForm from "@/app/(dashboard)/ingresos/AddIncomeForm";
 import AddExpenseForm from "@/app/(dashboard)/egresos/AddExpenseForm";
 
-type Truck = {
-  id: string;
-  licensePlate: string;
-  model?: string;
-};
 
 type Income = {
   id: string;
   description: string;
   value: number;
+  valueUSD: number | null;
+  valueBRL: number | null;
+  valueUYU: number | null;
   truckId: string | null;
   truckLicensePlate: string | null;
   dateUtc: string;
   type: string;
-  currency: number;
+  currency: string;
   tripId?: string | null;
 };
 
@@ -56,6 +57,9 @@ type Expense = {
   date: string;
   type: number | string;
   value: number;
+  valueUSD: number | null;
+  valueBRL: number | null;
+  valueUYU: number | null;
   truckId: string | null;
   truckLicensePlate: string | null;
   name: string | null;
@@ -71,6 +75,8 @@ type TripDetail = Trip & {
   totalExpense: number;
   profit: number;
   costPerKm: number | null;
+  initialKm: number | null;
+  finalKm: number | null;
 };
 
 const tripStatusLabels: Record<string, string> = {
@@ -91,6 +97,7 @@ export default function TripDetailPage() {
   const params = useParams();
   const router = useRouter();
   const tripId = params.id as string;
+  const { displayCurrency, getDisplayValue } = useCurrency();
 
   const [trip, setTrip] = useState<TripDetail | null>(null);
   const [trucks, setTrucks] = useState<Truck[]>([]);
@@ -118,7 +125,7 @@ export default function TripDetailPage() {
 
         const tripData = await tripRes.json();
         const trucksData = await trucksRes.json();
-
+        console.log(tripData)
         setTrip(tripData);
         setTrucks(trucksData);
       } catch {
@@ -164,18 +171,27 @@ export default function TripDetailPage() {
   };
 
   const handleAddExpenseSuccess = (newExpense: Expense) => {
-    setTrip(prev => prev ? {
-      ...prev,
-      expenses: [...prev.expenses, newExpense],
-      totalExpense: prev.totalExpense + newExpense.value,
-      profit: prev.totalIncome - (prev.totalExpense + newExpense.value),
-      costPerKm: prev.kilometers && prev.kilometers > 0
-        ? (prev.totalExpense + newExpense.value) / prev.kilometers
-        : null,
-    } : null);
+    setTrip(prev => {
+      if (!prev) return null;
+      const newTotal = prev.totalExpense + newExpense.value;
+      const tripKm = prev.initialKm != null && prev.finalKm != null
+        ? prev.finalKm - prev.initialKm
+        : prev.kilometers;
+      return {
+        ...prev,
+        expenses: [...prev.expenses, newExpense],
+        totalExpense: newTotal,
+        profit: prev.totalIncome - newTotal,
+        costPerKm: tripKm && tripKm > 0 ? newTotal / tripKm : null,
+      };
+    });
     setIsAddExpenseDialogOpen(false);
     toast.success("Egreso agregado");
   };
+
+  // Helper to format trip totals (from API, already pre-calculated in display currency or fallback to BRL)
+  const fmtMoney = (v: number) => formatCurrency(v, displayCurrency);
+  const fmtMoney2 = (v: number) => formatCurrency2(v, displayCurrency);
 
   if (isLoading) {
     return (
@@ -214,7 +230,7 @@ export default function TripDetailPage() {
               {trip ? `${trip.origin} → ${trip.destination}` : 'Cargando...'}
             </h1>
             <p className="text-sm text-muted-foreground">
-              {trip && new Date(trip.departureDate).toLocaleDateString("es-UY")}
+              {trip && formatDate(trip.departureDate)}
             </p>
           </div>
         </div>
@@ -263,11 +279,11 @@ export default function TripDetailPage() {
           <div className="space-y-2 text-sm">
             <div className="flex justify-between">
               <span className="text-muted-foreground">Salida:</span>
-              <span className="font-medium">{new Date(trip.departureDate).toLocaleDateString("es-UY")}</span>
+              <span className="font-medium">{formatDate(trip.departureDate)}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">Llegada:</span>
-              <span className="font-medium">{trip.arrivalDate ? new Date(trip.arrivalDate).toLocaleDateString("es-UY") : <span className="text-muted-foreground">—</span>}</span>
+              <span className="font-medium">{trip.arrivalDate ? formatDate(trip.arrivalDate) : <span className="text-muted-foreground">—</span>}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">Camión:</span>
@@ -279,7 +295,25 @@ export default function TripDetailPage() {
                 <span className="font-medium">{trip.driverName}</span>
               </div>
             )}
-            {trip.kilometers && (
+            {trip.initialKm != null && (
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Km inicial:</span>
+                <span className="font-medium">{trip.initialKm.toLocaleString("es-UY")} km</span>
+              </div>
+            )}
+            {trip.finalKm != null && (
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Km final:</span>
+                <span className="font-medium">{trip.finalKm.toLocaleString("es-UY")} km</span>
+              </div>
+            )}
+            {trip.initialKm != null && trip.finalKm != null && (
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Total km:</span>
+                <span className="font-medium">{(trip.finalKm - trip.initialKm).toLocaleString("es-UY")} km</span>
+              </div>
+            )}
+            {trip.kilometers && trip.initialKm == null && (
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Kilómetros:</span>
                 <span className="font-medium">{trip.kilometers} km</span>
@@ -301,31 +335,19 @@ export default function TripDetailPage() {
             <div className="flex justify-between pb-2 border-b">
               <span className="text-muted-foreground">Total ingresos:</span>
               <span className="font-medium text-green-600">
-                {new Intl.NumberFormat("pt-BR", {
-                  style: "currency",
-                  currency: "BRL",
-                  maximumFractionDigits: 0,
-                }).format(trip.totalIncome)}
+                {fmtMoney(trip.totalIncome)}
               </span>
             </div>
             <div className="flex justify-between pb-2 border-b">
               <span className="text-muted-foreground">Total egresos:</span>
               <span className="font-medium text-red-600">
-                {new Intl.NumberFormat("pt-BR", {
-                  style: "currency",
-                  currency: "BRL",
-                  maximumFractionDigits: 0,
-                }).format(trip.totalExpense)}
+                {fmtMoney(trip.totalExpense)}
               </span>
             </div>
             <div className="flex justify-between pt-2">
               <span className="font-semibold">Utilidad:</span>
               <span className={`font-bold text-lg ${trip.profit >= 0 ? "text-green-600" : "text-red-600"}`}>
-                {new Intl.NumberFormat("pt-BR", {
-                  style: "currency",
-                  currency: "BRL",
-                  maximumFractionDigits: 0,
-                }).format(trip.profit)}
+                {fmtMoney(trip.profit)}
               </span>
             </div>
             {trip.totalIncome > 0 && (
@@ -340,26 +362,23 @@ export default function TripDetailPage() {
               <div className="flex justify-between border-t pt-2">
                 <span className="text-muted-foreground">Costo/km:</span>
                 <span className="font-medium">
-                  {new Intl.NumberFormat("pt-BR", {
-                    style: "currency",
-                    currency: "BRL",
-                    maximumFractionDigits: 2,
-                  }).format(trip.costPerKm)}
+                  {fmtMoney2(trip.costPerKm)}
                 </span>
               </div>
             )}
-            {trip.kilometers && trip.kilometers > 0 && trip.totalIncome > 0 && (
-              <div className="flex justify-between border-t pt-2">
-                <span className="text-muted-foreground">Ingreso/km:</span>
-                <span className="font-medium text-green-600">
-                  {new Intl.NumberFormat("pt-BR", {
-                    style: "currency",
-                    currency: "BRL",
-                    maximumFractionDigits: 2,
-                  }).format(trip.totalIncome / trip.kilometers)}
-                </span>
-              </div>
-            )}
+            {(() => {
+              const tripKm = trip.initialKm != null && trip.finalKm != null
+                ? trip.finalKm - trip.initialKm
+                : trip.kilometers;
+              return tripKm && tripKm > 0 && trip.totalIncome > 0 ? (
+                <div className="flex justify-between border-t pt-2">
+                  <span className="text-muted-foreground">Ingreso/km:</span>
+                  <span className="font-medium text-green-600">
+                    {fmtMoney2(trip.totalIncome / tripKm)}
+                  </span>
+                </div>
+              ) : null;
+            })()}
           </div>
         </div>
       </div>
@@ -383,15 +402,11 @@ export default function TripDetailPage() {
                 <div>
                   <p className="font-medium">{income.description}</p>
                   <p className="text-xs text-muted-foreground">
-                    {new Date(income.dateUtc).toLocaleDateString("es-UY")}
+                    {formatDate(income.dateUtc)}
                   </p>
                 </div>
                 <p className="font-medium text-green-600">
-                  {new Intl.NumberFormat("pt-BR", {
-                    style: "currency",
-                    currency: "BRL",
-                    maximumFractionDigits: 0,
-                  }).format(income.value)}
+                  {fmtMoney(getDisplayValue(income))}
                 </p>
               </div>
             ))}
@@ -420,15 +435,11 @@ export default function TripDetailPage() {
                 <div>
                   <p className="font-medium">{expense.name}</p>
                   <p className="text-xs text-muted-foreground">
-                    {new Date(expense.date + "T00:00:00").toLocaleDateString("es-UY")}
+                    {formatDate(expense.date)}
                   </p>
                 </div>
                 <p className="font-medium text-red-600">
-                  {new Intl.NumberFormat("pt-BR", {
-                    style: "currency",
-                    currency: "BRL",
-                    maximumFractionDigits: 0,
-                  }).format(expense.value)}
+                  {fmtMoney(getDisplayValue(expense))}
                 </p>
               </div>
             ))}
@@ -448,7 +459,7 @@ export default function TripDetailPage() {
       {trip.expenses.length > 0 && (() => {
         const breakdown = trip.expenses.reduce<Record<string, number>>((acc, e) => {
           const key = String(e.type)
-          acc[key] = (acc[key] ?? 0) + e.value;
+          acc[key] = (acc[key] ?? 0) + getDisplayValue(e);
           return acc;
         }, {});
         const sorted = Object.entries(breakdown).sort(([, a], [, b]) => b - a);
@@ -464,11 +475,7 @@ export default function TripDetailPage() {
                       {Math.round((total / trip.totalExpense) * 100)}%
                     </span>
                     <span className="font-medium text-red-600 w-28 text-right">
-                      {new Intl.NumberFormat("pt-BR", {
-                        style: "currency",
-                        currency: "BRL",
-                        maximumFractionDigits: 0,
-                      }).format(total)}
+                      {fmtMoney(total)}
                     </span>
                   </div>
                 </div>
@@ -485,7 +492,7 @@ export default function TripDetailPage() {
 
       {/* Edit Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="sm:max-w-sm">
+        <DialogContent className="sm:max-w-sm overflow-y-auto max-h-[90vh]">
           <DialogHeader>
             <DialogTitle>Editar viaje</DialogTitle>
           </DialogHeader>

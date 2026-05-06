@@ -6,10 +6,12 @@ import {
   SidebarProvider,
 } from "@/components/ui/sidebar"
 import { DateFilterProvider } from "@/context/date-filter-context"
+import { CurrencyProvider } from "@/context/currency-context"
 
 export default function DashboardLayout({children} : {children:React.ReactNode}) {
   return (
     <AuthGuard>
+      <CurrencyProvider>
       <DateFilterProvider>
     <SidebarProvider
       style={
@@ -30,6 +32,7 @@ export default function DashboardLayout({children} : {children:React.ReactNode})
       </SidebarInset>
     </SidebarProvider>
       </DateFilterProvider>
+      </CurrencyProvider>
     </AuthGuard>
       )
 }

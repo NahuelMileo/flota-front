@@ -11,24 +11,27 @@ import {
 } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Income } from "@/app/(dashboard)/ingresos/columns";
+import { formatCurrency, DisplayCurrency } from "@/lib/format";
+
+function getDisplayValue(
+  item: { value: number; valueUSD?: number | null; valueBRL?: number | null; valueUYU?: number | null },
+  currency: DisplayCurrency
+): number {
+  if (currency === "USD") return item.valueUSD ?? item.value;
+  if (currency === "UYU") return item.valueUYU ?? item.value;
+  return item.valueBRL ?? item.value;
+}
 
 type Props = {
   incomes: Income[];
+  displayCurrency: DisplayCurrency;
 };
 
-function formatBRL(value: number) {
-  return new Intl.NumberFormat("pt-BR", {
-    style: "currency",
-    currency: "BRL",
-    maximumFractionDigits: 0,
-  }).format(value);
-}
-
-export function IncomeByTruckChart({ incomes }: Props) {
+export function IncomeByTruckChart({ incomes, displayCurrency }: Props) {
   const data = Object.entries(
     incomes.reduce((acc, i) => {
       const label = i.truckLicensePlate ?? "Sin asignar";
-      acc[label] = (acc[label] ?? 0) + i.value;
+      acc[label] = (acc[label] ?? 0) + getDisplayValue(i, displayCurrency);
       return acc;
     }, {} as Record<string, number>)
   )
@@ -54,13 +57,13 @@ export function IncomeByTruckChart({ incomes }: Props) {
               interval={0}
             />
             <YAxis
-              tickFormatter={(v) => formatBRL(v)}
+              tickFormatter={(v) => formatCurrency(v, displayCurrency)}
               tick={{ fontSize: 11 }}
               width={90}
             />
             <Tooltip
               formatter={(value) => [
-                typeof value === "number" ? formatBRL(value) : value,
+                typeof value === "number" ? formatCurrency(value, displayCurrency) : value,
                 "Total",
               ]}
             />

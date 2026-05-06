@@ -2,12 +2,17 @@
 import { Separator } from "@/components/ui/separator";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { useDateFilter } from "@/context/date-filter-context";
+import { useCurrency } from "@/context/currency-context";
 import { usePathname } from "next/navigation";
 import { DatePicker } from "./ui/date-picker";
+import type { DisplayCurrency } from "@/lib/format";
+
+const CURRENCIES: DisplayCurrency[] = ["USD", "BRL", "UYU"];
 
 export function SiteHeader() {
   const pathname = usePathname();
   const { selectedDate, setSelectedDate } = useDateFilter();
+  const { displayCurrency, setDisplayCurrency } = useCurrency();
 
   // Detectar si es una ruta de detalle y mostrar título apropiado
   const getTitleFromPathname = (path: string): string => {
@@ -41,10 +46,28 @@ export function SiteHeader() {
           className="mx-2 h-4 data-vertical:self-auto"
         />
         <h1 className="text-base font-medium">{title}</h1>
-        <DatePicker
-          value={selectedDate}
-          onChange={(d) => setSelectedDate(d ?? null)}
-        />
+        <div className="ml-auto flex items-center gap-2">
+          <div className="flex rounded-md border overflow-hidden">
+            {CURRENCIES.map((cur) => (
+              <button
+                key={cur}
+                type="button"
+                onClick={() => setDisplayCurrency(cur)}
+                className={`px-2 py-1 text-xs font-medium transition-colors ${
+                  displayCurrency === cur
+                    ? "bg-foreground text-background"
+                    : "bg-background text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {cur}
+              </button>
+            ))}
+          </div>
+          <DatePicker
+            value={selectedDate}
+            onChange={(d) => setSelectedDate(d ?? null)}
+          />
+        </div>
       </div>
     </header>
   );

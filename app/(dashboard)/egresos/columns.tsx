@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { expenseTypeLabels, getExpenseTypeLabel } from "@/lib/expense-types";
+import { formatCurrency, formatDate, DisplayCurrency } from "@/lib/format";
 
 export { expenseTypeLabels };
 
@@ -23,6 +24,10 @@ export type Expense = {
   date: string;
   type: number | string;
   value: number;
+  valueUSD: number | null;
+  valueBRL: number | null;
+  valueUYU: number | null;
+  currency: string; // "USD" | "BRL" | "UYU"
   truckId: string | null;
   truckLicensePlate: string | null;
   name: string | null;
@@ -30,10 +35,19 @@ export type Expense = {
   liters: number | null;
 };
 
+function getDisplayValue(
+  item: Pick<Expense, "value" | "valueUSD" | "valueBRL" | "valueUYU">,
+  currency: DisplayCurrency
+): number {
+  if (currency === "USD") return item.valueUSD ?? item.value;
+  if (currency === "UYU") return item.valueUYU ?? item.value;
+  return item.valueBRL ?? item.value;
+}
 
 export function getColumns(
   onEdit: (expense: Expense) => void,
   onDelete: (expense: Expense) => void,
+  displayCurrency: DisplayCurrency = "BRL",
 ): ColumnDef<Expense>[] {
   return [
     {
@@ -57,12 +71,8 @@ export function getColumns(
       accessorKey: "value",
       header: "Valor",
       cell: ({ row }) => {
-        const value: number = row.getValue("value");
-        return new Intl.NumberFormat("pt-BR", {
-          style: "currency",
-          currency: "BRL",
-          maximumFractionDigits: 0,
-        }).format(value);
+        const displayVal = getDisplayValue(row.original, displayCurrency);
+        return formatCurrency(displayVal, displayCurrency);
       },
     },
     {
@@ -79,7 +89,7 @@ export function getColumns(
       header: "Fecha",
       cell: ({ row }) => {
         const date: string = row.getValue("date");
-        return new Date(date + "T00:00:00").toLocaleDateString("es-UY");
+        return formatDate(date);
       },
     },
     {
@@ -129,7 +139,7 @@ export function getColumns(
                     </span>{" "}
                     por valor de{" "}
                     <span className="font-medium text-foreground">
-                      {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 }).format(expense.value)}
+                      {formatCurrency(getDisplayValue(expense, displayCurrency), displayCurrency)}
                     </span>{" "}
                     de tu registro.
                   </AlertDialogDescription>

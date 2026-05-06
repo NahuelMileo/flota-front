@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { fetchWithAuth } from "@/lib/api";
+import type { Truck } from "@/types/truck";
 import { getColumns, Trip } from "./columns";
 import { useDateFilter } from "@/context/date-filter-context";
 import AddTripForm from "./AddTripForm";
@@ -27,12 +28,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 
-type Truck = {
-  id: string;
-  licensePlate: string;
-  model?: string;
-};
 
 const tripStatusItems = [
   { label: "Todos los estados", value: "all" },
@@ -65,6 +63,7 @@ export default function TripsPage() {
 
   const [selectedTruckId, setSelectedTruckId] = useState<string | null>(null);
   const [selectedStatus, setSelectedStatus] = useState<string | null>(null);
+  const [showOpenOnly, setShowOpenOnly] = useState(false);
 
   const { selectedDate } = useDateFilter();
 
@@ -109,19 +108,23 @@ export default function TripsPage() {
   const filteredTrips = useMemo(() => {
     return trips.filter((trip) => {
       if (selectedDate) {
-        const date = new Date(trip.departureDate);
-        if (
-          date.getMonth() !== selectedDate.getMonth() ||
-          date.getFullYear() !== selectedDate.getFullYear()
-        )
-          return false;
+        const isActive = trip.status === "InProgress" || trip.status === "Scheduled";
+        if (!isActive) {
+          const date = new Date(trip.departureDate);
+          if (
+            date.getMonth() !== selectedDate.getMonth() ||
+            date.getFullYear() !== selectedDate.getFullYear()
+          )
+            return false;
+        }
       }
+      if (showOpenOnly && trip.status !== "InProgress") return false;
       if (selectedTruckId && trip.truckId !== selectedTruckId) return false;
       if (selectedStatus !== null && String(trip.status) !== selectedStatus)
         return false;
       return true;
     });
-  }, [trips, selectedDate, selectedTruckId, selectedStatus]);
+  }, [trips, selectedDate, selectedTruckId, selectedStatus, showOpenOnly]);
 
   const totalTrips = useMemo(() => filteredTrips.length, [filteredTrips]);
   const totalKm = useMemo(
@@ -183,8 +186,7 @@ export default function TripsPage() {
         <h1 className="text-xl font-bold">Viajes</h1>
 
         <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-          <DialogTrigger render={<Button variant="outline">Añadir viaje</Button>}>
-          </DialogTrigger>
+          <DialogTrigger render={<Button variant="outline">Añadir viaje</Button>} />
 
           <DialogContent className="sm:max-w-sm">
             <DialogHeader>
@@ -203,7 +205,7 @@ export default function TripsPage() {
       </div>
 
       {/* FILTERS */}
-      <div className="flex gap-2">
+      <div className="flex items-center gap-4">
         <Select
           items={truckItems}
           value={selectedTruckId ?? "all"}
@@ -245,6 +247,15 @@ export default function TripsPage() {
             </SelectGroup>
           </SelectContent>
         </Select>
+
+        <div className="flex items-center gap-2">
+          <Checkbox
+            id="open-trips"
+            checked={showOpenOnly}
+            onCheckedChange={(checked) => setShowOpenOnly(!!checked)}
+          />
+          <Label htmlFor="open-trips" className="text-sm cursor-pointer">Solo viajes abiertos</Label>
+        </div>
       </div>
 
       {/* STATS CARDS */}
@@ -266,7 +277,7 @@ export default function TripsPage() {
           if (!open) setEditingTrip(null);
         }}
       >
-        <DialogContent className="sm:max-w-sm">
+        <DialogContent className="sm:max-w-sm overflow-y-auto max-h-[90vh]">
           {editingTrip && (
             <EditTripForm
               trip={editingTrip}
