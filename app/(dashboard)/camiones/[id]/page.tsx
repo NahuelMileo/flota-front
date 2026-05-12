@@ -18,7 +18,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { DataTable } from "../data-table"
 import { ColumnDef } from "@tanstack/react-table"
-import { getExpenseTypeLabel } from "@/lib/expense-types"
+import type { ExpenseCategory } from "@/types/expense-category"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -219,10 +219,10 @@ function buildExpenseColumns(
       cell: ({ row }) => row.getValue("name") ?? <span className="text-muted-foreground">—</span>,
     },
     {
-      accessorKey: "type",
-      header: "Tipo",
+      accessorKey: "categoryName",
+      header: "Categoría",
       cell: ({ row }) => (
-        <Badge variant="outline">{getExpenseTypeLabel(row.getValue("type") as number | string)}</Badge>
+        <Badge variant="outline">{(row.getValue("categoryName") as string | null) ?? "Sin categoría"}</Badge>
       ),
     },
     {
@@ -265,7 +265,7 @@ function buildExpenseColumns(
                   <AlertDialogDescription>
                     Esta acción no se puede deshacer. Se eliminará{" "}
                     <span className="font-medium text-foreground">
-                      {expense.name ?? getExpenseTypeLabel(expense.type)}
+                      {expense.name ?? expense.categoryName ?? "Sin categoría"}
                     </span>.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
@@ -295,6 +295,7 @@ export default function TruckDetailPage() {
   const { displayCurrency, getDisplayValue } = useCurrency()
   const [truck, setTruck] = useState<Truck | null>(null)
   const [trucks, setTrucks] = useState<Truck[]>([])
+  const [categories, setCategories] = useState<ExpenseCategory[]>([])
   const [allTrips, setAllTrips] = useState<Trip[]>([])
   const [allIncomes, setAllIncomes] = useState<Income[]>([])
   const [allExpenses, setAllExpenses] = useState<Expense[]>([])
@@ -312,16 +313,19 @@ export default function TruckDetailPage() {
       fetchWithAuth(`${process.env.NEXT_PUBLIC_API_URL}/api/incomes`),
       fetchWithAuth(`${process.env.NEXT_PUBLIC_API_URL}/api/expenses`),
       fetchWithAuth(`${process.env.NEXT_PUBLIC_API_URL}/api/costs/summary?truckId=${id}&year=${year}`),
+      fetchWithAuth(`${process.env.NEXT_PUBLIC_API_URL}/api/expense-categories`),
     ])
-      .then(async ([truckRes, trucksRes, tripsRes, incRes, expRes, summaryRes]) => {
+      .then(async ([truckRes, trucksRes, tripsRes, incRes, expRes, summaryRes, catsRes]) => {
         if (!truckRes.ok) { router.push("/camiones"); return }
         if (!trucksRes.ok || !tripsRes.ok || !incRes.ok || !expRes.ok) throw new Error()
         const [truckData, trucksData, tripsData, incomesData, expensesData] = await Promise.all([
           truckRes.json(), trucksRes.json(), tripsRes.json(), incRes.json(), expRes.json(),
         ])
         const summaryData = summaryRes.ok ? await summaryRes.json() : []
+        const catsData = catsRes.ok ? await catsRes.json() : []
         setTruck(truckData)
         setTrucks(Array.isArray(trucksData) ? trucksData : [])
+        setCategories(Array.isArray(catsData) ? catsData : [])
         setAllTrips(tripsData.filter((t: Trip) => t.truckId === id))
         setAllIncomes(incomesData.filter((i: Income) => i.truckId === id))
         setAllExpenses(expensesData.filter((e: Expense) => e.truckId === id))
@@ -565,6 +569,7 @@ export default function TruckDetailPage() {
             <EditExpenseForm
               expense={editingExpense}
               trucks={trucks}
+              categories={categories}
               onSuccess={(updated) => {
                 setAllExpenses((prev) => prev.map((e) => e.id === updated.id ? updated : e))
                 setEditingExpense(null)

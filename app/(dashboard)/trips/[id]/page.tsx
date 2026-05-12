@@ -6,8 +6,8 @@ import { useCurrency } from "@/context/currency-context";
 import { formatCurrency, formatCurrency2, formatDate } from "@/lib/format";
 import { fetchWithAuth } from "@/lib/api";
 import type { Truck } from "@/types/truck";
+import type { ExpenseCategory } from "@/types/expense-category";
 import { toast } from "sonner";
-import { getExpenseTypeLabel } from "@/lib/expense-types";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Edit2, Trash2 } from "lucide-react";
 import {
@@ -55,7 +55,8 @@ type Income = {
 type Expense = {
   id: string;
   date: string;
-  type: number | string;
+  expenseCategoryId: string | null;
+  categoryName: string | null;
   value: number;
   valueUSD: number | null;
   valueBRL: number | null;
@@ -101,6 +102,7 @@ export default function TripDetailPage() {
 
   const [trip, setTrip] = useState<TripDetail | null>(null);
   const [trucks, setTrucks] = useState<Truck[]>([]);
+  const [categories, setCategories] = useState<ExpenseCategory[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isAddIncomeDialogOpen, setIsAddIncomeDialogOpen] = useState(false);
@@ -110,7 +112,7 @@ export default function TripDetailPage() {
     const loadData = async () => {
       setIsLoading(true);
       try {
-        const [tripRes, trucksRes] = await Promise.all([
+        const [tripRes, trucksRes, catsRes] = await Promise.all([
           fetchWithAuth(
             `${process.env.NEXT_PUBLIC_API_URL}/api/trips/${tripId}`,
             { method: "GET" }
@@ -119,15 +121,19 @@ export default function TripDetailPage() {
             `${process.env.NEXT_PUBLIC_API_URL}/api/trucks`,
             { method: "GET" }
           ),
+          fetchWithAuth(
+            `${process.env.NEXT_PUBLIC_API_URL}/api/expense-categories`,
+            { method: "GET" }
+          ),
         ]);
 
         if (!tripRes.ok || !trucksRes.ok) throw new Error();
 
         const tripData = await tripRes.json();
         const trucksData = await trucksRes.json();
-        console.log(tripData)
         setTrip(tripData);
         setTrucks(trucksData);
+        if (catsRes.ok) setCategories(await catsRes.json());
       } catch {
         toast.error("Error al cargar viaje");
         router.push("/trips");
@@ -458,7 +464,7 @@ export default function TripDetailPage() {
       {/* Breakdown de egresos por categoría */}
       {trip.expenses.length > 0 && (() => {
         const breakdown = trip.expenses.reduce<Record<string, number>>((acc, e) => {
-          const key = String(e.type)
+          const key = e.categoryName ?? "Sin categoría"
           acc[key] = (acc[key] ?? 0) + getDisplayValue(e);
           return acc;
         }, {});
@@ -467,9 +473,9 @@ export default function TripDetailPage() {
           <div className="rounded-lg border p-4 space-y-3">
             <h3 className="font-semibold">Egresos por categoría</h3>
             <div className="space-y-2 text-sm">
-              {sorted.map(([type, total]) => (
-                <div key={type} className="flex justify-between items-center">
-                  <span className="text-muted-foreground">{getExpenseTypeLabel(type)}</span>
+              {sorted.map(([categoryName, total]) => (
+                <div key={categoryName} className="flex justify-between items-center">
+                  <span className="text-muted-foreground">{categoryName}</span>
                   <div className="flex items-center gap-3">
                     <span className="text-xs text-muted-foreground">
                       {Math.round((total / trip.totalExpense) * 100)}%
@@ -536,6 +542,7 @@ export default function TripDetailPage() {
           {trip && (
             <AddExpenseForm
               trucks={trucks}
+              categories={categories}
               tripId={trip.id}
               defaultTruckId={trip.truckId}
               onSuccess={handleAddExpenseSuccess}

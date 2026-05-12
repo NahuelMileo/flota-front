@@ -14,15 +14,14 @@ import {
 } from "@/components/ui/select";
 import { fetchWithAuth } from "@/lib/api";
 import type { Truck } from "@/types/truck";
+import type { ExpenseCategory } from "@/types/expense-category";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
 import { Expense } from "./columns";
-import { expenseTypeLabels, normalizeExpenseType } from "@/lib/expense-types";
 
-const expenseTypeItems = Object.entries(expenseTypeLabels).map(([value, label]) => ({ value, label }));
-const expenseTypeValues = Object.keys(expenseTypeLabels) as [string, ...string[]];
+const FUEL_CATEGORY_NAMES = new Set(["Gasoil", "Arla 32", "Aceite"])
 
 const currencyItems = [
   { label: "BRL — Real brasileño", value: "BRL" },
@@ -35,7 +34,7 @@ const expenseSchema = z.object({
   value: z.number().positive("El valor debe ser mayor a 0"),
   date: z.string().min(1, "La fecha es requerida"),
   truckId: z.string().nullable(),
-  type: z.enum(expenseTypeValues),
+  expenseCategoryId: z.string().nullable(),
   currency: z.enum(["USD", "BRL", "UYU"]),
   kilometers: z.number().positive("Debe ser mayor a 0").nullable(),
   liters: z.number().positive("Debe ser mayor a 0").nullable(),
@@ -43,15 +42,15 @@ const expenseSchema = z.object({
 
 type ExpenseFormValues = z.infer<typeof expenseSchema>;
 
-const FUEL_TYPES = new Set(["1", "2", "5"]);
-
 export default function EditExpenseForm({
   expense,
   trucks,
+  categories,
   onSuccess,
 }: {
   expense: Expense;
   trucks: Truck[];
+  categories: ExpenseCategory[];
   onSuccess: (expense: Expense) => void;
 }) {
   const truckItems = [
@@ -60,6 +59,11 @@ export default function EditExpenseForm({
       label: `${t.licensePlate}`,
       value: t.id,
     })),
+  ];
+
+  const categoryItems = [
+    { label: "Sin categoría", value: "none" },
+    ...categories.map((c) => ({ label: c.name, value: c.id })),
   ];
 
   const {
@@ -75,15 +79,16 @@ export default function EditExpenseForm({
       value: expense.value,
       date: expense.date,
       truckId: expense.truckId ?? null,
-      type: (normalizeExpenseType(expense.type) as ExpenseFormValues["type"]) ?? "1",
+      expenseCategoryId: expense.expenseCategoryId ?? null,
       currency: (expense.currency as "USD" | "BRL" | "UYU") ?? "BRL",
       kilometers: expense.kilometers ?? null,
       liters: expense.liters ?? null,
     },
   });
 
-  const currentType = watch("type");
-  const isFuelType = FUEL_TYPES.has(currentType);
+  const currentCategoryId = watch("expenseCategoryId");
+  const currentCategory = categories.find((c) => c.id === currentCategoryId);
+  const isFuelType = currentCategory ? FUEL_CATEGORY_NAMES.has(currentCategory.name) : false;
 
   async function onSubmit(data: ExpenseFormValues) {
     try {
@@ -96,7 +101,7 @@ export default function EditExpenseForm({
             value: data.value,
             date: data.date,
             truckId: data.truckId === "none" ? null : data.truckId,
-            type: parseInt(data.type),
+            expenseCategoryId: data.expenseCategoryId === "none" ? null : data.expenseCategoryId,
             currency: data.currency,
             kilometers: data.kilometers ?? null,
             liters: data.liters ?? null,
@@ -203,22 +208,22 @@ export default function EditExpenseForm({
         </Field>
 
         <Field>
-          <Label>Tipo</Label>
+          <Label>Categoría</Label>
           <Controller
-            name="type"
+            name="expenseCategoryId"
             control={control}
             render={({ field }) => (
               <Select
-                items={expenseTypeItems}
-                value={field.value}
-                onValueChange={(value) => field.onChange(value ?? "1")}
+                items={categoryItems}
+                value={field.value ?? "none"}
+                onValueChange={(value) => field.onChange(value === "none" ? null : value)}
               >
                 <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Seleccionar tipo" />
+                  <SelectValue placeholder="Seleccionar categoría" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectGroup>
-                    {expenseTypeItems.map((item) => (
+                    {categoryItems.map((item) => (
                       <SelectItem key={item.value} value={item.value}>
                         {item.label}
                       </SelectItem>

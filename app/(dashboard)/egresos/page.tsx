@@ -14,8 +14,8 @@ import {
 import { toast } from "sonner";
 import { fetchWithAuth } from "@/lib/api";
 import type { Truck } from "@/types/truck";
-import { getColumns, Expense, expenseTypeLabels } from "./columns";
-import { expenseTypeStringToNumber } from "@/lib/expense-types";
+import type { ExpenseCategory } from "@/types/expense-category";
+import { getColumns, Expense } from "./columns";
 import { TotalExpenseCard } from "@/components/total-expense-card";
 import { ExpenseBreakdownChart } from "@/components/expense-breakdown-chart";
 import { CostPerKmCard } from "@/components/cost-per-km-card";
@@ -49,13 +49,14 @@ function TableSkeleton() {
 export default function ExpensePage() {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [trucks, setTrucks] = useState<Truck[]>([]);
+  const [categories, setCategories] = useState<ExpenseCategory[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
 
   const [selectedTruckId, setSelectedTruckId] = useState<string | null>(null);
-  const [selectedTypeFilter, setSelectedTypeFilter] = useState<number | null>(null);
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
 
   const { selectedDate } = useDateFilter();
   const { displayCurrency, getDisplayValue } = useCurrency();
@@ -64,6 +65,7 @@ export default function ExpensePage() {
   useEffect(() => {
     fetchExpenses();
     fetchTrucks();
+    fetchCategories();
   }, []);
 
   const fetchTrucks = async () => {
@@ -77,6 +79,20 @@ export default function ExpensePage() {
       setTrucks(data);
     } catch {
       toast.error("Error al cargar camiones", { position: "bottom-right", richColors: true });
+    }
+  };
+
+  const fetchCategories = async () => {
+    try {
+      const res = await fetchWithAuth(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/expense-categories`,
+        { method: "GET" }
+      );
+      if (!res.ok) throw new Error();
+      const data = await res.json();
+      setCategories(data);
+    } catch {
+      toast.error("Error al cargar categorías", { position: "bottom-right", richColors: true });
     }
   };
 
@@ -124,15 +140,10 @@ export default function ExpensePage() {
           return false;
       }
       if (!matchesTruckFilter(expense)) return false;
-      if (selectedTypeFilter !== null) {
-        const typeNum = typeof expense.type === "string"
-          ? expenseTypeStringToNumber[expense.type]
-          : expense.type;
-        if (typeNum !== selectedTypeFilter) return false;
-      }
+      if (selectedCategoryId !== null && expense.expenseCategoryId !== selectedCategoryId) return false;
       return true;
     });
-  }, [expenses, selectedDate, matchesTruckFilter, selectedTypeFilter]);
+  }, [expenses, selectedDate, matchesTruckFilter, selectedCategoryId]);
 
   const total = useMemo(
     () => filteredExpenses.reduce((acc, e) => acc + getDisplayValue(e), 0),
@@ -156,12 +167,11 @@ export default function ExpensePage() {
         )
           return false;
         if (!matchesTruckFilter(expense)) return false;
-        if (selectedTypeFilter !== null && Number(expense.type) !== selectedTypeFilter)
-          return false;
+        if (selectedCategoryId !== null && expense.expenseCategoryId !== selectedCategoryId) return false;
         return true;
       })
       .reduce((acc, e) => acc + getDisplayValue(e), 0);
-  }, [expenses, selectedDate, matchesTruckFilter, selectedTypeFilter, getDisplayValue]);
+  }, [expenses, selectedDate, matchesTruckFilter, selectedCategoryId, getDisplayValue]);
 
   const variation = useMemo(() => {
     if (previousMonthTotal === 0) return undefined;
@@ -218,15 +228,12 @@ export default function ExpensePage() {
     [trucks]
   );
 
-  const typeItems = useMemo(
+  const categoryItems = useMemo(
     () => [
-      { label: "Todos los tipos", value: "all" },
-      ...Object.entries(expenseTypeLabels).map(([key, label]) => ({
-        label,
-        value: key,
-      })),
+      { label: "Todas las categorías", value: "all" },
+      ...categories.map((c) => ({ label: c.name, value: c.id })),
     ],
-    []
+    [categories]
   );
 
   // ================= UI =================
@@ -248,6 +255,7 @@ export default function ExpensePage() {
 
             <AddExpenseForm
               trucks={trucks}
+              categories={categories}
               onSuccess={handleAddExpense}
             />
           </DialogContent>
@@ -278,18 +286,18 @@ export default function ExpensePage() {
         </Select>
 
         <Select
-          items={typeItems}
-          value={selectedTypeFilter !== null ? String(selectedTypeFilter) : "all"}
+          items={categoryItems}
+          value={selectedCategoryId ?? "all"}
           onValueChange={(value) =>
-            setSelectedTypeFilter(value === "all" || !value ? null : parseInt(value))
+            setSelectedCategoryId(value === "all" || !value ? null : value)
           }
         >
           <SelectTrigger className="w-48">
-            <SelectValue placeholder="Todos los tipos" />
+            <SelectValue placeholder="Todas las categorías" />
           </SelectTrigger>
           <SelectContent>
             <SelectGroup>
-              {typeItems.map((item) => (
+              {categoryItems.map((item) => (
                 <SelectItem key={item.value} value={item.value}>
                   {item.label}
                 </SelectItem>
@@ -308,8 +316,6 @@ export default function ExpensePage() {
       {/* CHART */}
       <ExpenseBreakdownChart expenses={filteredExpenses} displayCurrency={displayCurrency} />
 
-      {/* FUEL EFFICIENCY */}
-
       {/* EDIT DIALOG */}
       <Dialog
         open={!!editingExpense}
@@ -322,6 +328,7 @@ export default function ExpensePage() {
             <EditExpenseForm
               expense={editingExpense}
               trucks={trucks}
+              categories={categories}
               onSuccess={handleUpdateExpense}
             />
           )}
@@ -339,7 +346,7 @@ export default function ExpensePage() {
           csvFilename="egresos"
           csvHeaders={[
             { key: "name", label: "Nombre" },
-            { key: "type", label: "Tipo" },
+            { key: "categoryName", label: "Tipo" },
             { key: "value", label: "Valor" },
             { key: "truckLicensePlate", label: "Camión" },
             { key: "date", label: "Fecha" },

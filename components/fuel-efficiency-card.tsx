@@ -7,12 +7,14 @@ import { ArrowUp, ArrowDown } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { formatCurrency2, formatCurrency, type DisplayCurrency } from "@/lib/format";
 import { useCurrency } from "@/context/currency-context";
-import { expenseTypeStringToNumber } from "@/lib/expense-types";
+
+const FUEL_CATEGORY_NAMES = new Set(["Gasoil", "Arla 32", "Aceite"])
 
 type Expense = {
   id: string;
   date: string;
-  type: number | string;
+  expenseCategoryId?: string | null;
+  categoryName?: string | null;
   value: number;
   valueUSD?: number | null;
   valueBRL?: number | null;
@@ -43,8 +45,7 @@ export function FuelEfficiencyCard({ expenses, truckId }: FuelEfficiencyCardProp
   const fuelExpenses = useMemo(() => {
     return expenses
       .filter((e) => {
-        const typeNum = typeof e.type === "string" ? expenseTypeStringToNumber[e.type] ?? Number(e.type) : e.type;
-        const isFuel = typeNum === 1;
+        const isFuel = FUEL_CATEGORY_NAMES.has(e.categoryName ?? "");
         const hasKmAndLiters = (e.kilometers ?? 0) > 0 && (e.liters ?? 0) > 0;
         const matchesTruck = !truckId || e.truckId === truckId;
         return isFuel && hasKmAndLiters && matchesTruck;

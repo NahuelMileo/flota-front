@@ -4,8 +4,7 @@ import { Expense } from "@/app/(dashboard)/egresos/columns";
 import { formatCurrency2 } from "@/lib/format";
 import { useCurrency } from "@/context/currency-context";
 
-// Gasoil (1), Arla 32 (2), Aceite (5)
-const FUEL_TYPES = new Set([1, 2, 5]);
+const FUEL_CATEGORY_NAMES = new Set(["Gasoil", "Arla 32", "Aceite"])
 
 type Props = {
   expenses: Expense[];
@@ -15,7 +14,7 @@ export function CostPerKmCard({ expenses }: Props) {
   const { displayCurrency, getDisplayValue } = useCurrency();
 
   const fuelExpenses = expenses.filter(
-    (e) => FUEL_TYPES.has(Number(e.type)) && e.value && e.kilometers
+    (e) => FUEL_CATEGORY_NAMES.has(e.categoryName ?? "") && e.value && e.kilometers
   );
 
   const totalValue = fuelExpenses.reduce((acc, e) => acc + getDisplayValue(e), 0);

@@ -21,6 +21,7 @@ import {
   BanknoteArrowDown,
   MapPin,
   ReceiptIcon,
+  Settings2Icon,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
@@ -71,6 +72,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         title: "Costos fijos",
         url: "/costos",
         icon: <ReceiptIcon />,
+      },
+      {
+        title: "Configuración",
+        url: "/configuracion",
+        icon: <Settings2Icon />,
       },
     ],
   };

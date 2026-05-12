@@ -14,15 +14,14 @@ import {
 } from "@/components/ui/select";
 import { fetchWithAuth } from "@/lib/api";
 import type { Truck } from "@/types/truck";
+import type { ExpenseCategory } from "@/types/expense-category";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
 import { Expense } from "./columns";
-import { expenseTypeLabels } from "@/lib/expense-types";
 
-const expenseTypeItems = Object.entries(expenseTypeLabels).map(([value, label]) => ({ value, label }));
-const expenseTypeValues = Object.keys(expenseTypeLabels) as [string, ...string[]];
+const FUEL_CATEGORY_NAMES = new Set(["Gasoil", "Arla32", "Arla 32", "Aceite"]);
 
 const currencyItems = [
   { label: "BRL — Real brasileño", value: "BRL" },
@@ -35,7 +34,7 @@ const expenseSchema = z.object({
   value: z.number().positive("El valor debe ser mayor a 0"),
   date: z.string().min(1, "La fecha es requerida"),
   truckId: z.string().nullable(),
-  type: z.enum(expenseTypeValues),
+  expenseCategoryId: z.string().nullable(),
   currency: z.enum(["USD", "BRL", "UYU"]),
   kilometers: z.number().positive("Debe ser mayor a 0").nullable(),
   liters: z.number().positive("Debe ser mayor a 0").nullable(),
@@ -43,15 +42,15 @@ const expenseSchema = z.object({
 
 type ExpenseFormValues = z.infer<typeof expenseSchema>;
 
-const FUEL_TYPES = new Set(["1", "2", "5"]);
-
 export default function AddExpenseForm({
   trucks,
+  categories,
   tripId,
   defaultTruckId,
   onSuccess,
 }: {
   trucks: Truck[];
+  categories: ExpenseCategory[];
   tripId?: string;
   defaultTruckId?: string;
   onSuccess: (expense: Expense) => void;
@@ -66,6 +65,11 @@ export default function AddExpenseForm({
     })),
   ];
 
+  const categoryItems = [
+    { label: "Sin categoría", value: "none" },
+    ...categories.map((c) => ({ label: c.name, value: c.id })),
+  ];
+
   const {
     register,
     handleSubmit,
@@ -77,13 +81,16 @@ export default function AddExpenseForm({
     defaultValues: {
       date: todayIso,
       truckId: defaultTruckId ?? null,
-      type: "1",
+      expenseCategoryId: null,
       currency: "BRL",
+      kilometers: null,
+      liters: null,
     },
   });
 
-  const currentType = watch("type");
-  const isFuelType = FUEL_TYPES.has(currentType);
+  const currentCategoryId = watch("expenseCategoryId");
+  const currentCategory = categories.find((c) => c.id === currentCategoryId);
+  const isFuelType = currentCategory ? FUEL_CATEGORY_NAMES.has(currentCategory.name) : false;
 
   async function onSubmit(data: ExpenseFormValues) {
     try {
@@ -96,7 +103,7 @@ export default function AddExpenseForm({
             value: data.value,
             date: data.date,
             truckId: data.truckId === "none" ? null : data.truckId,
-            type: parseInt(data.type),
+            expenseCategoryId: data.expenseCategoryId === "none" ? null : data.expenseCategoryId,
             currency: data.currency,
             kilometers: data.kilometers ?? null,
             liters: data.liters ?? null,
@@ -209,30 +216,33 @@ export default function AddExpenseForm({
           />
         )}
 
-        <Controller
-          name="type"
-          control={control}
-          render={({ field }) => (
-            <Select
-              items={expenseTypeItems}
-              value={field.value}
-              onValueChange={(value) => field.onChange(value ?? "1")}
-            >
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Seleccionar tipo" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectGroup>
-                  {expenseTypeItems.map((item) => (
-                    <SelectItem key={item.value} value={item.value}>
-                      {item.label}
-                    </SelectItem>
-                  ))}
-                </SelectGroup>
-              </SelectContent>
-            </Select>
-          )}
-        />
+        <Field>
+          <Label>Categoría</Label>
+          <Controller
+            name="expenseCategoryId"
+            control={control}
+            render={({ field }) => (
+              <Select
+                items={categoryItems}
+                value={field.value ?? "none"}
+                onValueChange={(value) => field.onChange(value === "none" ? null : value)}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Seleccionar categoría" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectGroup>
+                    {categoryItems.map((item) => (
+                      <SelectItem key={item.value} value={item.value}>
+                        {item.label}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
+            )}
+          />
+        </Field>
 
         {isFuelType && (
           <>

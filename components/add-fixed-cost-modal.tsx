@@ -26,7 +26,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { PlusIcon } from "lucide-react"
-import { FIXED_EXPENSE_TYPES } from "@/lib/expense-types"
+import type { ExpenseCategory } from "@/types/expense-category"
 
 type Truck = { id: string; licensePlate: string; model?: string }
 
@@ -48,7 +48,7 @@ const MONTHS_OPTIONS = [
 const schema = z
   .object({
     name: z.string().min(1, "El nombre es requerido"),
-    expenseType: z.string().min(1, "Seleccioná un tipo"),
+    expenseCategoryId: z.string().nullable(),
     amount: z.number().positive("El valor debe ser mayor a 0"),
     scope: z.enum(["PerTruck", "CompanyWide"]),
     truckId: z.string().optional(),
@@ -69,13 +69,14 @@ interface AddFixedCostModalProps {
 export function AddFixedCostModal({ onSuccess }: AddFixedCostModalProps) {
   const [open, setOpen] = useState(false)
   const [trucks, setTrucks] = useState<Truck[]>([])
+  const [categories, setCategories] = useState<ExpenseCategory[]>([])
 
   useEffect(() => {
     if (!open) return
-    fetchWithAuth(`${process.env.NEXT_PUBLIC_API_URL}/api/trucks`)
-      .then((r) => r.json())
-      .then((data) => setTrucks(Array.isArray(data) ? data : []))
-      .catch(() => toast.error("Error al cargar camiones"))
+    Promise.all([
+      fetchWithAuth(`${process.env.NEXT_PUBLIC_API_URL}/api/trucks`).then((r) => r.json()).then((d) => setTrucks(Array.isArray(d) ? d : [])).catch(() => toast.error("Error al cargar camiones")),
+      fetchWithAuth(`${process.env.NEXT_PUBLIC_API_URL}/api/expense-categories`).then((r) => r.ok ? r.json() : []).then(setCategories).catch(() => {}),
+    ])
   }, [open])
 
   const {
@@ -89,7 +90,7 @@ export function AddFixedCostModal({ onSuccess }: AddFixedCostModalProps) {
     resolver: zodResolver(schema),
     defaultValues: {
       scope: "PerTruck",
-      expenseType: "",
+      expenseCategoryId: null,
       truckId: "",
       startMonth: String(new Date().getMonth() + 1),
       startYear: new Date().getFullYear(),
@@ -97,7 +98,12 @@ export function AddFixedCostModal({ onSuccess }: AddFixedCostModalProps) {
   })
 
   const scope = useWatch({ control, name: "scope" })
-  const expenseType = useWatch({ control, name: "expenseType" })
+  const expenseCategoryId = useWatch({ control, name: "expenseCategoryId" })
+
+  const categoryItems = [
+    { label: "Sin categoría", value: "none" },
+    ...categories.map((c) => ({ label: c.name, value: c.id })),
+  ]
 
   async function onSubmit(data: FormValues) {
     try {
@@ -109,7 +115,7 @@ export function AddFixedCostModal({ onSuccess }: AddFixedCostModalProps) {
             name: data.name,
             amount: data.amount,
             scope: data.scope,
-            expenseType: parseInt(data.expenseType),
+            expenseCategoryId: data.expenseCategoryId === "none" ? null : data.expenseCategoryId,
             truckId: data.scope === "PerTruck" ? data.truckId : null,
             startMonth: parseInt(data.startMonth),
             startYear: data.startYear,
@@ -122,7 +128,7 @@ export function AddFixedCostModal({ onSuccess }: AddFixedCostModalProps) {
       toast.success("Costo fijo creado")
       reset({
         scope: "PerTruck",
-        expenseType: "",
+        expenseCategoryId: null,
         truckId: "",
         startMonth: String(new Date().getMonth() + 1),
         startYear: new Date().getFullYear(),
@@ -157,18 +163,18 @@ export function AddFixedCostModal({ onSuccess }: AddFixedCostModalProps) {
             </Field>
 
             <Field>
-              <Label>Tipo</Label>
+              <Label>Categoría</Label>
               <Select
-                items={FIXED_EXPENSE_TYPES}
-                value={expenseType}
-                onValueChange={(v) => setValue("expenseType", v ?? "", { shouldValidate: true })}
+                items={categoryItems}
+                value={expenseCategoryId ?? "none"}
+                onValueChange={(v) => setValue("expenseCategoryId", v === "none" ? null : (v ?? null), { shouldValidate: true })}
               >
                 <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Seleccionar tipo" />
+                  <SelectValue placeholder="Seleccionar categoría" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectGroup>
-                    {FIXED_EXPENSE_TYPES.map((t) => (
+                    {categoryItems.map((t) => (
                       <SelectItem key={t.value} value={t.value}>
                         {t.label}
                       </SelectItem>
@@ -176,7 +182,7 @@ export function AddFixedCostModal({ onSuccess }: AddFixedCostModalProps) {
                   </SelectGroup>
                 </SelectContent>
               </Select>
-              <FieldError errors={[errors.expenseType]} />
+              <FieldError errors={[errors.expenseCategoryId]} />
             </Field>
 
             <Field>

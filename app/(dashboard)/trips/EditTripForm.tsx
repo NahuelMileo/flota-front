@@ -200,7 +200,7 @@ export default function EditTripForm({
             <Label>Km inicial</Label>
             <Input
               {...register("initialKm", {
-                setValueAs: (v) => (v === "" ? null : parseFloat(v)),
+                setValueAs: (v) => { if (v === "" || v == null) return null; const n = parseFloat(v); return isNaN(n) ? null : n; },
               })}
               type="number"
               step="0.01"
@@ -212,7 +212,7 @@ export default function EditTripForm({
             <Label>Km final</Label>
             <Input
               {...register("finalKm", {
-                setValueAs: (v) => (v === "" ? null : parseFloat(v)),
+                setValueAs: (v) => { if (v === "" || v == null) return null; const n = parseFloat(v); return isNaN(n) ? null : n; },
               })}
               type="number"
               step="0.01"

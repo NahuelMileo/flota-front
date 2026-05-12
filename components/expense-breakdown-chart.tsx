@@ -11,7 +11,6 @@ import {
 } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Expense } from "@/app/(dashboard)/egresos/columns";
-import { getExpenseTypeLabel } from "@/lib/expense-types";
 import { formatCurrency, DisplayCurrency } from "@/lib/format";
 
 function getDisplayValue(
@@ -31,7 +30,7 @@ type Props = {
 export function ExpenseBreakdownChart({ expenses, displayCurrency }: Props) {
   const data = Object.entries(
     expenses.reduce((acc, e) => {
-      const label = getExpenseTypeLabel(e.type) ?? "Desconocido";
+      const label = e.categoryName ?? "Sin categoría";
       acc[label] = (acc[label] ?? 0) + getDisplayValue(e, displayCurrency);
       return acc;
     }, {} as Record<string, number>)

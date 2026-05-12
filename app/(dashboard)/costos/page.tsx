@@ -44,11 +44,11 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { CalendarDays, Pencil, Trash2, TruckIcon } from "lucide-react"
-import { expenseTypeStringLabels, FIXED_EXPENSE_TYPES } from "@/lib/expense-types"
 import { AddCostModal } from "@/components/add-cost-modal"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
+import type { ExpenseCategory } from "@/types/expense-category"
 
 type CostTemplate = {
   id: string
@@ -61,25 +61,26 @@ type CostTemplate = {
   scope: "PerTruck" | "CompanyWide"
   truckId: string | null
   isActive: boolean
-  expenseType: string
+  expenseCategoryId: string | null
+  categoryName: string | null
   truckLicensePlate: string | null
 }
-
-
 
 const editSchema = z.object({
   name: z.string().min(1, "El nombre es requerido"),
   amount: z.number().positive("El valor debe ser mayor a 0"),
-  expenseType: z.string().min(1, "Seleccioná un tipo"),
+  expenseCategoryId: z.string().nullable(),
 })
 type EditFormValues = z.infer<typeof editSchema>
 
 function EditFixedCostModal({
   template,
+  categories,
   onClose,
   onSuccess,
 }: {
   template: CostTemplate
+  categories: ExpenseCategory[]
   onClose: () => void
   onSuccess: (updated: CostTemplate) => void
 }) {
@@ -94,11 +95,16 @@ function EditFixedCostModal({
     defaultValues: {
       name: template.name,
       amount: template.amount,
-      expenseType: template.expenseType,
+      expenseCategoryId: template.expenseCategoryId ?? null,
     },
   })
 
-  const expenseType = watch("expenseType")
+  const expenseCategoryId = watch("expenseCategoryId")
+
+  const categoryItems = [
+    { label: "Sin categoría", value: "none" },
+    ...categories.map((c) => ({ label: c.name, value: c.id })),
+  ]
 
   async function onSubmit(data: EditFormValues) {
     try {
@@ -110,7 +116,7 @@ function EditFixedCostModal({
           body: JSON.stringify({
             name: data.name,
             amount: data.amount,
-            expenseType: parseInt(data.expenseType),
+            expenseCategoryId: data.expenseCategoryId === "none" ? null : data.expenseCategoryId,
           }),
         }
       )
@@ -137,24 +143,24 @@ function EditFixedCostModal({
               <FieldError errors={[errors.name]} />
             </Field>
             <Field>
-              <Label>Tipo</Label>
+              <Label>Categoría</Label>
               <Select
-                items={FIXED_EXPENSE_TYPES}
-                value={expenseType}
-                onValueChange={(v) => setValue("expenseType", v ?? "", { shouldValidate: true })}
+                items={categoryItems}
+                value={expenseCategoryId ?? "none"}
+                onValueChange={(v) => setValue("expenseCategoryId", v === "none" ? null : (v ?? null), { shouldValidate: true })}
               >
                 <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Seleccionar tipo" />
+                  <SelectValue placeholder="Seleccionar categoría" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectGroup>
-                    {FIXED_EXPENSE_TYPES.map((t) => (
+                    {categoryItems.map((t) => (
                       <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
                     ))}
                   </SelectGroup>
                 </SelectContent>
               </Select>
-              <FieldError errors={[errors.expenseType]} />
+              <FieldError errors={[errors.expenseCategoryId]} />
             </Field>
             <Field>
               <Label>Monto mensual</Label>
@@ -178,18 +184,21 @@ function EditFixedCostModal({
 export default function CostosPage() {
   const { displayCurrency } = useCurrency()
   const [templates, setTemplates] = useState<CostTemplate[]>([])
+  const [categories, setCategories] = useState<ExpenseCategory[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [editingTemplate, setEditingTemplate] = useState<CostTemplate | null>(null)
 
   const fetchTemplates = useCallback(async () => {
     setIsLoading(true)
     try {
-      const res = await fetchWithAuth(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/costs/templates`
-      )
-      if (!res.ok) throw new Error()
-      const data = await res.json()
+      const [templatesRes, catsRes] = await Promise.all([
+        fetchWithAuth(`${process.env.NEXT_PUBLIC_API_URL}/api/costs/templates`),
+        fetchWithAuth(`${process.env.NEXT_PUBLIC_API_URL}/api/expense-categories`),
+      ])
+      if (!templatesRes.ok) throw new Error()
+      const data = await templatesRes.json()
       setTemplates(data)
+      if (catsRes.ok) setCategories(await catsRes.json())
     } catch {
       toast.error("Error al cargar costos fijos")
     } finally {
@@ -283,7 +292,7 @@ export default function CostosPage() {
             <thead>
               <tr className="bg-muted/50 border-b">
                 <th className="text-left px-4 py-2.5 font-medium text-muted-foreground">Concepto</th>
-                <th className="text-left px-4 py-2.5 font-medium text-muted-foreground">Tipo</th>
+                <th className="text-left px-4 py-2.5 font-medium text-muted-foreground">Categoría</th>
                 <th className="text-left px-4 py-2.5 font-medium text-muted-foreground">Alcance</th>
                 <th className="text-left px-4 py-2.5 font-medium text-muted-foreground">Camión</th>
                 <th className="text-right px-4 py-2.5 font-medium text-muted-foreground">Monto/mes</th>
@@ -306,7 +315,7 @@ export default function CostosPage() {
                   </td>
                   <td className="px-4 py-3">
                     <Badge variant="outline">
-                      {expenseTypeStringLabels[t.expenseType] ?? "Otro"}
+                      {t.categoryName ?? "Sin categoría"}
                     </Badge>
                   </td>
                   <td className="px-4 py-3">
@@ -387,6 +396,7 @@ export default function CostosPage() {
       {editingTemplate && (
         <EditFixedCostModal
           template={editingTemplate}
+          categories={categories}
           onClose={() => setEditingTemplate(null)}
           onSuccess={(updated) => {
             setTemplates((prev) => prev.map((t) => t.id === updated.id ? updated : t))

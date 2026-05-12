@@ -32,8 +32,8 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { PlusIcon } from "lucide-react"
-import { FIXED_EXPENSE_TYPES } from "@/lib/expense-types"
 import type { Truck } from "@/types/truck"
+import type { ExpenseCategory } from "@/types/expense-category"
 
 const MONTHS_OPTIONS = [
   { label: "Enero", value: "1" },
@@ -54,14 +54,14 @@ const fixedSchema = z.object({
   name: z.string().min(1, "El nombre es requerido"),
   amount: z.number().positive("El valor debe ser mayor a 0"),
   scope: z.enum(["PerTruck", "CompanyWide"]),
-  expenseType: z.string().min(1, "Seleccioná un tipo"),
+  expenseCategoryId: z.string().nullable(),
   startMonth: z.string().min(1, "Seleccioná un mes"),
   startYear: z.number().int().min(2000).max(2100),
 })
 
 const singleSchema = z.object({
   name: z.string().min(1, "El nombre es requerido"),
-  expenseType: z.string().min(1, "Seleccioná un tipo"),
+  expenseCategoryId: z.string().nullable(),
   amount: z.number().positive("El valor debe ser mayor a 0"),
   month: z.string().min(1, "Seleccioná un mes"),
   year: z.number().int().min(2000).max(2100),
@@ -71,7 +71,7 @@ const singleSchema = z.object({
 
 const installmentsSchema = z.object({
   name: z.string().min(1, "El nombre es requerido"),
-  expenseType: z.string().min(1, "Seleccioná un tipo"),
+  expenseCategoryId: z.string().nullable(),
   totalAmount: z.number().positive("El valor debe ser mayor a 0"),
   installmentCount: z
     .number()
@@ -89,10 +89,12 @@ type InstallmentsFormValues = z.infer<typeof installmentsSchema>
 function FixedCostForm({
   truckId,
   trucks,
+  categories,
   onSuccess,
 }: {
   truckId?: string
   trucks?: Truck[]
+  categories: ExpenseCategory[]
   onSuccess: () => void
 }) {
   const {
@@ -106,15 +108,20 @@ function FixedCostForm({
     resolver: zodResolver(fixedSchema),
     defaultValues: {
       scope: "PerTruck" as const,
-      expenseType: "",
+      expenseCategoryId: null as string | null,
       startMonth: String(new Date().getMonth() + 1),
       startYear: new Date().getFullYear(),
     },
   })
 
-  const fixedExpenseType = useWatch({ control, name: "expenseType" })
+  const expenseCategoryId = useWatch({ control, name: "expenseCategoryId" })
   const scope = useWatch({ control, name: "scope" })
   const [selectedTruckId, setSelectedTruckId] = useState<string>("")
+
+  const categoryItems = [
+    { label: "Sin categoría", value: "none" },
+    ...categories.map((c) => ({ label: c.name, value: c.id })),
+  ]
 
   async function onSubmit(data: FixedFormValues) {
     const resolvedTruckId = truckId ?? (data.scope === "PerTruck" ? selectedTruckId || null : null)
@@ -127,7 +134,7 @@ function FixedCostForm({
             ...data,
             truckId: resolvedTruckId,
             type: 1,
-            expenseType: parseInt(data.expenseType),
+            expenseCategoryId: data.expenseCategoryId === "none" ? null : data.expenseCategoryId,
             startMonth: parseInt(data.startMonth),
           }),
           headers: { "Content-Type": "application/json" },
@@ -152,18 +159,18 @@ function FixedCostForm({
           <FieldError errors={[errors.name]} />
         </Field>
         <Field>
-          <Label>Tipo</Label>
+          <Label>Categoría</Label>
           <Select
-            items={FIXED_EXPENSE_TYPES}
-            value={fixedExpenseType}
-            onValueChange={(v) => setValue("expenseType", v ?? "", { shouldValidate: true })}
+            items={categoryItems}
+            value={expenseCategoryId ?? "none"}
+            onValueChange={(v) => setValue("expenseCategoryId", v === "none" ? null : (v ?? null))}
           >
             <SelectTrigger className="w-full">
-              <SelectValue placeholder="Seleccionar tipo" />
+              <SelectValue placeholder="Seleccionar categoría" />
             </SelectTrigger>
             <SelectContent>
               <SelectGroup>
-                {FIXED_EXPENSE_TYPES.map((t) => (
+                {categoryItems.map((t) => (
                   <SelectItem key={t.value} value={t.value}>
                     {t.label}
                   </SelectItem>
@@ -171,7 +178,7 @@ function FixedCostForm({
               </SelectGroup>
             </SelectContent>
           </Select>
-          <FieldError errors={[errors.expenseType]} />
+          <FieldError errors={[errors.expenseCategoryId]} />
         </Field>
         <Field>
           <Label>Monto mensual</Label>
@@ -293,11 +300,13 @@ function FixedCostForm({
 function VariableCostForm({
   truckId,
   trucks,
+  categories,
   defaultYear,
   onSuccess,
 }: {
   truckId?: string
   trucks?: Truck[]
+  categories: ExpenseCategory[]
   defaultYear: number
   onSuccess: () => void
 }) {
@@ -306,16 +315,21 @@ function VariableCostForm({
 
   const singleForm = useForm({
     resolver: zodResolver(singleSchema),
-    defaultValues: { year: defaultYear, month: "", expenseType: "" },
+    defaultValues: { year: defaultYear, month: "", expenseCategoryId: null as string | null },
   })
 
   const installmentsForm = useForm({
     resolver: zodResolver(installmentsSchema),
-    defaultValues: { startYear: defaultYear, startMonth: "", expenseType: "" },
+    defaultValues: { startYear: defaultYear, startMonth: "", expenseCategoryId: null as string | null },
   })
 
-  const singleExpenseType = useWatch({ control: singleForm.control, name: "expenseType" })
-  const installmentsExpenseType = useWatch({ control: installmentsForm.control, name: "expenseType" })
+  const singleCategoryId = useWatch({ control: singleForm.control, name: "expenseCategoryId" })
+  const installmentsCategoryId = useWatch({ control: installmentsForm.control, name: "expenseCategoryId" })
+
+  const categoryItems = [
+    { label: "Sin categoría", value: "none" },
+    ...categories.map((c) => ({ label: c.name, value: c.id })),
+  ]
 
   async function onSubmitSingle(data: SingleFormValues) {
     const resolvedTruckId = truckId ?? (selectedTruckId || null)
@@ -323,7 +337,7 @@ function VariableCostForm({
       data.odometerKm != null && !isNaN(data.odometerKm) ? data.odometerKm : undefined
     const payload = {
       name: data.name,
-      expenseType: parseInt(data.expenseType),
+      expenseCategoryId: data.expenseCategoryId === "none" ? null : data.expenseCategoryId,
       amount: data.amount,
       month: parseInt(data.month),
       year: data.year,
@@ -357,7 +371,7 @@ function VariableCostForm({
         return
       }
       toast.success("Costo variable creado")
-      singleForm.reset({ year: defaultYear, month: "", expenseType: "" })
+      singleForm.reset({ year: defaultYear, month: "", expenseCategoryId: null })
       onSuccess()
     } catch {
       toast.error("Error al crear costo variable")
@@ -373,7 +387,7 @@ function VariableCostForm({
           method: "POST",
           body: JSON.stringify({
             name: data.name,
-            expenseType: parseInt(data.expenseType),
+            expenseCategoryId: data.expenseCategoryId === "none" ? null : data.expenseCategoryId,
             totalAmount: data.totalAmount,
             installmentCount: data.installmentCount,
             startMonth: parseInt(data.startMonth),
@@ -385,7 +399,7 @@ function VariableCostForm({
       )
       if (!res.ok) throw new Error()
       toast.success("Plan de cuotas creado")
-      installmentsForm.reset({ startYear: defaultYear, startMonth: "", expenseType: "" })
+      installmentsForm.reset({ startYear: defaultYear, startMonth: "", expenseCategoryId: null })
       onSuccess()
     } catch {
       toast.error("Error al crear cuotas")
@@ -461,24 +475,24 @@ function VariableCostForm({
               <FieldError errors={[singleForm.formState.errors.name]} />
             </Field>
             <Field>
-              <Label>Tipo</Label>
+              <Label>Categoría</Label>
               <Select
-                items={FIXED_EXPENSE_TYPES}
-                value={singleExpenseType}
-                onValueChange={(v) => singleForm.setValue("expenseType", v ?? "", { shouldValidate: true })}
+                items={categoryItems}
+                value={singleCategoryId ?? "none"}
+                onValueChange={(v) => singleForm.setValue("expenseCategoryId", v === "none" ? null : (v ?? null))}
               >
                 <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Seleccionar tipo" />
+                  <SelectValue placeholder="Seleccionar categoría" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectGroup>
-                    {FIXED_EXPENSE_TYPES.map((t) => (
+                    {categoryItems.map((t) => (
                       <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
                     ))}
                   </SelectGroup>
                 </SelectContent>
               </Select>
-              <FieldError errors={[singleForm.formState.errors.expenseType]} />
+              <FieldError errors={[singleForm.formState.errors.expenseCategoryId]} />
             </Field>
             <Field>
               <Label>Monto</Label>
@@ -615,24 +629,24 @@ function VariableCostForm({
               <FieldError errors={[installmentsForm.formState.errors.name]} />
             </Field>
             <Field>
-              <Label>Tipo</Label>
+              <Label>Categoría</Label>
               <Select
-                items={FIXED_EXPENSE_TYPES}
-                value={installmentsExpenseType}
-                onValueChange={(v) => installmentsForm.setValue("expenseType", v ?? "", { shouldValidate: true })}
+                items={categoryItems}
+                value={installmentsCategoryId ?? "none"}
+                onValueChange={(v) => installmentsForm.setValue("expenseCategoryId", v === "none" ? null : (v ?? null))}
               >
                 <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Seleccionar tipo" />
+                  <SelectValue placeholder="Seleccionar categoría" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectGroup>
-                    {FIXED_EXPENSE_TYPES.map((t) => (
+                    {categoryItems.map((t) => (
                       <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
                     ))}
                   </SelectGroup>
                 </SelectContent>
               </Select>
-              <FieldError errors={[installmentsForm.formState.errors.expenseType]} />
+              <FieldError errors={[installmentsForm.formState.errors.expenseCategoryId]} />
             </Field>
             <Field>
               <Label>Monto total</Label>
@@ -723,15 +737,25 @@ interface AddCostModalProps {
 export function AddCostModal({ truckId, year, onSuccess }: AddCostModalProps) {
   const [open, setOpen] = useState(false)
   const [trucks, setTrucks] = useState<Truck[]>([])
+  const [categories, setCategories] = useState<ExpenseCategory[]>([])
   const defaultYear = year ?? new Date().getFullYear()
 
   useEffect(() => {
-    if (open && !truckId) {
-      fetchWithAuth(`${process.env.NEXT_PUBLIC_API_URL}/api/trucks`)
-        .then((r) => r.ok ? r.json() : [])
-        .then(setTrucks)
-        .catch(() => {})
+    if (!open) return
+    const fetchData = async () => {
+      const [trucksRes, catsRes] = await Promise.all([
+        truckId ? Promise.resolve(null) : fetchWithAuth(`${process.env.NEXT_PUBLIC_API_URL}/api/trucks`),
+        fetchWithAuth(`${process.env.NEXT_PUBLIC_API_URL}/api/expense-categories`),
+      ])
+      if (trucksRes) {
+        const data = trucksRes.ok ? await trucksRes.json() : []
+        setTrucks(data)
+      }
+      if (catsRes.ok) {
+        setCategories(await catsRes.json())
+      }
     }
+    fetchData().catch(() => {})
   }, [open, truckId])
 
   function handleSuccess() {
@@ -756,12 +780,13 @@ export function AddCostModal({ truckId, year, onSuccess }: AddCostModalProps) {
             </TabsTrigger>
           </TabsList>
           <TabsContent value="fixed">
-            <FixedCostForm truckId={truckId} trucks={truckId ? undefined : trucks} onSuccess={handleSuccess} />
+            <FixedCostForm truckId={truckId} trucks={truckId ? undefined : trucks} categories={categories} onSuccess={handleSuccess} />
           </TabsContent>
           <TabsContent value="variable">
             <VariableCostForm
               truckId={truckId}
               trucks={truckId ? undefined : trucks}
+              categories={categories}
               defaultYear={defaultYear}
               onSuccess={handleSuccess}
             />

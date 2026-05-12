@@ -14,20 +14,18 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
-import { expenseTypeLabels, getExpenseTypeLabel } from "@/lib/expense-types";
 import { formatCurrency, formatDate, DisplayCurrency } from "@/lib/format";
-
-export { expenseTypeLabels };
 
 export type Expense = {
   id: string;
   date: string;
-  type: number | string;
+  expenseCategoryId: string | null;
+  categoryName: string | null;
   value: number;
   valueUSD: number | null;
   valueBRL: number | null;
   valueUYU: number | null;
-  currency: string; // "USD" | "BRL" | "UYU"
+  currency: string;
   truckId: string | null;
   truckLicensePlate: string | null;
   name: string | null;
@@ -60,11 +58,11 @@ export function getColumns(
       },
     },
     {
-      accessorKey: "type",
+      accessorKey: "categoryName",
       header: "Tipo",
       cell: ({ row }) => {
-        const type = row.getValue("type") as number | string;
-        return <Badge variant="outline">{getExpenseTypeLabel(type)}</Badge>;
+        const name = row.getValue("categoryName") as string | null;
+        return <Badge variant="outline">{name ?? "Sin categoría"}</Badge>;
       },
     },
     {
@@ -135,7 +133,7 @@ export function getColumns(
                   <AlertDialogDescription>
                     Esta acción no se puede deshacer. Se eliminará el egreso{" "}
                     <span className="font-medium text-foreground">
-                      {expense.name ?? getExpenseTypeLabel(expense.type)}
+                      {expense.name ?? expense.categoryName ?? "Sin categoría"}
                     </span>{" "}
                     por valor de{" "}
                     <span className="font-medium text-foreground">
