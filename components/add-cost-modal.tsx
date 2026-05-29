@@ -7,12 +7,12 @@ import { z } from "zod"
 import { toast } from "sonner"
 import { fetchWithAuth } from "@/lib/api"
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog"
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -764,35 +764,37 @@ export function AddCostModal({ truckId, year, onSuccess }: AddCostModalProps) {
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger render={<Button size="sm"><PlusIcon className="size-4 mr-1" />Agregar costo</Button>} />
-      <DialogContent className="sm:max-w-md overflow-y-auto max-h-[90vh]">
-        <DialogHeader>
-          <DialogTitle>Agregar costo</DialogTitle>
-        </DialogHeader>
-        <Tabs defaultValue="fixed">
-          <TabsList className="w-full">
-            <TabsTrigger value="fixed" className="flex-1">
-              Costo Fijo
-            </TabsTrigger>
-            <TabsTrigger value="variable" className="flex-1">
-              Costo Variable
-            </TabsTrigger>
-          </TabsList>
-          <TabsContent value="fixed">
-            <FixedCostForm truckId={truckId} trucks={truckId ? undefined : trucks} categories={categories} onSuccess={handleSuccess} />
-          </TabsContent>
-          <TabsContent value="variable">
-            <VariableCostForm
-              truckId={truckId}
-              trucks={truckId ? undefined : trucks}
-              categories={categories}
-              defaultYear={defaultYear}
-              onSuccess={handleSuccess}
-            />
-          </TabsContent>
-        </Tabs>
-      </DialogContent>
-    </Dialog>
+    <Sheet open={open} onOpenChange={setOpen}>
+      <SheetTrigger render={<Button size="sm"><PlusIcon className="size-4 mr-1" />Agregar costo</Button>} />
+      <SheetContent className="overflow-y-auto">
+        <SheetHeader>
+          <SheetTitle>Agregar costo</SheetTitle>
+        </SheetHeader>
+        <div className="px-4 pb-6">
+          <Tabs defaultValue="fixed">
+            <TabsList className="w-full">
+              <TabsTrigger value="fixed" className="flex-1">
+                Costo Fijo
+              </TabsTrigger>
+              <TabsTrigger value="variable" className="flex-1">
+                Costo Variable
+              </TabsTrigger>
+            </TabsList>
+            <TabsContent value="fixed">
+              <FixedCostForm truckId={truckId} trucks={truckId ? undefined : trucks} categories={categories} onSuccess={handleSuccess} />
+            </TabsContent>
+            <TabsContent value="variable">
+              <VariableCostForm
+                truckId={truckId}
+                trucks={truckId ? undefined : trucks}
+                categories={categories}
+                defaultYear={defaultYear}
+                onSuccess={handleSuccess}
+              />
+            </TabsContent>
+          </Tabs>
+        </div>
+      </SheetContent>
+    </Sheet>
   )
 }

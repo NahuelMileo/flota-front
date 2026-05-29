@@ -9,7 +9,7 @@ import type { Truck } from "@/types/truck";
 import type { ExpenseCategory } from "@/types/expense-category";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Edit2, Trash2 } from "lucide-react";
+import { ArrowLeft, Edit2, Trash2, Pencil } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -22,19 +22,23 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from "@/components/ui/dialog";
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+} from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Trip } from "../columns";
 import EditTripForm from "../EditTripForm";
 import { FuelEfficiencyCard } from "@/components/fuel-efficiency-card";
 import AddIncomeForm from "@/app/(dashboard)/ingresos/AddIncomeForm";
+import EditIncomeForm from "@/app/(dashboard)/ingresos/EditIncomeForm";
+import { Income as IncomeFormType, normalizeIncomeType } from "@/app/(dashboard)/ingresos/columns";
 import AddExpenseForm from "@/app/(dashboard)/egresos/AddExpenseForm";
+import EditExpenseForm from "@/app/(dashboard)/egresos/EditExpenseForm";
+import { Expense as ExpenseFormType } from "@/app/(dashboard)/egresos/columns";
 
 
 type Income = {
@@ -55,12 +59,14 @@ type Income = {
 type Expense = {
   id: string;
   date: string;
+  createdAt: string | null;
   expenseCategoryId: string | null;
   categoryName: string | null;
   value: number;
   valueUSD: number | null;
   valueBRL: number | null;
   valueUYU: number | null;
+  currency: string;
   truckId: string | null;
   truckLicensePlate: string | null;
   name: string | null;
@@ -107,6 +113,10 @@ export default function TripDetailPage() {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isAddIncomeDialogOpen, setIsAddIncomeDialogOpen] = useState(false);
   const [isAddExpenseDialogOpen, setIsAddExpenseDialogOpen] = useState(false);
+  const [editingIncome, setEditingIncome] = useState<Income | null>(null);
+  const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
+  const [deletingIncomeId, setDeletingIncomeId] = useState<string | null>(null);
+  const [deletingExpenseId, setDeletingExpenseId] = useState<string | null>(null);
 
   useEffect(() => {
     const loadData = async () => {
@@ -127,15 +137,16 @@ export default function TripDetailPage() {
           ),
         ]);
 
-        if (!tripRes.ok || !trucksRes.ok) throw new Error();
+        if (!tripRes.ok) { const e = await tripRes.json().catch(() => ({})); throw new Error(e.message || e.title || "Error al cargar viaje"); }
+        if (!trucksRes.ok) { const e = await trucksRes.json().catch(() => ({})); throw new Error(e.message || e.title || "Error al cargar camiones"); }
 
         const tripData = await tripRes.json();
         const trucksData = await trucksRes.json();
         setTrip(tripData);
         setTrucks(trucksData);
         if (catsRes.ok) setCategories(await catsRes.json());
-      } catch {
-        toast.error("Error al cargar viaje");
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : "Error al cargar viaje");
         router.push("/trips");
       } finally {
         setIsLoading(false);
@@ -151,11 +162,11 @@ export default function TripDetailPage() {
         `${process.env.NEXT_PUBLIC_API_URL}/api/trips/${tripId}`,
         { method: "DELETE" }
       );
-      if (!res.ok) throw new Error();
+      if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.message || e.title || "Error al eliminar viaje"); }
       toast.success("Viaje eliminado");
       router.push("/trips");
-    } catch {
-      toast.error("Error al eliminar viaje");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Error al eliminar viaje");
     }
   };
 
@@ -165,39 +176,135 @@ export default function TripDetailPage() {
     toast.success("Viaje actualizado");
   };
 
-  const handleAddIncomeSuccess = (newIncome: Income) => {
-    setTrip(prev => prev ? {
-      ...prev,
-      incomes: [...prev.incomes, newIncome],
-      totalIncome: prev.totalIncome + newIncome.value,
-      profit: (prev.totalIncome + newIncome.value) - prev.totalExpense,
-    } : null);
-    setIsAddIncomeDialogOpen(false);
-    toast.success("Ingreso agregado");
-  };
-
-  const handleAddExpenseSuccess = (newExpense: Expense) => {
+  const handleAddIncomeSuccess = (newIncome: Income, driverExpense?: Expense) => {
     setTrip(prev => {
       if (!prev) return null;
-      const newTotal = prev.totalExpense + newExpense.value;
+      const totalIncome = prev.totalIncome + newIncome.value;
+      const expenses = driverExpense ? [...prev.expenses, driverExpense] : prev.expenses;
+      const totalExpense = driverExpense ? prev.totalExpense + driverExpense.value : prev.totalExpense;
       const tripKm = prev.initialKm != null && prev.finalKm != null
         ? prev.finalKm - prev.initialKm
         : prev.kilometers;
       return {
         ...prev,
-        expenses: [...prev.expenses, newExpense],
+        incomes: [...prev.incomes, newIncome],
+        expenses,
+        totalIncome,
+        totalExpense,
+        profit: totalIncome - totalExpense,
+        costPerKm: tripKm && tripKm > 0 ? totalExpense / tripKm : null,
+      };
+    });
+    setIsAddIncomeDialogOpen(false);
+    toast.success("Ingreso agregado");
+  };
+
+  const handleAddExpenseSuccess = (newExpenses: Expense[]) => {
+    setTrip(prev => {
+      if (!prev) return null;
+      const added = newExpenses.reduce((sum, e) => sum + e.value, 0);
+      const newTotal = prev.totalExpense + added;
+      const tripKm = prev.initialKm != null && prev.finalKm != null
+        ? prev.finalKm - prev.initialKm
+        : prev.kilometers;
+      return {
+        ...prev,
+        expenses: [...prev.expenses, ...newExpenses],
         totalExpense: newTotal,
         profit: prev.totalIncome - newTotal,
         costPerKm: tripKm && tripKm > 0 ? newTotal / tripKm : null,
       };
     });
     setIsAddExpenseDialogOpen(false);
-    toast.success("Egreso agregado");
+    toast.success(newExpenses.length > 1 ? `${newExpenses.length} egresos agregados` : "Egreso agregado");
   };
 
-  // Helper to format trip totals (from API, already pre-calculated in display currency or fallback to BRL)
+  const handleEditIncomeSuccess = (updated: IncomeFormType) => {
+    setTrip(prev => {
+      if (!prev) return null;
+      const incomes = prev.incomes.map(i => i.id === updated.id ? { ...i, ...updated } : i);
+      const totalIncome = incomes.reduce((sum, i) => sum + i.value, 0);
+      return { ...prev, incomes, totalIncome, profit: totalIncome - prev.totalExpense };
+    });
+    setEditingIncome(null);
+    toast.success("Ingreso actualizado");
+  };
+
+  const handleDeleteIncome = async (id: string) => {
+    try {
+      const res = await fetchWithAuth(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/incomes/${id}`,
+        { method: "DELETE" }
+      );
+      if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.message || e.title || "Error al eliminar ingreso"); }
+      setTrip(prev => {
+        if (!prev) return null;
+        const incomes = prev.incomes.filter(i => i.id !== id);
+        const totalIncome = incomes.reduce((sum, i) => sum + i.value, 0);
+        return { ...prev, incomes, totalIncome, profit: totalIncome - prev.totalExpense };
+      });
+      setDeletingIncomeId(null);
+      toast.success("Ingreso eliminado");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Error al eliminar ingreso");
+    }
+  };
+
+  const handleEditExpenseSuccess = (updated: ExpenseFormType) => {
+    setTrip(prev => {
+      if (!prev) return null;
+      const expenses = prev.expenses.map(e => e.id === updated.id ? { ...e, ...updated } : e);
+      const totalExpense = expenses.reduce((sum, e) => sum + e.value, 0);
+      const tripKm = prev.initialKm != null && prev.finalKm != null
+        ? prev.finalKm - prev.initialKm
+        : prev.kilometers;
+      return {
+        ...prev,
+        expenses,
+        totalExpense,
+        profit: prev.totalIncome - totalExpense,
+        costPerKm: tripKm && tripKm > 0 ? totalExpense / tripKm : null,
+      };
+    });
+    setEditingExpense(null);
+    toast.success("Egreso actualizado");
+  };
+
+  const handleDeleteExpense = async (id: string) => {
+    try {
+      const res = await fetchWithAuth(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/expenses/${id}`,
+        { method: "DELETE" }
+      );
+      if (!res.ok) { const err = await res.json().catch(() => ({})); throw new Error(err.message || err.title || "Error al eliminar egreso"); }
+      setTrip(prev => {
+        if (!prev) return null;
+        const expenses = prev.expenses.filter(e => e.id !== id);
+        const totalExpense = expenses.reduce((sum, e) => sum + e.value, 0);
+        const tripKm = prev.initialKm != null && prev.finalKm != null
+          ? prev.finalKm - prev.initialKm
+          : prev.kilometers;
+        return {
+          ...prev,
+          expenses,
+          totalExpense,
+          profit: prev.totalIncome - totalExpense,
+          costPerKm: tripKm && tripKm > 0 ? totalExpense / tripKm : null,
+        };
+      });
+      setDeletingExpenseId(null);
+      toast.success("Egreso eliminado");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Error al eliminar egreso");
+    }
+  };
+
   const fmtMoney = (v: number) => formatCurrency(v, displayCurrency);
   const fmtMoney2 = (v: number) => formatCurrency2(v, displayCurrency);
+
+  const displayTotalIncome = trip ? trip.incomes.reduce((sum, i) => sum + getDisplayValue(i), 0) : 0;
+  const displayTotalExpense = trip ? trip.expenses.reduce((sum, e) => sum + getDisplayValue(e), 0) : 0;
+  const displayProfit = displayTotalIncome - displayTotalExpense;
 
   if (isLoading) {
     return (
@@ -341,34 +448,26 @@ export default function TripDetailPage() {
             <div className="flex justify-between pb-2 border-b">
               <span className="text-muted-foreground">Total ingresos:</span>
               <span className="font-medium text-green-600">
-                {fmtMoney(trip.totalIncome)}
+                {fmtMoney(displayTotalIncome)}
               </span>
             </div>
             <div className="flex justify-between pb-2 border-b">
               <span className="text-muted-foreground">Total egresos:</span>
               <span className="font-medium text-red-600">
-                {fmtMoney(trip.totalExpense)}
+                {fmtMoney(displayTotalExpense)}
               </span>
             </div>
             <div className="flex justify-between pt-2">
               <span className="font-semibold">Utilidad:</span>
-              <span className={`font-bold text-lg ${trip.profit >= 0 ? "text-green-600" : "text-red-600"}`}>
-                {fmtMoney(trip.profit)}
+              <span className={`font-bold text-lg ${displayProfit >= 0 ? "text-green-600" : "text-red-600"}`}>
+                {fmtMoney(displayProfit)}
               </span>
             </div>
-            {trip.totalIncome > 0 && (
+            {displayTotalIncome > 0 && (
               <div className="flex justify-between border-t pt-2">
                 <span className="text-muted-foreground">Margen:</span>
-                <span className={`font-medium ${(trip.profit / trip.totalIncome) >= 0 ? "text-green-600" : "text-red-600"}`}>
-                  {Math.round((trip.profit / trip.totalIncome) * 100)}%
-                </span>
-              </div>
-            )}
-            {trip.costPerKm !== null && (
-              <div className="flex justify-between border-t pt-2">
-                <span className="text-muted-foreground">Costo/km:</span>
-                <span className="font-medium">
-                  {fmtMoney2(trip.costPerKm)}
+                <span className={`font-medium ${(displayProfit / displayTotalIncome) >= 0 ? "text-green-600" : "text-red-600"}`}>
+                  {Math.round((displayProfit / displayTotalIncome) * 100)}%
                 </span>
               </div>
             )}
@@ -376,11 +475,24 @@ export default function TripDetailPage() {
               const tripKm = trip.initialKm != null && trip.finalKm != null
                 ? trip.finalKm - trip.initialKm
                 : trip.kilometers;
-              return tripKm && tripKm > 0 && trip.totalIncome > 0 ? (
+              return tripKm && tripKm > 0 && displayTotalExpense > 0 ? (
+                <div className="flex justify-between border-t pt-2">
+                  <span className="text-muted-foreground">Costo/km:</span>
+                  <span className="font-medium">
+                    {fmtMoney2(displayTotalExpense / tripKm)}
+                  </span>
+                </div>
+              ) : null;
+            })()}
+            {(() => {
+              const tripKm = trip.initialKm != null && trip.finalKm != null
+                ? trip.finalKm - trip.initialKm
+                : trip.kilometers;
+              return tripKm && tripKm > 0 && displayTotalIncome > 0 ? (
                 <div className="flex justify-between border-t pt-2">
                   <span className="text-muted-foreground">Ingreso/km:</span>
                   <span className="font-medium text-green-600">
-                    {fmtMoney2(trip.totalIncome / tripKm)}
+                    {fmtMoney2(displayTotalIncome / tripKm)}
                   </span>
                 </div>
               ) : null;
@@ -404,16 +516,38 @@ export default function TripDetailPage() {
         {trip.incomes.length > 0 ? (
           <div className="space-y-2 text-sm">
             {trip.incomes.map((income) => (
-              <div key={income.id} className="flex justify-between pb-2 border-b last:border-0">
+              <div key={income.id} className="flex justify-between items-center pb-2 border-b last:border-0">
                 <div>
                   <p className="font-medium">{income.description}</p>
                   <p className="text-xs text-muted-foreground">
                     {formatDate(income.dateUtc)}
                   </p>
                 </div>
-                <p className="font-medium text-green-600">
-                  {fmtMoney(getDisplayValue(income))}
-                </p>
+                <div className="flex items-center gap-2">
+                  {normalizeIncomeType(String(income.type)) === "1"
+                    ? <Badge variant="outline" className="text-green-400 border-green-400 bg-green-100">Flete</Badge>
+                    : <Badge variant="outline">Otro</Badge>
+                  }
+                  <p className="font-medium text-green-600">
+                    {fmtMoney(getDisplayValue(income))}
+                  </p>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7"
+                    onClick={() => setEditingIncome(income)}
+                  >
+                    <Pencil className="h-3.5 w-3.5" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7"
+                    onClick={() => setDeletingIncomeId(income.id)}
+                  >
+                    <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                  </Button>
+                </div>
               </div>
             ))}
           </div>
@@ -436,17 +570,44 @@ export default function TripDetailPage() {
         </div>
         {trip.expenses.length > 0 ? (
           <div className="space-y-2 text-sm">
-            {trip.expenses.map((expense) => (
-              <div key={expense.id} className="flex justify-between pb-2 border-b last:border-0">
+            {[...trip.expenses].sort((a, b) => {
+              const dateA = new Date(a.date).getTime();
+              const dateB = new Date(b.date).getTime();
+              if (dateA !== dateB) return dateB - dateA;
+              return new Date(b.createdAt ?? 0).getTime() - new Date(a.createdAt ?? 0).getTime();
+            }).map((expense) => (
+              <div key={expense.id} className="flex justify-between items-center pb-2 border-b last:border-0">
                 <div>
-                  <p className="font-medium">{expense.name}</p>
+                  <p className="font-medium">{expense.name ?? expense.categoryName ?? "—"}</p>
                   <p className="text-xs text-muted-foreground">
                     {formatDate(expense.date)}
+                    {expense.liters != null && expense.liters > 0 && (
+                      <span className="ml-2">{expense.liters.toLocaleString("es-UY")} L</span>
+                    )}
                   </p>
                 </div>
-                <p className="font-medium text-red-600">
-                  {fmtMoney(getDisplayValue(expense))}
-                </p>
+                <div className="flex items-center gap-2">
+                  <Badge variant="outline">{expense.categoryName ?? expense.name ?? "Sin categoría"}</Badge>
+                  <p className="font-medium text-red-600">
+                    {fmtMoney(getDisplayValue(expense))}
+                  </p>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7"
+                    onClick={() => setEditingExpense(expense)}
+                  >
+                    <Pencil className="h-3.5 w-3.5" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7"
+                    onClick={() => setDeletingExpenseId(expense.id)}
+                  >
+                    <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                  </Button>
+                </div>
               </div>
             ))}
           </div>
@@ -478,7 +639,7 @@ export default function TripDetailPage() {
                   <span className="text-muted-foreground">{categoryName}</span>
                   <div className="flex items-center gap-3">
                     <span className="text-xs text-muted-foreground">
-                      {Math.round((total / trip.totalExpense) * 100)}%
+                      {displayTotalExpense > 0 ? Math.round((total / displayTotalExpense) * 100) : 0}%
                     </span>
                     <span className="font-medium text-red-600 w-28 text-right">
                       {fmtMoney(total)}
@@ -493,63 +654,153 @@ export default function TripDetailPage() {
 
       {/* FUEL EFFICIENCY - Solo mostrar si hay egresos con combustible */}
       {trip.expenses.length > 0 && (
-        <FuelEfficiencyCard expenses={trip.expenses as any} truckId={trip.truckId} />
+        <FuelEfficiencyCard
+          expenses={trip.expenses as any}
+          truckId={trip.truckId}
+          tripKm={trip.initialKm != null && trip.finalKm != null ? trip.finalKm - trip.initialKm : trip.kilometers ?? undefined}
+        />
       )}
 
-      {/* Edit Dialog */}
-      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="sm:max-w-sm overflow-y-auto max-h-[90vh]">
-          <DialogHeader>
-            <DialogTitle>Editar viaje</DialogTitle>
-          </DialogHeader>
-          <EditTripForm
-            trip={trip}
-            trucks={trucks}
-            onSuccess={handleUpdateSuccess}
-          />
-        </DialogContent>
-      </Dialog>
+      {/* Edit Trip Sheet */}
+      <Sheet open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <SheetContent side="right" className="w-full sm:max-w-md overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle>Editar viaje</SheetTitle>
+          </SheetHeader>
+          <div className="px-4 pb-4">
+            <EditTripForm
+              trip={trip}
+              trucks={trucks}
+              onSuccess={handleUpdateSuccess}
+            />
+          </div>
+        </SheetContent>
+      </Sheet>
 
-      {/* Add Income Dialog */}
-      <Dialog open={isAddIncomeDialogOpen} onOpenChange={setIsAddIncomeDialogOpen}>
-        <DialogContent className="sm:max-w-sm">
-          <DialogHeader>
-            <DialogTitle>Agregar ingreso</DialogTitle>
-            <DialogDescription>
+      {/* Add Income Sheet */}
+      <Sheet open={isAddIncomeDialogOpen} onOpenChange={setIsAddIncomeDialogOpen}>
+        <SheetContent side="right" className="w-full sm:max-w-md overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle>Agregar ingreso</SheetTitle>
+            <SheetDescription>
               Registrá un nuevo ingreso para este viaje.
-            </DialogDescription>
-          </DialogHeader>
+            </SheetDescription>
+          </SheetHeader>
           {trip && (
-            <AddIncomeForm
-              trucks={trucks}
-              tripId={trip.id}
-              defaultTruckId={trip.truckId}
-              onSuccess={handleAddIncomeSuccess}
-            />
+            <div className="px-4 pb-4">
+              <AddIncomeForm
+                trucks={trucks}
+                categories={categories}
+                tripId={trip.id}
+                defaultTruckId={trip.truckId}
+                onSuccess={handleAddIncomeSuccess}
+              />
+            </div>
           )}
-        </DialogContent>
-      </Dialog>
+        </SheetContent>
+      </Sheet>
 
-      {/* Add Expense Dialog */}
-      <Dialog open={isAddExpenseDialogOpen} onOpenChange={setIsAddExpenseDialogOpen}>
-        <DialogContent className="sm:max-w-sm">
-          <DialogHeader>
-            <DialogTitle>Agregar egreso</DialogTitle>
-            <DialogDescription>
+      {/* Add Expense Sheet */}
+      <Sheet open={isAddExpenseDialogOpen} onOpenChange={setIsAddExpenseDialogOpen}>
+        <SheetContent side="right" className="w-full sm:max-w-md overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle>Agregar egreso</SheetTitle>
+            <SheetDescription>
               Registrá un nuevo egreso para este viaje.
-            </DialogDescription>
-          </DialogHeader>
+            </SheetDescription>
+          </SheetHeader>
           {trip && (
-            <AddExpenseForm
-              trucks={trucks}
-              categories={categories}
-              tripId={trip.id}
-              defaultTruckId={trip.truckId}
-              onSuccess={handleAddExpenseSuccess}
-            />
+            <div className="px-4 pb-4">
+              <AddExpenseForm
+                trucks={trucks}
+                categories={categories}
+                tripId={trip.id}
+                defaultTruckId={trip.truckId}
+                onSuccess={handleAddExpenseSuccess}
+              />
+            </div>
           )}
-        </DialogContent>
-      </Dialog>
+        </SheetContent>
+      </Sheet>
+
+      {/* Edit Income Sheet */}
+      <Sheet open={!!editingIncome} onOpenChange={(open) => { if (!open) setEditingIncome(null); }}>
+        <SheetContent side="right" className="w-full sm:max-w-md overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle>Editar ingreso</SheetTitle>
+          </SheetHeader>
+          <div className="px-4 pb-4">
+            {editingIncome && (
+              <EditIncomeForm
+                income={editingIncome as IncomeFormType}
+                trucks={trucks}
+                onSuccess={handleEditIncomeSuccess}
+              />
+            )}
+          </div>
+        </SheetContent>
+      </Sheet>
+
+      {/* Edit Expense Sheet */}
+      <Sheet open={!!editingExpense} onOpenChange={(open) => { if (!open) setEditingExpense(null); }}>
+        <SheetContent side="right" className="w-full sm:max-w-md overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle>Editar egreso</SheetTitle>
+          </SheetHeader>
+          <div className="px-4 pb-4">
+            {editingExpense && (
+              <EditExpenseForm
+                expense={editingExpense as ExpenseFormType}
+                trucks={trucks}
+                categories={categories}
+                onSuccess={handleEditExpenseSuccess}
+              />
+            )}
+          </div>
+        </SheetContent>
+      </Sheet>
+
+      {/* Delete Income AlertDialog */}
+      <AlertDialog open={!!deletingIncomeId} onOpenChange={(open) => { if (!open) setDeletingIncomeId(null); }}>
+        <AlertDialogContent size="sm">
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Eliminar ingreso?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta acción no se puede deshacer.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              variant="destructive"
+              onClick={() => deletingIncomeId && handleDeleteIncome(deletingIncomeId)}
+            >
+              Eliminar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Delete Expense AlertDialog */}
+      <AlertDialog open={!!deletingExpenseId} onOpenChange={(open) => { if (!open) setDeletingExpenseId(null); }}>
+        <AlertDialogContent size="sm">
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Eliminar egreso?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta acción no se puede deshacer.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              variant="destructive"
+              onClick={() => deletingExpenseId && handleDeleteExpense(deletingExpenseId)}
+            >
+              Eliminar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

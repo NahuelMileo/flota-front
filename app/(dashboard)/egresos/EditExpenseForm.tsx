@@ -20,8 +20,11 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
 import { Expense } from "./columns";
+import { useState, useEffect } from "react";
 
-const FUEL_CATEGORY_NAMES = new Set(["Gasoil", "Arla 32", "Aceite"])
+type ActiveTrip = { id: string; origin: string; destination: string };
+
+const FUEL_CATEGORY_NAMES = new Set(["Gasoil", "Arla 32", "Arla32", "Aceite"])
 
 const currencyItems = [
   { label: "BRL — Real brasileño", value: "BRL" },
@@ -53,6 +56,21 @@ export default function EditExpenseForm({
   categories: ExpenseCategory[];
   onSuccess: (expense: Expense) => void;
 }) {
+  const [activeTrip, setActiveTrip] = useState<ActiveTrip | null>(null);
+
+  async function fetchActiveTrip(truckId: string | null) {
+    if (!truckId || truckId === "none") { setActiveTrip(null); return; }
+    try {
+      const res = await fetchWithAuth(`${process.env.NEXT_PUBLIC_API_URL}/api/trips/active?truckId=${truckId}`);
+      if (res.ok) setActiveTrip(await res.json());
+      else setActiveTrip(null);
+    } catch { setActiveTrip(null); }
+  }
+
+  useEffect(() => {
+    if (expense.truckId) fetchActiveTrip(expense.truckId);
+  }, []);
+
   const truckItems = [
     { label: "Sin asignar", value: "none" },
     ...trucks.map((t) => ({
@@ -105,17 +123,18 @@ export default function EditExpenseForm({
             currency: data.currency,
             kilometers: data.kilometers ?? null,
             liters: data.liters ?? null,
+            tripId: activeTrip?.id ?? expense.tripId ?? null,
           }),
         },
       );
 
-      if (!res.ok) throw new Error();
+      if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.message || e.title || "Error al actualizar egreso"); }
 
       const updated = await res.json();
       toast.success("Egreso actualizado");
       onSuccess(updated);
-    } catch {
-      toast.error("Error al actualizar egreso");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Error al actualizar egreso");
     }
   }
 
@@ -186,9 +205,10 @@ export default function EditExpenseForm({
               <Select
                 items={truckItems}
                 value={field.value ?? "none"}
-                onValueChange={(value) =>
-                  field.onChange(value === "none" ? null : value)
-                }
+                onValueChange={(value) => {
+                  field.onChange(value === "none" ? null : value);
+                  fetchActiveTrip(value === "none" ? null : value);
+                }}
               >
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="Seleccionar camión" />
@@ -206,6 +226,17 @@ export default function EditExpenseForm({
             )}
           />
         </Field>
+
+        {activeTrip && (
+          <Field>
+            <Label>Viaje</Label>
+            <Input
+              disabled
+              value={`${activeTrip.origin} → ${activeTrip.destination}`}
+              className="bg-muted cursor-not-allowed"
+            />
+          </Field>
+        )}
 
         <Field>
           <Label>Categoría</Label>

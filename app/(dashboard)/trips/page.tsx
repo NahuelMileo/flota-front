@@ -5,13 +5,13 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { DataTable } from "./data-table";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 import { toast } from "sonner";
 import { fetchWithAuth } from "@/lib/api";
 import type { Truck } from "@/types/truck";
@@ -185,23 +185,25 @@ export default function TripsPage() {
       <div className="flex justify-between">
         <h1 className="text-xl font-bold">Viajes</h1>
 
-        <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-          <DialogTrigger render={<Button variant="outline">Añadir viaje</Button>} />
+        <Sheet open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+          <SheetTrigger render={<Button variant="outline">Añadir viaje</Button>} />
 
-          <DialogContent className="sm:max-w-sm">
-            <DialogHeader>
-              <DialogTitle>Agregar viaje</DialogTitle>
-              <DialogDescription>
+          <SheetContent className="overflow-y-auto">
+            <SheetHeader>
+              <SheetTitle>Agregar viaje</SheetTitle>
+              <SheetDescription>
                 Registrá un nuevo viaje.
-              </DialogDescription>
-            </DialogHeader>
+              </SheetDescription>
+            </SheetHeader>
 
-            <AddTripForm
-              trucks={trucks}
-              onSuccess={handleAddTrip}
-            />
-          </DialogContent>
-        </Dialog>
+            <div className="px-4 pb-6">
+              <AddTripForm
+                trucks={trucks}
+                onSuccess={handleAddTrip}
+              />
+            </div>
+          </SheetContent>
+        </Sheet>
       </div>
 
       {/* FILTERS */}
@@ -270,23 +272,28 @@ export default function TripsPage() {
         </div>
       </div>
 
-      {/* EDIT DIALOG */}
-      <Dialog
+      {/* EDIT SHEET */}
+      <Sheet
         open={!!editingTrip}
         onOpenChange={(open) => {
           if (!open) setEditingTrip(null);
         }}
       >
-        <DialogContent className="sm:max-w-sm overflow-y-auto max-h-[90vh]">
-          {editingTrip && (
-            <EditTripForm
-              trip={editingTrip}
-              trucks={trucks}
-              onSuccess={handleUpdateTrip}
-            />
-          )}
-        </DialogContent>
-      </Dialog>
+        <SheetContent className="overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle>Editar viaje</SheetTitle>
+          </SheetHeader>
+          <div className="px-4 pb-6">
+            {editingTrip && (
+              <EditTripForm
+                trip={editingTrip}
+                trucks={trucks}
+                onSuccess={handleUpdateTrip}
+              />
+            )}
+          </div>
+        </SheetContent>
+      </Sheet>
 
       {isLoading ? (
         <TableSkeleton />

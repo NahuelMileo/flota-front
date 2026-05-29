@@ -4,13 +4,13 @@ import { Button } from "@/components/ui/button";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { DataTable } from "./data-table";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 import { toast } from "sonner";
 import { fetchWithAuth } from "@/lib/api";
 import type { Truck } from "@/types/truck";
@@ -46,10 +46,13 @@ function TableSkeleton() {
   );
 }
 
+type Trip = { id: string; departureDate: string; truckId: string | null; kilometers: number | null; initialKm: number | null; finalKm: number | null };
+
 export default function ExpensePage() {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [trucks, setTrucks] = useState<Truck[]>([]);
   const [categories, setCategories] = useState<ExpenseCategory[]>([]);
+  const [trips, setTrips] = useState<Trip[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
@@ -66,6 +69,10 @@ export default function ExpensePage() {
     fetchExpenses();
     fetchTrucks();
     fetchCategories();
+    fetchWithAuth(`${process.env.NEXT_PUBLIC_API_URL}/api/trips`, { method: "GET" })
+      .then((r) => r.ok ? r.json() : [])
+      .then(setTrips)
+      .catch(() => {});
   }, []);
 
   const fetchTrucks = async () => {
@@ -130,19 +137,24 @@ export default function ExpensePage() {
   );
 
   const filteredExpenses = useMemo(() => {
-    return expenses.filter((expense) => {
-      if (selectedDate) {
-        const date = new Date(expense.date + "T00:00:00");
-        if (
-          date.getMonth() !== selectedDate.getMonth() ||
-          date.getFullYear() !== selectedDate.getFullYear()
-        )
-          return false;
-      }
-      if (!matchesTruckFilter(expense)) return false;
-      if (selectedCategoryId !== null && expense.expenseCategoryId !== selectedCategoryId) return false;
-      return true;
-    });
+    return expenses
+      .filter((expense) => {
+        if (selectedDate) {
+          const date = new Date(expense.date + "T00:00:00");
+          if (
+            date.getMonth() !== selectedDate.getMonth() ||
+            date.getFullYear() !== selectedDate.getFullYear()
+          )
+            return false;
+        }
+        if (!matchesTruckFilter(expense)) return false;
+        if (selectedCategoryId !== null && expense.expenseCategoryId !== selectedCategoryId) return false;
+        return true;
+      })
+      .sort((a, b) => {
+        if (a.date !== b.date) return b.date > a.date ? 1 : -1;
+        return (b.createdAt ?? "") > (a.createdAt ?? "") ? 1 : -1;
+      });
   }, [expenses, selectedDate, matchesTruckFilter, selectedCategoryId]);
 
   const total = useMemo(
@@ -178,9 +190,25 @@ export default function ExpensePage() {
     return Math.round(((total - previousMonthTotal) / previousMonthTotal) * 100);
   }, [total, previousMonthTotal]);
 
+  const totalTripKm = useMemo(() => {
+    return trips
+      .filter((t) => {
+        if (selectedDate) {
+          const d = new Date(t.departureDate);
+          if (d.getMonth() !== selectedDate.getMonth() || d.getFullYear() !== selectedDate.getFullYear()) return false;
+        }
+        if (selectedTruckId && t.truckId !== selectedTruckId) return false;
+        return true;
+      })
+      .reduce((acc, t) => {
+        const km = t.initialKm != null && t.finalKm != null ? t.finalKm - t.initialKm : (t.kilometers ?? 0);
+        return acc + km;
+      }, 0);
+  }, [trips, selectedDate, selectedTruckId]);
+
   // ================= CRUD =================
-  const handleAddExpense = (newExpense: Expense) => {
-    setExpenses((prev) => [...prev, newExpense]);
+  const handleAddExpense = (newExpenses: Expense[]) => {
+    setExpenses((prev) => [...prev, ...newExpenses]);
     setIsAddDialogOpen(false);
   };
 
@@ -242,24 +270,24 @@ export default function ExpensePage() {
       <div className="flex justify-between">
         <h1 className="text-xl font-bold">Egresos</h1>
 
-        <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-          <DialogTrigger render={<Button variant="outline">Añadir egreso</Button>} />
+        <Sheet open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+          <SheetTrigger render={<Button variant="outline">Añadir egreso</Button>} />
 
-          <DialogContent className="sm:max-w-sm">
-            <DialogHeader>
-              <DialogTitle>Agregar egreso</DialogTitle>
-              <DialogDescription>
-                Registrá un nuevo egreso.
-              </DialogDescription>
-            </DialogHeader>
+          <SheetContent className="overflow-y-auto">
+            <SheetHeader>
+              <SheetTitle>Agregar egreso</SheetTitle>
+              <SheetDescription>Registrá un nuevo egreso.</SheetDescription>
+            </SheetHeader>
 
-            <AddExpenseForm
-              trucks={trucks}
-              categories={categories}
-              onSuccess={handleAddExpense}
-            />
-          </DialogContent>
-        </Dialog>
+            <div className="px-4 pb-6">
+              <AddExpenseForm
+                trucks={trucks}
+                categories={categories}
+                onSuccess={handleAddExpense}
+              />
+            </div>
+          </SheetContent>
+        </Sheet>
       </div>
 
       {/* FILTERS */}
@@ -310,30 +338,35 @@ export default function ExpensePage() {
       {/* CARDS */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <TotalExpenseCard total={total} variation={variation} />
-        <CostPerKmCard expenses={filteredExpenses} />
+        <CostPerKmCard expenses={filteredExpenses} totalKm={totalTripKm} />
       </div>
 
       {/* CHART */}
       <ExpenseBreakdownChart expenses={filteredExpenses} displayCurrency={displayCurrency} />
 
-      {/* EDIT DIALOG */}
-      <Dialog
+      {/* EDIT SHEET */}
+      <Sheet
         open={!!editingExpense}
         onOpenChange={(open) => {
           if (!open) setEditingExpense(null);
         }}
       >
-        <DialogContent className="sm:max-w-sm">
-          {editingExpense && (
-            <EditExpenseForm
-              expense={editingExpense}
-              trucks={trucks}
-              categories={categories}
-              onSuccess={handleUpdateExpense}
-            />
-          )}
-        </DialogContent>
-      </Dialog>
+        <SheetContent className="overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle>Editar egreso</SheetTitle>
+          </SheetHeader>
+          <div className="px-4 pb-6">
+            {editingExpense && (
+              <EditExpenseForm
+                expense={editingExpense}
+                trucks={trucks}
+                categories={categories}
+                onSuccess={handleUpdateExpense}
+              />
+            )}
+          </div>
+        </SheetContent>
+      </Sheet>
 
       {isLoading ? (
         <TableSkeleton />

@@ -96,13 +96,13 @@ export default function AddTripForm({
         },
       );
 
-      if (!res.ok) throw new Error();
+      if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.message || e.title || "Error al agregar viaje"); }
 
       const result = await res.json();
       toast.success("Viaje agregado");
       onSuccess(result);
-    } catch {
-      toast.error("Error al agregar viaje");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Error al agregar viaje");
     }
   }
 

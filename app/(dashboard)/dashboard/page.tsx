@@ -46,6 +46,7 @@ function CardSkeleton() {
 export default function DashboardPage() {
   const [incomes, setIncomes] = useState<Income[]>([])
   const [expenses, setExpenses] = useState<Expense[]>([])
+  const [trips, setTrips] = useState<{ departureDate: string; kilometers: number | null; initialKm: number | null; finalKm: number | null }[]>([])
   const [isLoading, setIsLoading] = useState(true)
 
   const { selectedDate } = useDateFilter()
@@ -55,12 +56,14 @@ export default function DashboardPage() {
     Promise.all([
       fetchWithAuth(`${process.env.NEXT_PUBLIC_API_URL}/api/incomes`, { method: "GET" }),
       fetchWithAuth(`${process.env.NEXT_PUBLIC_API_URL}/api/expenses`, { method: "GET" }),
+      fetchWithAuth(`${process.env.NEXT_PUBLIC_API_URL}/api/trips`, { method: "GET" }),
     ])
-      .then(async ([incRes, expRes]) => {
+      .then(async ([incRes, expRes, tripsRes]) => {
         if (!incRes.ok || !expRes.ok) throw new Error()
         const [incData, expData] = await Promise.all([incRes.json(), expRes.json()])
         setIncomes(incData)
         setExpenses(expData)
+        if (tripsRes.ok) setTrips(await tripsRes.json())
       })
       .catch(() => toast.error("Error al cargar datos"))
       .finally(() => setIsLoading(false))
@@ -119,6 +122,19 @@ export default function DashboardPage() {
     return Math.round(((totalExpense - prevMonthExpense) / prevMonthExpense) * 100)
   }, [totalExpense, prevMonthExpense])
 
+  const totalTripKm = useMemo(() => {
+    return trips
+      .filter((t) => {
+        if (!selectedDate) return true;
+        const d = new Date(t.departureDate);
+        return d.getMonth() === selectedDate.getMonth() && d.getFullYear() === selectedDate.getFullYear();
+      })
+      .reduce((acc, t) => {
+        const km = t.initialKm != null && t.finalKm != null ? t.finalKm - t.initialKm : (t.kilometers ?? 0);
+        return acc + km;
+      }, 0);
+  }, [trips, selectedDate]);
+
   // Last 6 months for chart
   const monthlyData = useMemo(() => {
     return Array.from({ length: 6 }, (_, i) => {
@@ -162,7 +178,7 @@ export default function DashboardPage() {
           <TotalIncomeCard total={totalIncome} variation={incomeVariation} />
           <TotalExpenseCard total={totalExpense} variation={expenseVariation} />
           <NetBalanceCard income={totalIncome} expense={totalExpense} />
-          <CostPerKmCard expenses={filteredExpenses as unknown as ColumnExpense[]} />
+          <CostPerKmCard expenses={filteredExpenses as unknown as ColumnExpense[]} totalKm={totalTripKm} />
         </div>
       )}
 

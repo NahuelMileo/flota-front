@@ -19,6 +19,7 @@ import { formatCurrency, formatDate, DisplayCurrency } from "@/lib/format";
 export type Expense = {
   id: string;
   date: string;
+  createdAt: string | null;
   expenseCategoryId: string | null;
   categoryName: string | null;
   value: number;
@@ -31,6 +32,7 @@ export type Expense = {
   name: string | null;
   kilometers: number | null;
   liters: number | null;
+  tripId?: string | null;
 };
 
 function getDisplayValue(
@@ -85,6 +87,14 @@ export function getColumns(
     {
       accessorKey: "date",
       header: "Fecha",
+      sortingFn: (rowA, rowB) => {
+        const dateA = rowA.original.date;
+        const dateB = rowB.original.date;
+        if (dateA !== dateB) return dateA < dateB ? -1 : 1;
+        const ca = rowA.original.createdAt ?? "";
+        const cb = rowB.original.createdAt ?? "";
+        return ca < cb ? -1 : ca > cb ? 1 : 0;
+      },
       cell: ({ row }) => {
         const date: string = row.getValue("date");
         return formatDate(date);

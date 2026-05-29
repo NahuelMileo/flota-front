@@ -30,11 +30,11 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet"
 import {
   Select,
   SelectContent,
@@ -130,54 +130,56 @@ function EditFixedCostModal({
   }
 
   return (
-    <Dialog open onOpenChange={(open) => { if (!open) onClose() }}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>Editar costo fijo</DialogTitle>
-        </DialogHeader>
-        <form onSubmit={handleSubmit(onSubmit)}>
-          <FieldGroup className="py-3">
-            <Field>
-              <Label>Nombre</Label>
-              <Input {...register("name")} />
-              <FieldError errors={[errors.name]} />
-            </Field>
-            <Field>
-              <Label>Categoría</Label>
-              <Select
-                items={categoryItems}
-                value={expenseCategoryId ?? "none"}
-                onValueChange={(v) => setValue("expenseCategoryId", v === "none" ? null : (v ?? null), { shouldValidate: true })}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Seleccionar categoría" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectGroup>
-                    {categoryItems.map((t) => (
-                      <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
-                    ))}
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
-              <FieldError errors={[errors.expenseCategoryId]} />
-            </Field>
-            <Field>
-              <Label>Monto mensual</Label>
-              <Input
-                {...register("amount", { setValueAs: (v) => v === "" ? undefined : Number(v) })}
-                type="number"
-                step="0.01"
-              />
-              <FieldError errors={[errors.amount]} />
-            </Field>
-          </FieldGroup>
-          <Button className="w-full" type="submit" disabled={isSubmitting}>
-            Guardar cambios
-          </Button>
-        </form>
-      </DialogContent>
-    </Dialog>
+    <Sheet open onOpenChange={(open) => { if (!open) onClose() }}>
+      <SheetContent className="overflow-y-auto">
+        <SheetHeader>
+          <SheetTitle>Editar costo fijo</SheetTitle>
+        </SheetHeader>
+        <div className="px-4 pb-6">
+          <form onSubmit={handleSubmit(onSubmit)}>
+            <FieldGroup className="py-3">
+              <Field>
+                <Label>Nombre</Label>
+                <Input {...register("name")} />
+                <FieldError errors={[errors.name]} />
+              </Field>
+              <Field>
+                <Label>Categoría</Label>
+                <Select
+                  items={categoryItems}
+                  value={expenseCategoryId ?? "none"}
+                  onValueChange={(v) => setValue("expenseCategoryId", v === "none" ? null : (v ?? null), { shouldValidate: true })}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Seleccionar categoría" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
+                      {categoryItems.map((t) => (
+                        <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
+                      ))}
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+                <FieldError errors={[errors.expenseCategoryId]} />
+              </Field>
+              <Field>
+                <Label>Monto mensual</Label>
+                <Input
+                  {...register("amount", { setValueAs: (v) => v === "" ? undefined : Number(v) })}
+                  type="number"
+                  step="0.01"
+                />
+                <FieldError errors={[errors.amount]} />
+              </Field>
+            </FieldGroup>
+            <Button className="w-full" type="submit" disabled={isSubmitting}>
+              Guardar cambios
+            </Button>
+          </form>
+        </div>
+      </SheetContent>
+    </Sheet>
   )
 }
 

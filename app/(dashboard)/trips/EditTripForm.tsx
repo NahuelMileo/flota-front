@@ -80,7 +80,7 @@ export default function EditTripForm({
     resolver: zodResolver(tripSchema),
     defaultValues: {
       departureDate: trip.departureDate.split("T")[0],
-      arrivalDate: trip.arrivalDate?.split("T")[0] ?? "",
+      arrivalDate: (trip.arrivalDate && !trip.arrivalDate.startsWith("0001-01-01")) ? trip.arrivalDate.split("T")[0] : "",
       origin: trip.origin,
       destination: trip.destination,
       truckId: trip.truckId ?? "none",
@@ -120,13 +120,13 @@ export default function EditTripForm({
         },
       );
 
-      if (!res.ok) throw new Error();
+      if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.message || e.title || "Error al actualizar"); }
 
       const updated = await res.json();
       toast.success("Viaje actualizado");
       onSuccess(updated);
-    } catch {
-      toast.error("Error al actualizar");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Error al actualizar");
     }
   }
 

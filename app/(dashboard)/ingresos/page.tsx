@@ -4,13 +4,13 @@ import { Button } from "@/components/ui/button";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { DataTable } from "./data-table";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 import { toast } from "sonner";
 import { fetchWithAuth } from "@/lib/api";
 import type { Truck } from "@/types/truck";
@@ -21,6 +21,7 @@ import { useDateFilter } from "@/context/date-filter-context";
 import { useCurrency } from "@/context/currency-context";
 import AddIncomeForm from "./AddIncomeForm";
 import EditIncomeForm from "./EditIncomeForm";
+import type { ExpenseCategory } from "@/types/expense-category";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Select,
@@ -53,6 +54,7 @@ function TableSkeleton() {
 export default function IncomePage() {
   const [incomes, setIncomes] = useState<Income[]>([]);
   const [trucks, setTrucks] = useState<Truck[]>([]);
+  const [categories, setCategories] = useState<ExpenseCategory[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
@@ -68,7 +70,15 @@ export default function IncomePage() {
   useEffect(() => {
     fetchIncomes();
     fetchTrucks();
+    fetchCategories();
   }, []);
+
+  const fetchCategories = async () => {
+    try {
+      const res = await fetchWithAuth(`${process.env.NEXT_PUBLIC_API_URL}/api/expense-categories`);
+      if (res.ok) setCategories(await res.json());
+    } catch { /* non-critical */ }
+  };
 
   const fetchTrucks = async () => {
     try {
@@ -209,23 +219,26 @@ export default function IncomePage() {
       <div className="flex justify-between">
         <h1 className="text-xl font-bold">Ingresos</h1>
 
-        <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-          <DialogTrigger render={<Button variant="outline">Añadir ingreso</Button>} />
+        <Sheet open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+          <SheetTrigger render={<Button variant="outline">Añadir ingreso</Button>} />
 
-          <DialogContent className="sm:max-w-sm">
-            <DialogHeader>
-              <DialogTitle>Agregar ingreso</DialogTitle>
-              <DialogDescription>
+          <SheetContent className="overflow-y-auto">
+            <SheetHeader>
+              <SheetTitle>Agregar ingreso</SheetTitle>
+              <SheetDescription>
                 Registrá un nuevo ingreso.
-              </DialogDescription>
-            </DialogHeader>
+              </SheetDescription>
+            </SheetHeader>
 
-            <AddIncomeForm
-              trucks={trucks}
-              onSuccess={handleAddIncome}
-            />
-          </DialogContent>
-        </Dialog>
+            <div className="px-4 pb-6">
+              <AddIncomeForm
+                trucks={trucks}
+                categories={categories}
+                onSuccess={handleAddIncome}
+              />
+            </div>
+          </SheetContent>
+        </Sheet>
       </div>
 
       {/* FILTERS */}
@@ -279,23 +292,28 @@ export default function IncomePage() {
       {/* CHART */}
       <IncomeByTruckChart incomes={filteredIncomes} displayCurrency={displayCurrency} />
 
-      {/* EDIT DIALOG */}
-      <Dialog
+      {/* EDIT SHEET */}
+      <Sheet
         open={!!editingIncome}
         onOpenChange={(open) => {
           if (!open) setEditingIncome(null);
         }}
       >
-        <DialogContent className="sm:max-w-sm">
-          {editingIncome && (
-            <EditIncomeForm
-              income={editingIncome}
-              trucks={trucks}
-              onSuccess={handleUpdateIncome}
-            />
-          )}
-        </DialogContent>
-      </Dialog>
+        <SheetContent className="overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle>Editar ingreso</SheetTitle>
+          </SheetHeader>
+          <div className="px-4 pb-6">
+            {editingIncome && (
+              <EditIncomeForm
+                income={editingIncome}
+                trucks={trucks}
+                onSuccess={handleUpdateIncome}
+              />
+            )}
+          </div>
+        </SheetContent>
+      </Sheet>
 
       {isLoading ? (
         <TableSkeleton />

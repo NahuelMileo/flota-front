@@ -8,7 +8,7 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsi
 import { formatCurrency2, formatCurrency, type DisplayCurrency } from "@/lib/format";
 import { useCurrency } from "@/context/currency-context";
 
-const FUEL_CATEGORY_NAMES = new Set(["Gasoil", "Arla 32", "Aceite"])
+const FUEL_CATEGORY_NAMES = new Set(["Gasoil", "Arla 32", "Arla32", "Aceite"])
 
 type Expense = {
   id: string;
@@ -37,9 +37,10 @@ function getDisplayValue(
 type FuelEfficiencyCardProps = {
   expenses: Expense[];
   truckId?: string;
+  tripKm?: number;
 };
 
-export function FuelEfficiencyCard({ expenses, truckId }: FuelEfficiencyCardProps) {
+export function FuelEfficiencyCard({ expenses, truckId, tripKm }: FuelEfficiencyCardProps) {
   const { displayCurrency } = useCurrency();
 
   const fuelExpenses = useMemo(() => {
@@ -67,6 +68,7 @@ export function FuelEfficiencyCard({ expenses, truckId }: FuelEfficiencyCardProp
       fullDate: string;
       kmDriven: number | null;
       liters: number;
+      displayValue: number;
       kmPerLiter: number | null;
       costPerKm: number | null;
       pricePerLiter: number;
@@ -85,6 +87,7 @@ export function FuelEfficiencyCard({ expenses, truckId }: FuelEfficiencyCardProp
           fullDate: expense.date,
           kmDriven,
           liters,
+          displayValue: displayVal,
           kmPerLiter: kmDriven != null && kmDriven > 0 && liters > 0
             ? parseFloat((kmDriven / liters).toFixed(2))
             : null,
@@ -99,11 +102,17 @@ export function FuelEfficiencyCard({ expenses, truckId }: FuelEfficiencyCardProp
     return rows.sort((a, b) => new Date(a.fullDate).getTime() - new Date(b.fullDate).getTime());
   }, [fuelExpenses, displayCurrency]);
 
-  // Cálculos globales usando solo filas con delta de km válido
+  // Cálculos globales
   const rowsWithDelta = useMemo(() => efficiencyData.filter((r) => r.kmDriven != null && r.kmDriven > 0), [efficiencyData]);
-  const totalKm = useMemo(() => rowsWithDelta.reduce((acc, r) => acc + (r.kmDriven ?? 0), 0), [rowsWithDelta]);
   const totalLiters = useMemo(() => fuelExpenses.reduce((acc, e) => acc + (e.liters ?? 0), 0), [fuelExpenses]);
-  const totalCost = useMemo(() => fuelExpenses.reduce((acc, e) => acc + getDisplayValue(e, displayCurrency), 0), [fuelExpenses, displayCurrency]);
+  const fuelCost = useMemo(() => fuelExpenses.reduce((acc, e) => acc + getDisplayValue(e, displayCurrency), 0), [fuelExpenses, displayCurrency]);
+  const totalCost = useMemo(() => expenses.reduce((acc, e) => acc + getDisplayValue(e, displayCurrency), 0), [expenses, displayCurrency]);
+  const totalKm = useMemo(() => {
+    if (tripKm && tripKm > 0) return tripKm;
+    const kmValues = fuelExpenses.map((e) => e.kilometers ?? 0).filter((km) => km > 0);
+    if (kmValues.length < 2) return 0;
+    return Math.max(...kmValues) - Math.min(...kmValues);
+  }, [fuelExpenses, tripKm]);
 
   const avgKmPerLiter = useMemo(() => {
     return totalLiters > 0 ? totalKm / totalLiters : 0;
@@ -114,8 +123,8 @@ export function FuelEfficiencyCard({ expenses, truckId }: FuelEfficiencyCardProp
   }, [totalCost, totalKm]);
 
   const avgPricePerLiter = useMemo(() => {
-    return totalLiters > 0 ? totalCost / totalLiters : 0;
-  }, [totalCost, totalLiters]);
+    return totalLiters > 0 ? fuelCost / totalLiters : 0;
+  }, [fuelCost, totalLiters]);
 
   // Comparación: primeros 50% vs últimos 50% (solo filas con delta válido)
   const midpoint = Math.floor(rowsWithDelta.length / 2);
