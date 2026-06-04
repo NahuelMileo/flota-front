@@ -75,11 +75,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         icon: <ReceiptIcon />,
       },
       {
-        title: "Cuentas a Recibir",
-        url: "/cuentas-a-recibir",
-        icon: <ClipboardListIcon />,
-      },
-      {
         title: "Configuración",
         url: "/configuracion",
         icon: <Settings2Icon />,

@@ -83,10 +83,10 @@ export default function OnboardingPage() {
     setIsJoining(true)
     try {
       const response = await fetchWithAuth(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/companies/join`,
+        `${process.env.NEXT_PUBLIC_API_URL}/api/tenants/join`,
         {
           method: "POST",
-          body: JSON.stringify({ inviteCode }),
+          body: JSON.stringify({ code: inviteCode }),
         }
       )
 
@@ -111,6 +111,9 @@ export default function OnboardingPage() {
 
       if (data.tenantId) {
         localStorage.setItem("tenantId", data.tenantId)
+      }
+      if (data.accessToken) {
+        localStorage.setItem("accessToken", data.accessToken)
       }
 
       setTimeout(() => {

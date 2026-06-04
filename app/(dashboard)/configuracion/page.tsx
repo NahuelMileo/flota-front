@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { fetchWithAuth } from "@/lib/api"
 import { toast } from "sonner"
 import { Badge } from "@/components/ui/badge"
@@ -18,8 +18,122 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
-import { Trash2 } from "lucide-react"
+import { Check, Copy, RefreshCw, Trash2, Users } from "lucide-react"
 import type { ExpenseCategory } from "@/types/expense-category"
+
+type JoinCode = { code: string; expiresAtUtc: string }
+
+function InviteCodeSection() {
+  const [joinCode, setJoinCode] = useState<JoinCode | null>(null)
+  const [isGenerating, setIsGenerating] = useState(false)
+  const [secondsLeft, setSecondsLeft] = useState(0)
+  const [copied, setCopied] = useState(false)
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
+
+  function startCountdown(expiresAtUtc: string) {
+    if (timerRef.current) clearInterval(timerRef.current)
+    const tick = () => {
+      const diff = Math.max(0, Math.floor((new Date(expiresAtUtc).getTime() - Date.now()) / 1000))
+      setSecondsLeft(diff)
+      if (diff === 0) {
+        clearInterval(timerRef.current!)
+        setJoinCode(null)
+      }
+    }
+    tick()
+    timerRef.current = setInterval(tick, 1000)
+  }
+
+  useEffect(() => () => { if (timerRef.current) clearInterval(timerRef.current) }, [])
+
+  async function handleGenerate() {
+    const tenantId = localStorage.getItem("tenantId")
+    if (!tenantId) return
+    setIsGenerating(true)
+    try {
+      const res = await fetchWithAuth(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/tenants/${tenantId}/join-codes`,
+        { method: "POST" }
+      )
+      if (!res.ok) throw new Error()
+      const data: JoinCode = await res.json()
+      setJoinCode(data)
+      startCountdown(data.expiresAtUtc)
+    } catch {
+      toast.error("Error al generar el código")
+    } finally {
+      setIsGenerating(false)
+    }
+  }
+
+  async function handleCopy() {
+    if (!joinCode) return
+    await navigator.clipboard.writeText(joinCode.code)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+
+  const minutes = Math.floor(secondsLeft / 60)
+  const seconds = secondsLeft % 60
+  const isExpiringSoon = secondsLeft <= 60 && secondsLeft > 0
+
+  return (
+    <div className="rounded-lg border">
+      <div className="px-4 py-3 border-b flex items-center gap-2">
+        <Users className="size-4 text-muted-foreground" />
+        <h2 className="font-semibold text-sm">Equipo</h2>
+      </div>
+      <div className="px-4 py-4 flex flex-col gap-3">
+        <p className="text-sm text-muted-foreground">
+          Generá un código de invitación temporal para que un nuevo usuario se una a tu empresa. El código es válido por 5 minutos y de un solo uso.
+        </p>
+
+        {joinCode && secondsLeft > 0 ? (
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center gap-2">
+              <div className="flex-1 flex items-center justify-between rounded-md border bg-muted/40 px-4 py-2.5">
+                <span className="font-mono text-lg font-semibold tracking-widest">
+                  {joinCode.code}
+                </span>
+                <span className={`text-xs tabular-nums ${isExpiringSoon ? "text-destructive font-medium" : "text-muted-foreground"}`}>
+                  {minutes}:{String(seconds).padStart(2, "0")}
+                </span>
+              </div>
+              <Button
+                size="sm"
+                variant="outline"
+                className="shrink-0 gap-1.5"
+                onClick={handleCopy}
+              >
+                {copied ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}
+                {copied ? "Copiado" : "Copiar"}
+              </Button>
+            </div>
+            <Button
+              size="sm"
+              variant="ghost"
+              className="w-fit gap-1.5 text-muted-foreground"
+              onClick={handleGenerate}
+              disabled={isGenerating}
+            >
+              <RefreshCw className="size-3.5" />
+              Generar nuevo código
+            </Button>
+          </div>
+        ) : (
+          <Button
+            size="sm"
+            className="w-fit"
+            onClick={handleGenerate}
+            disabled={isGenerating}
+          >
+            {isGenerating ? "Generando..." : "Generar código de invitación"}
+          </Button>
+        )}
+      </div>
+    </div>
+  )
+}
 
 export default function ConfiguracionPage() {
   const [categories, setCategories] = useState<ExpenseCategory[]>([])
@@ -92,8 +206,10 @@ export default function ConfiguracionPage() {
     <div className="p-6 flex flex-col gap-6 max-w-2xl">
       <div>
         <h1 className="text-xl font-bold">Configuración</h1>
-        <p className="text-sm text-muted-foreground mt-0.5">Administrá las categorías de egresos de tu empresa</p>
+        <p className="text-sm text-muted-foreground mt-0.5">Administrá la configuración de tu empresa</p>
       </div>
+
+      <InviteCodeSection />
 
       <div className="rounded-lg border">
         <div className="px-4 py-3 border-b">
