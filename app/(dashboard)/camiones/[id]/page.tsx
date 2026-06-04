@@ -42,6 +42,7 @@ import type { Income } from "@/app/(dashboard)/ingresos/columns"
 import type { Expense } from "@/app/(dashboard)/egresos/columns"
 import type { Truck } from "@/types/truck"
 import type { SummaryMonth } from "@/types/costs"
+import { useOdometerReadings } from "@/hooks/use-odometer-readings"
 
 type Trip = {
   id: string
@@ -293,6 +294,8 @@ export default function TruckDetailPage() {
   const router = useRouter()
   const { selectedDate } = useDateFilter()
   const { displayCurrency, getDisplayValue } = useCurrency()
+  const selectedYear = (selectedDate ?? new Date()).getFullYear()
+  const { readings: odometerReadings } = useOdometerReadings(id, selectedYear)
   const [truck, setTruck] = useState<Truck | null>(null)
   const [trucks, setTrucks] = useState<Truck[]>([])
   const [categories, setCategories] = useState<ExpenseCategory[]>([])
@@ -305,7 +308,7 @@ export default function TruckDetailPage() {
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null)
 
   useEffect(() => {
-    const year = (selectedDate ?? new Date()).getFullYear()
+    const year = selectedYear
     Promise.all([
       fetchWithAuth(`${process.env.NEXT_PUBLIC_API_URL}/api/trucks/${id}`),
       fetchWithAuth(`${process.env.NEXT_PUBLIC_API_URL}/api/trucks`),
@@ -333,7 +336,7 @@ export default function TruckDetailPage() {
       })
       .catch(() => toast.error("Error al cargar datos del camión"))
       .finally(() => setIsLoading(false))
-  }, [id, router, selectedDate])
+  }, [id, router, selectedYear])
 
   const handleDeleteIncome = useCallback(async (income: Income) => {
     const res = await fetchWithAuth(`${process.env.NEXT_PUBLIC_API_URL}/api/incomes/${income.id}`, { method: "DELETE" })
@@ -352,8 +355,8 @@ export default function TruckDetailPage() {
   const trips = useMemo(() => {
     if (!selectedDate) return allTrips
     return allTrips.filter((t) => {
-      const d = new Date(t.departureDate)
-      return d.getMonth() === selectedDate.getMonth() && d.getFullYear() === selectedDate.getFullYear()
+      const [tripYear, tripMonth] = t.departureDate.split("T")[0].split("-").map(Number)
+      return tripMonth - 1 === selectedDate.getMonth() && tripYear === selectedDate.getFullYear()
     })
   }, [allTrips, selectedDate])
 
@@ -376,13 +379,38 @@ export default function TruckDetailPage() {
   const totalIncome = useMemo(() => incomes.reduce((acc, i) => acc + getDisplayValue(i), 0), [incomes, getDisplayValue])
   const totalExpense = useMemo(() => expenses.reduce((acc, e) => acc + getDisplayValue(e), 0), [expenses, getDisplayValue])
   const totalKm = useMemo(() => trips.reduce((acc, t) => acc + (t.kilometers ?? 0), 0), [trips])
-  const costPerKm = useMemo(() => totalKm > 0 ? totalExpense / totalKm : null, [totalExpense, totalKm])
-  const revenuePerKm = useMemo(() => totalKm > 0 ? totalIncome / totalKm : null, [totalIncome, totalKm])
+
+  const odometerResult = useMemo(() => {
+    const date = selectedDate ?? new Date()
+    const year = date.getFullYear()
+    const month = date.getMonth()
+    const firstOfMonth = new Date(year, month, 1)
+    const lastOfMonth = new Date(year, month + 1, 0, 23, 59, 59, 999)
+
+    const inMonth = odometerReadings.filter((r) => {
+      const d = new Date(r.readingDateUtc)
+      return d >= firstOfMonth && d <= lastOfMonth
+    })
+
+    if (inMonth.length < 2) return null
+
+    const baseline = inMonth.reduce((min, r) => (r.km < min.km ? r : min), inMonth[0])
+    const final = inMonth.reduce((max, r) => (r.km > max.km ? r : max), inMonth[0])
+
+    const km = final.km - baseline.km
+    if (km <= 0) return null
+
+    return { km, baseline, final }
+  }, [odometerReadings, selectedDate])
+
+  const kmForMetrics = odometerResult?.km ?? (totalKm > 0 ? totalKm : null)
+  const costPerKm = useMemo(() => kmForMetrics != null ? totalExpense / kmForMetrics : null, [totalExpense, kmForMetrics])
+  const revenuePerKm = useMemo(() => kmForMetrics != null ? totalIncome / kmForMetrics : null, [totalIncome, kmForMetrics])
 
   const costPerKmFromSummary = useMemo(() => {
     if (!truck?.estimatedMonthlyKm) return null
     const month = (selectedDate ?? new Date()).getMonth() + 1
-    const monthlyCost = costSummary.find((s) => s.month === month)?.total ?? 0
+    const monthlyCost = costSummary.find((s) => s.month === month)?.totalAmount ?? 0
     return monthlyCost / truck.estimatedMonthlyKm
   }, [truck, costSummary, selectedDate])
 
@@ -449,9 +477,13 @@ export default function TruckDetailPage() {
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <MetricCard
-              title="Kilómetros totales"
-              value={totalKm > 0 ? `${totalKm.toLocaleString("es-UY")} km` : "—"}
-              subtitle={`${trips.length} viaje${trips.length !== 1 ? "s" : ""} registrado${trips.length !== 1 ? "s" : ""}`}
+              title="Km recorridos (odómetro)"
+              value={odometerResult !== null ? `${odometerResult.km.toLocaleString("es-UY")} km` : "—"}
+              subtitle={
+                odometerResult !== null
+                  ? `${odometerResult.baseline.km.toLocaleString("es-UY")} → ${odometerResult.final.km.toLocaleString("es-UY")} km`
+                  : `${trips.length} viaje${trips.length !== 1 ? "s" : ""} registrado${trips.length !== 1 ? "s" : ""}`
+              }
             />
             <MetricCard
               title="Costo por km (viajes)"

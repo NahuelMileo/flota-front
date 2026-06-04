@@ -21,7 +21,7 @@ export type CostEntry = {
 export type SummaryMonth = {
   month: number
   year: number
-  total: number
+  totalAmount: number
   costPerKm: number | null
   realKm?: number | null
   estimatedKm?: number | null

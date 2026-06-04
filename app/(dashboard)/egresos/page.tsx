@@ -213,10 +213,10 @@ export default function ExpensePage() {
   };
 
   const handleUpdateExpense = (updated: Expense) => {
-    setExpenses((prev) =>
-      prev.map((e) => (e.id === updated.id ? updated : e))
-    );
-    setEditingExpense(null);
+    const scrollY = window.scrollY
+    setExpenses((prev) => prev.map((e) => (e.id === updated.id ? updated : e)))
+    setEditingExpense(null)
+    requestAnimationFrame(() => window.scrollTo(0, scrollY))
   };
 
   const handleDeleteExpense = useCallback(async (expense: Expense) => {

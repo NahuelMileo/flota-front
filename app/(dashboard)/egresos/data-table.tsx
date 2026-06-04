@@ -61,6 +61,7 @@ export function DataTable<TData extends Record<string, unknown>, TValue>({
     onGlobalFilterChange: setGlobalFilter,
     state: { sorting, globalFilter },
     initialState: { pagination: { pageSize: 10 } },
+    autoResetPageIndex: false,
   })
 
   function exportCSV() {
@@ -170,7 +171,7 @@ export function DataTable<TData extends Record<string, unknown>, TValue>({
             <Button
               variant="outline"
               size="sm"
-              onClick={() => table.previousPage()}
+              onClick={() => { const y = window.scrollY; table.previousPage(); requestAnimationFrame(() => window.scrollTo(0, y)) }}
               disabled={!table.getCanPreviousPage()}
             >
               Anterior
@@ -178,7 +179,7 @@ export function DataTable<TData extends Record<string, unknown>, TValue>({
             <Button
               variant="outline"
               size="sm"
-              onClick={() => table.nextPage()}
+              onClick={() => { const y = window.scrollY; table.nextPage(); requestAnimationFrame(() => window.scrollTo(0, y)) }}
               disabled={!table.getCanNextPage()}
             >
               Siguiente
