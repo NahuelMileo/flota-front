@@ -70,7 +70,8 @@ export default function AddExpenseForm({
   defaultTruckId?: string;
   onSuccess: (expenses: Expense[]) => void;
 }) {
-  const todayIso = new Date().toISOString().split("T")[0];
+  const today = new Date();
+  const todayIso = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
   const [activeTrip, setActiveTrip] = useState<ActiveTrip | null>(null);
 
   async function fetchActiveTrip(truckId: string | null) {

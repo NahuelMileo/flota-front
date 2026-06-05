@@ -117,8 +117,8 @@ export default function IncomePage() {
       if (selectedDate) {
         const date = new Date(income.dateUtc);
         if (
-          date.getMonth() !== selectedDate.getMonth() ||
-          date.getFullYear() !== selectedDate.getFullYear()
+          date.getUTCMonth() !== selectedDate.getMonth() ||
+          date.getUTCFullYear() !== selectedDate.getFullYear()
         )
           return false;
       }
@@ -146,8 +146,8 @@ export default function IncomePage() {
       .filter((income) => {
         const date = new Date(income.dateUtc);
         if (
-          date.getMonth() !== prevMonth.getMonth() ||
-          date.getFullYear() !== prevMonth.getFullYear()
+          date.getUTCMonth() !== prevMonth.getMonth() ||
+          date.getUTCFullYear() !== prevMonth.getFullYear()
         )
           return false;
         if (selectedTruckId && income.truckId !== selectedTruckId) return false;

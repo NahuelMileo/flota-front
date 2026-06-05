@@ -62,7 +62,8 @@ export default function AddIncomeForm({
   defaultTruckId?: string;
   onSuccess: (income: Income, driverExpense?: Expense) => void;
 }) {
-  const todayIso = new Date().toISOString().split("T")[0];
+  const today = new Date();
+  const todayIso = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
   const [activeTrip, setActiveTrip] = useState<ActiveTrip | null>(null);
 
   async function fetchActiveTrip(truckId: string | null) {

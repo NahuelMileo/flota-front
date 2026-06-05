@@ -74,7 +74,7 @@ export default function DashboardPage() {
     if (!selectedDate) return incomes
     return incomes.filter((i) => {
       const d = new Date(i.dateUtc)
-      return d.getMonth() === selectedDate.getMonth() && d.getFullYear() === selectedDate.getFullYear()
+      return d.getUTCMonth() === selectedDate.getMonth() && d.getUTCFullYear() === selectedDate.getFullYear()
     })
   }, [incomes, selectedDate])
 
@@ -96,7 +96,7 @@ export default function DashboardPage() {
     return incomes
       .filter((i) => {
         const d = new Date(i.dateUtc)
-        return d.getMonth() === prev.getMonth() && d.getFullYear() === prev.getFullYear()
+        return d.getUTCMonth() === prev.getMonth() && d.getUTCFullYear() === prev.getFullYear()
       })
       .reduce((acc, i) => acc + getDisplayValue(i), 0)
   }, [incomes, selectedDate, getDisplayValue])
@@ -146,7 +146,7 @@ export default function DashboardPage() {
       const monthIncome = incomes
         .filter((inc) => {
           const id = new Date(inc.dateUtc)
-          return id.getMonth() === d.getMonth() && id.getFullYear() === d.getFullYear()
+          return id.getUTCMonth() === d.getMonth() && id.getUTCFullYear() === d.getFullYear()
         })
         .reduce((acc, inc) => acc + getDisplayValue(inc), 0)
 
