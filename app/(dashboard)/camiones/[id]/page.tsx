@@ -364,7 +364,7 @@ export default function TruckDetailPage() {
     if (!selectedDate) return allIncomes
     return allIncomes.filter((i) => {
       const d = new Date(i.dateUtc)
-      return d.getMonth() === selectedDate.getMonth() && d.getFullYear() === selectedDate.getFullYear()
+      return d.getUTCMonth() === selectedDate.getMonth() && d.getUTCFullYear() === selectedDate.getFullYear()
     })
   }, [allIncomes, selectedDate])
 
@@ -404,15 +404,14 @@ export default function TruckDetailPage() {
   }, [odometerReadings, selectedDate])
 
   const kmForMetrics = odometerResult?.km ?? (totalKm > 0 ? totalKm : null)
-  const costPerKm = useMemo(() => kmForMetrics != null ? totalExpense / kmForMetrics : null, [totalExpense, kmForMetrics])
   const revenuePerKm = useMemo(() => kmForMetrics != null ? totalIncome / kmForMetrics : null, [totalIncome, kmForMetrics])
 
-  const costPerKmFromSummary = useMemo(() => {
-    if (!truck?.estimatedMonthlyKm) return null
+  const totalCostPerKm = useMemo(() => {
+    if (kmForMetrics == null) return null
     const month = (selectedDate ?? new Date()).getMonth() + 1
     const monthlyCost = costSummary.find((s) => s.month === month)?.totalAmount ?? 0
-    return monthlyCost / truck.estimatedMonthlyKm
-  }, [truck, costSummary, selectedDate])
+    return (totalExpense + monthlyCost) / kmForMetrics
+  }, [totalExpense, costSummary, selectedDate, kmForMetrics])
 
   const tripCols = useMemo(() => buildTripColumns(), [])
   const incomeCols = useMemo(
@@ -486,49 +485,41 @@ export default function TruckDetailPage() {
               }
             />
             <MetricCard
-              title="Costo por km (viajes)"
-              value={costPerKm !== null ? `${formatCurrency2(costPerKm, displayCurrency)}/km` : "—"}
-              subtitle={totalKm === 0 ? "Sin km registrados" : "Egresos totales / km viajes"}
+              title="Costo/km total"
+              value={totalCostPerKm !== null ? `${formatCurrency2(totalCostPerKm, displayCurrency)}/km` : "—"}
+              subtitle={kmForMetrics == null ? "Sin km registrados" : "Egresos + costos fijos / km"}
             />
             <MetricCard
               title="Ingreso por km"
               value={revenuePerKm !== null ? `${formatCurrency2(revenuePerKm, displayCurrency)}/km` : "—"}
-              subtitle={totalKm === 0 ? "Sin km registrados" : "Ingresos totales / km"}
+              subtitle={kmForMetrics == null ? "Sin km registrados" : "Ingresos totales / km"}
             />
           </div>
-          {/* Km info + costs-based metric */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <MetricCard
-              title="Costo/km (costos fijos)"
-              value={costPerKmFromSummary !== null ? `${formatCurrency2(costPerKmFromSummary, displayCurrency)}/km` : "Sin datos"}
-              subtitle={
-                !truck?.estimatedMonthlyKm
-                  ? "Configurar km estimados en el camión"
-                  : `Costos del mes / ${truck.estimatedMonthlyKm.toLocaleString("es-UY")} km est.`
-              }
-            />
-            {truck?.currentKm != null && (
-              <MetricCard
-                title="Km actual"
-                value={`${truck.currentKm.toLocaleString("es-UY")} km`}
-                subtitle={
-                  truck.lastKmUpdatedAt
-                    ? `Hace ${Math.floor(
-                        (Date.now() - new Date(truck.lastKmUpdatedAt).getTime()) /
-                          (1000 * 60 * 60 * 24)
-                      )} días`
-                    : undefined
-                }
-              />
-            )}
-            {truck?.estimatedMonthlyKm != null && (
-              <MetricCard
-                title="Km mensuales estimados"
-                value={`${truck.estimatedMonthlyKm.toLocaleString("es-UY")} km`}
-                subtitle="Usado para calcular costo/km"
-              />
-            )}
-          </div>
+          {(truck?.currentKm != null || truck?.estimatedMonthlyKm != null) && (
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              {truck?.currentKm != null && (
+                <MetricCard
+                  title="Km actual"
+                  value={`${truck.currentKm.toLocaleString("es-UY")} km`}
+                  subtitle={
+                    truck.lastKmUpdatedAt
+                      ? `Hace ${Math.floor(
+                          (Date.now() - new Date(truck.lastKmUpdatedAt).getTime()) /
+                            (1000 * 60 * 60 * 24)
+                        )} días`
+                      : undefined
+                  }
+                />
+              )}
+              {truck?.estimatedMonthlyKm != null && (
+                <MetricCard
+                  title="Km mensuales estimados"
+                  value={`${truck.estimatedMonthlyKm.toLocaleString("es-UY")} km`}
+                  subtitle="Usado para calcular costo/km"
+                />
+              )}
+            </div>
+          )}
         </>
       )}
 
