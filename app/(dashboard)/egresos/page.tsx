@@ -199,22 +199,6 @@ export default function ExpensePage() {
     return Math.round(((total - previousMonthTotal) / previousMonthTotal) * 100);
   }, [total, previousMonthTotal]);
 
-  const totalTripKm = useMemo(() => {
-    return trips
-      .filter((t) => {
-        if (selectedDate) {
-          const d = new Date(t.departureDate);
-          if (d.getMonth() !== selectedDate.getMonth() || d.getFullYear() !== selectedDate.getFullYear()) return false;
-        }
-        if (selectedTruckId && t.truckId !== selectedTruckId) return false;
-        return true;
-      })
-      .reduce((acc, t) => {
-        const km = t.initialKm != null && t.finalKm != null ? t.finalKm - t.initialKm : (t.kilometers ?? 0);
-        return acc + km;
-      }, 0);
-  }, [trips, selectedDate, selectedTruckId]);
-
   // ================= CRUD =================
   const handleAddExpense = (newExpenses: Expense[]) => {
     setExpenses((prev) => [...prev, ...newExpenses]);
