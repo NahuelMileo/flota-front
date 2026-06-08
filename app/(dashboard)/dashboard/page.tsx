@@ -6,10 +6,8 @@ import { toast } from "sonner"
 import { useDateFilter } from "@/context/date-filter-context"
 import { useCurrency } from "@/context/currency-context"
 import { TotalIncomeCard } from "@/components/total-income-card"
-import type { Expense as ColumnExpense } from "@/app/(dashboard)/egresos/columns"
 import { TotalExpenseCard } from "@/components/total-expense-card"
 import { NetBalanceCard } from "@/components/net-balance-card"
-import { CostPerKmCard } from "@/components/cost-per-km-card"
 import { MonthlyComparisonChart } from "@/components/monthly-comparison-chart"
 import { Skeleton } from "@/components/ui/skeleton"
 
@@ -46,7 +44,6 @@ function CardSkeleton() {
 export default function DashboardPage() {
   const [incomes, setIncomes] = useState<Income[]>([])
   const [expenses, setExpenses] = useState<Expense[]>([])
-  const [trips, setTrips] = useState<{ departureDate: string; kilometers: number | null; initialKm: number | null; finalKm: number | null }[]>([])
   const [isLoading, setIsLoading] = useState(true)
 
   const { selectedDate } = useDateFilter()
@@ -56,14 +53,12 @@ export default function DashboardPage() {
     Promise.all([
       fetchWithAuth(`${process.env.NEXT_PUBLIC_API_URL}/api/incomes`, { method: "GET" }),
       fetchWithAuth(`${process.env.NEXT_PUBLIC_API_URL}/api/expenses`, { method: "GET" }),
-      fetchWithAuth(`${process.env.NEXT_PUBLIC_API_URL}/api/trips`, { method: "GET" }),
     ])
-      .then(async ([incRes, expRes, tripsRes]) => {
+      .then(async ([incRes, expRes]) => {
         if (!incRes.ok || !expRes.ok) throw new Error()
         const [incData, expData] = await Promise.all([incRes.json(), expRes.json()])
         setIncomes(incData)
         setExpenses(expData)
-        if (tripsRes.ok) setTrips(await tripsRes.json())
       })
       .catch(() => toast.error("Error al cargar datos"))
       .finally(() => setIsLoading(false))
@@ -122,19 +117,6 @@ export default function DashboardPage() {
     return Math.round(((totalExpense - prevMonthExpense) / prevMonthExpense) * 100)
   }, [totalExpense, prevMonthExpense])
 
-  const totalTripKm = useMemo(() => {
-    return trips
-      .filter((t) => {
-        if (!selectedDate) return true;
-        const d = new Date(t.departureDate);
-        return d.getMonth() === selectedDate.getMonth() && d.getFullYear() === selectedDate.getFullYear();
-      })
-      .reduce((acc, t) => {
-        const km = t.initialKm != null && t.finalKm != null ? t.finalKm - t.initialKm : (t.kilometers ?? 0);
-        return acc + km;
-      }, 0);
-  }, [trips, selectedDate]);
-
   // Last 6 months for chart
   const monthlyData = useMemo(() => {
     return Array.from({ length: 6 }, (_, i) => {
@@ -174,11 +156,10 @@ export default function DashboardPage() {
           <CardSkeleton />
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <TotalIncomeCard total={totalIncome} variation={incomeVariation} />
           <TotalExpenseCard total={totalExpense} variation={expenseVariation} />
           <NetBalanceCard income={totalIncome} expense={totalExpense} />
-          <CostPerKmCard expenses={filteredExpenses as unknown as ColumnExpense[]} totalKm={totalTripKm} />
         </div>
       )}
 

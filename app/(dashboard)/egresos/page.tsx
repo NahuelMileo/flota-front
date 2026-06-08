@@ -15,10 +15,10 @@ import { toast } from "sonner";
 import { fetchWithAuth } from "@/lib/api";
 import type { Truck } from "@/types/truck";
 import type { ExpenseCategory } from "@/types/expense-category";
+import type { SummaryMonth } from "@/types/costs";
 import { getColumns, Expense } from "./columns";
 import { TotalExpenseCard } from "@/components/total-expense-card";
 import { ExpenseBreakdownChart } from "@/components/expense-breakdown-chart";
-import { CostPerKmCard } from "@/components/cost-per-km-card";
 import { useDateFilter } from "@/context/date-filter-context";
 import { useCurrency } from "@/context/currency-context";
 import AddExpenseForm from "./AddExpenseForm";
@@ -46,17 +46,15 @@ function TableSkeleton() {
   );
 }
 
-type Trip = { id: string; departureDate: string; truckId: string | null; kilometers: number | null; initialKm: number | null; finalKm: number | null };
-
 export default function ExpensePage() {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [trucks, setTrucks] = useState<Truck[]>([]);
   const [categories, setCategories] = useState<ExpenseCategory[]>([]);
-  const [trips, setTrips] = useState<Trip[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
+  const [costSummary, setCostSummary] = useState<SummaryMonth[]>([]);
 
   const [selectedTruckId, setSelectedTruckId] = useState<string | null>(null);
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
@@ -69,11 +67,16 @@ export default function ExpensePage() {
     fetchExpenses();
     fetchTrucks();
     fetchCategories();
-    fetchWithAuth(`${process.env.NEXT_PUBLIC_API_URL}/api/trips`, { method: "GET" })
-      .then((r) => r.ok ? r.json() : [])
-      .then(setTrips)
-      .catch(() => {});
   }, []);
+
+  useEffect(() => {
+    if (!selectedTruckId) { setCostSummary([]); return; }
+    const year = (selectedDate ?? new Date()).getFullYear();
+    fetchWithAuth(`${process.env.NEXT_PUBLIC_API_URL}/api/costs/summary?truckId=${selectedTruckId}&year=${year}`)
+      .then((r) => r.ok ? r.json() : [])
+      .then((data) => setCostSummary(Array.isArray(data) ? data : []))
+      .catch(() => setCostSummary([]));
+  }, [selectedTruckId, selectedDate]);
 
   const fetchTrucks = async () => {
     try {
@@ -157,9 +160,15 @@ export default function ExpensePage() {
       });
   }, [expenses, selectedDate, matchesTruckFilter, selectedCategoryId]);
 
+  const monthlyCost = useMemo(() => {
+    if (!selectedTruckId || selectedCategoryId) return 0;
+    const month = (selectedDate ?? new Date()).getMonth() + 1;
+    return costSummary.find((s) => s.month === month)?.totalAmount ?? 0;
+  }, [costSummary, selectedDate, selectedTruckId, selectedCategoryId]);
+
   const total = useMemo(
-    () => filteredExpenses.reduce((acc, e) => acc + getDisplayValue(e), 0),
-    [filteredExpenses, getDisplayValue]
+    () => filteredExpenses.reduce((acc, e) => acc + getDisplayValue(e), 0) + monthlyCost,
+    [filteredExpenses, getDisplayValue, monthlyCost]
   );
 
   const previousMonthTotal = useMemo(() => {
@@ -336,9 +345,8 @@ export default function ExpensePage() {
       </div>
 
       {/* CARDS */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 gap-4">
         <TotalExpenseCard total={total} variation={variation} />
-        <CostPerKmCard expenses={filteredExpenses} totalKm={totalTripKm} />
       </div>
 
       {/* CHART */}

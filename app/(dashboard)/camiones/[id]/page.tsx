@@ -406,12 +406,20 @@ export default function TruckDetailPage() {
   const kmForMetrics = odometerResult?.km ?? (totalKm > 0 ? totalKm : null)
   const revenuePerKm = useMemo(() => kmForMetrics != null ? totalIncome / kmForMetrics : null, [totalIncome, kmForMetrics])
 
+  const monthlyCost = useMemo(() => {
+    const month = (selectedDate ?? new Date()).getMonth() + 1
+    return costSummary.find((s) => s.month === month)?.totalAmount ?? 0
+  }, [costSummary, selectedDate])
+
   const totalCostPerKm = useMemo(() => {
     if (kmForMetrics == null) return null
-    const month = (selectedDate ?? new Date()).getMonth() + 1
-    const monthlyCost = costSummary.find((s) => s.month === month)?.totalAmount ?? 0
     return (totalExpense + monthlyCost) / kmForMetrics
-  }, [totalExpense, costSummary, selectedDate, kmForMetrics])
+  }, [totalExpense, monthlyCost, kmForMetrics])
+
+  const profitPerKm = useMemo(() => {
+    if (kmForMetrics == null) return null
+    return (totalIncome - totalExpense - monthlyCost) / kmForMetrics
+  }, [totalIncome, totalExpense, monthlyCost, kmForMetrics])
 
   const tripCols = useMemo(() => buildTripColumns(), [])
   const incomeCols = useMemo(
@@ -471,10 +479,10 @@ export default function TruckDetailPage() {
         <>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <TotalIncomeCard total={totalIncome} />
-            <TotalExpenseCard total={totalExpense} />
-            <NetBalanceCard income={totalIncome} expense={totalExpense} />
+            <TotalExpenseCard total={totalExpense + monthlyCost} />
+            <NetBalanceCard income={totalIncome} expense={totalExpense + monthlyCost} />
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <MetricCard
               title="Km recorridos (odómetro)"
               value={odometerResult !== null ? `${odometerResult.km.toLocaleString("es-UY")} km` : "—"}
@@ -490,9 +498,14 @@ export default function TruckDetailPage() {
               subtitle={kmForMetrics == null ? "Sin km registrados" : "Egresos + costos fijos / km"}
             />
             <MetricCard
-              title="Ingreso por km"
+              title="Ingreso/km"
               value={revenuePerKm !== null ? `${formatCurrency2(revenuePerKm, displayCurrency)}/km` : "—"}
               subtitle={kmForMetrics == null ? "Sin km registrados" : "Ingresos totales / km"}
+            />
+            <MetricCard
+              title="Utilidad/km"
+              value={profitPerKm !== null ? `${formatCurrency2(profitPerKm, displayCurrency)}/km` : "—"}
+              subtitle={kmForMetrics == null ? "Sin km registrados" : "Ingresos − egresos − costos fijos / km"}
             />
           </div>
           {(truck?.currentKm != null || truck?.estimatedMonthlyKm != null) && (

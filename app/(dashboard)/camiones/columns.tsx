@@ -41,16 +41,6 @@ export function getColumns(
       header: "Año",
     },
     {
-      accessorKey: "currentKm",
-      header: "Km actual",
-      cell: ({ row }) => {
-        const km = row.getValue("currentKm") as number | null | undefined
-        return km != null
-          ? km.toLocaleString("es-UY")
-          : <span className="text-muted-foreground">—</span>
-      },
-    },
-    {
       accessorKey: "estimatedMonthlyKm",
       header: "Km/mes estimado",
       cell: ({ row }) => {
