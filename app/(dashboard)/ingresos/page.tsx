@@ -55,7 +55,7 @@ export default function IncomePage() {
   const [incomes, setIncomes] = useState<Income[]>([]);
   const [trucks, setTrucks] = useState<Truck[]>([]);
   const [categories, setCategories] = useState<ExpenseCategory[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [editingIncome, setEditingIncome] = useState<Income | null>(null);

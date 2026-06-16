@@ -50,7 +50,7 @@ export default function ExpensePage() {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [trucks, setTrucks] = useState<Truck[]>([]);
   const [categories, setCategories] = useState<ExpenseCategory[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);

@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useRef, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { fetchWithAuth } from "@/lib/api"
 import { toast } from "sonner"
 import type { AllMonthsData, CostRow, SummaryMonth } from "@/types/costs"
@@ -105,7 +105,7 @@ export function useTruckCosts(truckId: string, year: number) {
     [monthsData]
   )
 
-  const costRows: CostRow[] = (() => {
+  const costRows: CostRow[] = useMemo(() => {
     const nameMap = new Map<string, CostRow>()
 
     for (let m = 1; m <= 12; m++) {
@@ -130,7 +130,7 @@ export function useTruckCosts(truckId: string, year: number) {
       if (a.type === b.type) return a.name.localeCompare(b.name)
       return a.type === "Fixed" ? -1 : 1
     })
-  })()
+  }, [monthsData])
 
   const getSummaryMonth = (month: number) =>
     summary.find((s) => s.month === month) ?? null

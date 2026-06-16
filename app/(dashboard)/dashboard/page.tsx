@@ -47,7 +47,7 @@ export default function DashboardPage() {
   const [isLoading, setIsLoading] = useState(true)
 
   const { selectedDate } = useDateFilter()
-  const { getDisplayValue } = useCurrency()
+  const { displayCurrency, getDisplayValue } = useCurrency()
 
   useEffect(() => {
     Promise.all([
@@ -167,7 +167,7 @@ export default function DashboardPage() {
       {isLoading ? (
         <Skeleton className="h-72 w-full rounded-xl" />
       ) : (
-        <MonthlyComparisonChart data={monthlyData} />
+        <MonthlyComparisonChart data={monthlyData} displayCurrency={displayCurrency} />
       )}
     </div>
   )

@@ -32,7 +32,7 @@ function TableSkeleton() {
 
 export default function TruckPage() {
   const [trucks, setTrucks] = useState<Truck[]>([])
-  const [isLoading, setIsLoading] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isUpdating, setIsUpdating] = useState(false)
   const [editingTruck, setEditingTruck] = useState<Truck | null>(null)
@@ -49,7 +49,6 @@ export default function TruckPage() {
       const data = await res.json()
       if (!res.ok) throw new Error()
       setTrucks(data)
-      console.log(data)
     } catch {
       toast.error("Error al cargar camiones", { position: "bottom-right", richColors: true })
     } finally {
@@ -77,7 +76,6 @@ export default function TruckPage() {
   }
 
   async function handleEditTruck(data: TruckFormValues) {
-    console.log(data);
     if (!editingTruck) return
     setIsUpdating(true)
     try {
