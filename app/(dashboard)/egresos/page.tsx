@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { DataTable } from "./data-table";
+import { DataTable } from "@/components/data-table";
 import {
   Sheet,
   SheetContent,
@@ -13,9 +13,9 @@ import {
 } from "@/components/ui/sheet";
 import { toast } from "sonner";
 import { fetchWithAuth } from "@/lib/api";
-import type { Truck } from "@/types/truck";
+import { useTrucks } from "@/hooks/use-trucks";
 import type { ExpenseCategory } from "@/types/expense-category";
-import type { SummaryMonth } from "@/types/costs";
+import type { CostEntry } from "@/types/costs";
 import { getColumns, Expense } from "./columns";
 import { TotalExpenseCard } from "@/components/total-expense-card";
 import { ExpenseBreakdownChart } from "@/components/expense-breakdown-chart";
@@ -48,13 +48,13 @@ function TableSkeleton() {
 
 export default function ExpensePage() {
   const [expenses, setExpenses] = useState<Expense[]>([]);
-  const [trucks, setTrucks] = useState<Truck[]>([]);
+  const trucks = useTrucks();
   const [categories, setCategories] = useState<ExpenseCategory[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
-  const [costSummary, setCostSummary] = useState<SummaryMonth[]>([]);
+  const [monthCostEntries, setMonthCostEntries] = useState<CostEntry[]>([]);
 
   const [selectedTruckId, setSelectedTruckId] = useState<string | null>(null);
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
@@ -65,44 +65,32 @@ export default function ExpensePage() {
   // ================= FETCH =================
   useEffect(() => {
     fetchExpenses();
-    fetchTrucks();
     fetchCategories();
   }, []);
 
+  // Costos fijos del mes: entries con valueUSD/BRL/UYU (el summary no trae montos convertidos)
   useEffect(() => {
-    if (!selectedTruckId) { setCostSummary([]); return; }
-    const year = (selectedDate ?? new Date()).getFullYear();
-    fetchWithAuth(`${process.env.NEXT_PUBLIC_API_URL}/api/costs/summary?truckId=${selectedTruckId}&year=${year}`)
+    if (!selectedTruckId) { setMonthCostEntries([]); return; }
+    const date = selectedDate ?? new Date();
+    const month = date.getMonth() + 1;
+    const year = date.getFullYear();
+    fetchWithAuth(`/api/costs/monthly?truckId=${selectedTruckId}&month=${month}&year=${year}`)
       .then((r) => r.ok ? r.json() : [])
-      .then((data) => setCostSummary(Array.isArray(data) ? data : []))
-      .catch(() => setCostSummary([]));
+      .then((data) => setMonthCostEntries(Array.isArray(data) ? data : []))
+      .catch(() => setMonthCostEntries([]));
   }, [selectedTruckId, selectedDate]);
-
-  const fetchTrucks = async () => {
-    try {
-      const res = await fetchWithAuth(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/trucks`,
-        { method: "GET" }
-      );
-      if (!res.ok) throw new Error();
-      const data = await res.json();
-      setTrucks(data);
-    } catch {
-      toast.error("Error al cargar camiones", { position: "bottom-right", richColors: true });
-    }
-  };
 
   const fetchCategories = async () => {
     try {
       const res = await fetchWithAuth(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/expense-categories`,
+        `/api/expense-categories`,
         { method: "GET" }
       );
       if (!res.ok) throw new Error();
       const data = await res.json();
       setCategories(data);
     } catch {
-      toast.error("Error al cargar categorías", { position: "bottom-right", richColors: true });
+      toast.error("Error al cargar categorías");
     }
   };
 
@@ -110,14 +98,14 @@ export default function ExpensePage() {
     setIsLoading(true);
     try {
       const res = await fetchWithAuth(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/expenses`,
+        `/api/expenses`,
         { method: "GET" }
       );
       if (!res.ok) throw new Error();
       const data = await res.json();
       setExpenses(data);
     } catch {
-      toast.error("Error al cargar egresos", { position: "bottom-right", richColors: true });
+      toast.error("Error al cargar egresos");
     } finally {
       setIsLoading(false);
     }
@@ -162,9 +150,8 @@ export default function ExpensePage() {
 
   const monthlyCost = useMemo(() => {
     if (!selectedTruckId || selectedCategoryId) return 0;
-    const month = (selectedDate ?? new Date()).getMonth() + 1;
-    return costSummary.find((s) => s.month === month)?.totalAmount ?? 0;
-  }, [costSummary, selectedDate, selectedTruckId, selectedCategoryId]);
+    return monthCostEntries.reduce((acc, e) => acc + getDisplayValue(e), 0);
+  }, [monthCostEntries, selectedTruckId, selectedCategoryId, getDisplayValue]);
 
   const total = useMemo(
     () => filteredExpenses.reduce((acc, e) => acc + getDisplayValue(e), 0) + monthlyCost,
@@ -215,15 +202,15 @@ export default function ExpensePage() {
   const handleDeleteExpense = useCallback(async (expense: Expense) => {
     try {
       const res = await fetchWithAuth(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/expenses/${expense.id}`,
+        `/api/expenses/${expense.id}`,
         { method: "DELETE" }
       );
       if (!res.ok) throw new Error();
 
       setExpenses((prev) => prev.filter((e) => e.id !== expense.id));
-      toast.success("Egreso eliminado", { position: "bottom-right", richColors: true });
+      toast.success("Egreso eliminado");
     } catch {
-      toast.error("Error al eliminar egreso", { position: "bottom-right", richColors: true });
+      toast.error("Error al eliminar egreso");
     }
   }, []);
 

@@ -109,7 +109,7 @@ function EditFixedCostModal({
   async function onSubmit(data: EditFormValues) {
     try {
       const res = await fetchWithAuth(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/costs/templates/${template.id}`,
+        `/api/costs/templates/${template.id}`,
         {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
@@ -194,8 +194,8 @@ export default function CostosPage() {
     setIsLoading(true)
     try {
       const [templatesRes, catsRes] = await Promise.all([
-        fetchWithAuth(`${process.env.NEXT_PUBLIC_API_URL}/api/costs/templates`),
-        fetchWithAuth(`${process.env.NEXT_PUBLIC_API_URL}/api/expense-categories`),
+        fetchWithAuth(`/api/costs/templates`),
+        fetchWithAuth(`/api/expense-categories`),
       ])
       if (!templatesRes.ok) throw new Error()
       const data = await templatesRes.json()
@@ -212,7 +212,7 @@ export default function CostosPage() {
 
   async function handleDelete(id: string) {
     const res = await fetchWithAuth(
-      `${process.env.NEXT_PUBLIC_API_URL}/api/costs/templates/${id}`,
+      `/api/costs/templates/${id}`,
       { method: "DELETE" }
     )
     if (!res.ok) { toast.error("Error al eliminar el costo fijo"); return }

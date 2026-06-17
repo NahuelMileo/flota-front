@@ -127,7 +127,7 @@ function FixedCostForm({
     const resolvedTruckId = truckId ?? (data.scope === "PerTruck" ? selectedTruckId || null : null)
     try {
       const res = await fetchWithAuth(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/costs/templates`,
+        `/api/costs/templates`,
         {
           method: "POST",
           body: JSON.stringify({
@@ -349,7 +349,7 @@ function VariableCostForm({
     }
     try {
       const res = await fetchWithAuth(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/costs/entries`,
+        `/api/costs/entries`,
         {
           method: "POST",
           body: JSON.stringify(payload),
@@ -382,7 +382,7 @@ function VariableCostForm({
     const resolvedTruckId = truckId ?? (selectedTruckId || null)
     try {
       const res = await fetchWithAuth(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/costs/installments`,
+        `/api/costs/installments`,
         {
           method: "POST",
           body: JSON.stringify({
@@ -744,8 +744,8 @@ export function AddCostModal({ truckId, year, onSuccess }: AddCostModalProps) {
     if (!open) return
     const fetchData = async () => {
       const [trucksRes, catsRes] = await Promise.all([
-        truckId ? Promise.resolve(null) : fetchWithAuth(`${process.env.NEXT_PUBLIC_API_URL}/api/trucks`),
-        fetchWithAuth(`${process.env.NEXT_PUBLIC_API_URL}/api/expense-categories`),
+        truckId ? Promise.resolve(null) : fetchWithAuth(`/api/trucks`),
+        fetchWithAuth(`/api/expense-categories`),
       ])
       if (trucksRes) {
         const data = trucksRes.ok ? await trucksRes.json() : []

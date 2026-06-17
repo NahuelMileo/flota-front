@@ -370,7 +370,10 @@ export function CostTable({
             {MONTHS.map((_, i) => {
               const m = i + 1
               const s = summary.find((s) => s.month === m)
-              const cpkReal = s?.costPerKmReal ?? null
+              // costPerKmReal del backend viene en moneda original; recalcular con el total convertido
+              const realKm = s?.realKm ?? null
+              const monthTotal = monthTotals[i]
+              const cpkReal = realKm && realKm > 0 && monthTotal > 0 ? monthTotal / realKm : null
               return (
                 <td key={m} className="px-2 py-2 text-right text-xs tabular-nums text-cyan-700 dark:text-cyan-300">
                   {cpkReal != null ? formatCurrency2(cpkReal, displayCurrency) : <span className="text-muted-foreground/40">—</span>}
@@ -388,10 +391,9 @@ export function CostTable({
               const m = i + 1
               const s = summary.find((s) => s.month === m)
               const monthTotal = monthTotals[i]
-              const cpkEst =
-                s?.costPerKmEstimated ??
-                s?.costPerKm ??
-                (estimatedMonthlyKm && monthTotal > 0 ? monthTotal / estimatedMonthlyKm : null)
+              // costPerKmEstimated del backend viene en moneda original; recalcular con el total convertido
+              const estKm = s?.estimatedKm ?? estimatedMonthlyKm ?? null
+              const cpkEst = estKm && estKm > 0 && monthTotal > 0 ? monthTotal / estKm : null
               return (
                 <td key={m} className="px-2 py-2 text-right text-xs tabular-nums text-cyan-600 dark:text-cyan-400">
                   {cpkEst != null ? formatCurrency2(cpkEst, displayCurrency) : <span className="text-muted-foreground/40">—</span>}

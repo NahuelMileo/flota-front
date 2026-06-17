@@ -7,7 +7,9 @@ interface CurrencyItem {
   valueUSD?: number | null
   valueBRL?: number | null
   valueUYU?: number | null
-  value: number
+  value?: number
+  // CostEntry usa `amount` como valor original en lugar de `value`
+  amount?: number
 }
 
 interface CurrencyContextType {
@@ -25,7 +27,7 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
     const stored = localStorage.getItem("displayCurrency") as DisplayCurrency | null
     if (stored) setDisplayCurrencyState(stored)
     // Sync with API
-    fetchWithAuth(`${process.env.NEXT_PUBLIC_API_URL}/api/users/me/currency`, { method: "GET" })
+    fetchWithAuth(`/api/users/me/currency`, { method: "GET" })
       .then((r) => r.ok ? r.json() : null)
       .then((data) => {
         if (data?.currency) {
@@ -40,7 +42,7 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
     setDisplayCurrencyState(currency)
     localStorage.setItem("displayCurrency", currency)
     try {
-      await fetchWithAuth(`${process.env.NEXT_PUBLIC_API_URL}/api/users/me/currency`, {
+      await fetchWithAuth(`/api/users/me/currency`, {
         method: "PATCH",
         body: JSON.stringify({ currency }),
       })
@@ -48,9 +50,10 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
   }, [])
 
   const getDisplayValue = useCallback((item: CurrencyItem): number => {
-    if (displayCurrency === "USD") return item.valueUSD ?? item.value
-    if (displayCurrency === "UYU") return item.valueUYU ?? item.value
-    return item.valueBRL ?? item.value
+    const original = item.value ?? item.amount ?? 0
+    if (displayCurrency === "USD") return item.valueUSD ?? original
+    if (displayCurrency === "UYU") return item.valueUYU ?? original
+    return item.valueBRL ?? original
   }, [displayCurrency])
 
   return (

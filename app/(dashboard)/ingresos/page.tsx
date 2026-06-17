@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { DataTable } from "./data-table";
+import { DataTable } from "@/components/data-table";
 import {
   Sheet,
   SheetContent,
@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/sheet";
 import { toast } from "sonner";
 import { fetchWithAuth } from "@/lib/api";
-import type { Truck } from "@/types/truck";
+import { useTrucks } from "@/hooks/use-trucks";
 import { getColumns, Income, normalizeIncomeType } from "./columns";
 import { TotalIncomeCard } from "@/components/total-income-card";
 import { IncomeByTruckChart } from "@/components/income-by-truck-chart";
@@ -53,7 +53,7 @@ function TableSkeleton() {
 
 export default function IncomePage() {
   const [incomes, setIncomes] = useState<Income[]>([]);
-  const [trucks, setTrucks] = useState<Truck[]>([]);
+  const trucks = useTrucks();
   const [categories, setCategories] = useState<ExpenseCategory[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -69,43 +69,28 @@ export default function IncomePage() {
   // ================= FETCH =================
   useEffect(() => {
     fetchIncomes();
-    fetchTrucks();
     fetchCategories();
   }, []);
 
   const fetchCategories = async () => {
     try {
-      const res = await fetchWithAuth(`${process.env.NEXT_PUBLIC_API_URL}/api/expense-categories`);
+      const res = await fetchWithAuth(`/api/expense-categories`);
       if (res.ok) setCategories(await res.json());
     } catch { /* non-critical */ }
-  };
-
-  const fetchTrucks = async () => {
-    try {
-      const res = await fetchWithAuth(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/trucks`,
-        { method: "GET" }
-      );
-      if (!res.ok) throw new Error();
-      const data = await res.json();
-      setTrucks(data);
-    } catch {
-      toast.error("Error al cargar camiones", { position: "bottom-right", richColors: true });
-    }
   };
 
   const fetchIncomes = async () => {
     setIsLoading(true);
     try {
       const res = await fetchWithAuth(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/incomes`,
+        `/api/incomes`,
         { method: "GET" }
       );
       if (!res.ok) throw new Error();
       const data = await res.json();
       setIncomes(data);
     } catch {
-      toast.error("Error al cargar ingresos", { position: "bottom-right", richColors: true });
+      toast.error("Error al cargar ingresos");
     } finally {
       setIsLoading(false);
     }
@@ -179,15 +164,15 @@ export default function IncomePage() {
   const handleDeleteIncome = useCallback(async (income: Income) => {
     try {
       const res = await fetchWithAuth(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/incomes/${income.id}`,
+        `/api/incomes/${income.id}`,
         { method: "DELETE" }
       );
       if (!res.ok) throw new Error();
 
       setIncomes((prev) => prev.filter((i) => i.id !== income.id));
-      toast.success("Ingreso eliminado", { position: "bottom-right", richColors: true });
+      toast.success("Ingreso eliminado");
     } catch {
-      toast.error("Error al eliminar ingreso", { position: "bottom-right", richColors: true });
+      toast.error("Error al eliminar ingreso");
     }
   }, []);
 

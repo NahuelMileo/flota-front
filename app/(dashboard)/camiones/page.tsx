@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
-import { DataTable } from "./data-table"
+import { DataTable } from "@/components/data-table"
 import {
   Dialog,
   DialogContent,
@@ -45,13 +45,13 @@ export default function TruckPage() {
   async function fetchTrucks() {
     setIsLoading(true)
     try {
-      const res = await fetchWithAuth(`${process.env.NEXT_PUBLIC_API_URL}/api/trucks`)
+      const res = await fetchWithAuth(`/api/trucks`)
       const data = await res.json()
       if (!res.ok) throw new Error()
       setTrucks(data)
       console.log(data)
     } catch {
-      toast.error("Error al cargar camiones", { position: "bottom-right", richColors: true })
+      toast.error("Error al cargar camiones")
     } finally {
       setIsLoading(false)
     }
@@ -60,7 +60,7 @@ export default function TruckPage() {
   async function handleAddTruck(data: TruckFormValues) {
     setIsSubmitting(true)
     try {
-      const res = await fetchWithAuth(`${process.env.NEXT_PUBLIC_API_URL}/api/trucks`, {
+      const res = await fetchWithAuth(`/api/trucks`, {
         method: "POST",
         body: JSON.stringify(data),
       })
@@ -68,9 +68,9 @@ export default function TruckPage() {
       const created = await res.json()
       setIsAddDialogOpen(false)
       setTrucks((prev) => [...prev, created])
-      toast.success("Camión agregado exitosamente", { position: "bottom-right", richColors: true })
+      toast.success("Camión agregado exitosamente")
     } catch {
-      toast.error("Error al agregar camión", { position: "bottom-right", richColors: true })
+      toast.error("Error al agregar camión")
     } finally {
       setIsSubmitting(false)
     }
@@ -82,7 +82,7 @@ export default function TruckPage() {
     setIsUpdating(true)
     try {
       const res = await fetchWithAuth(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/trucks/${editingTruck.id}`,
+        `/api/trucks/${editingTruck.id}`,
         {
           method: "PUT",
           body: JSON.stringify({ currentKm: editingTruck.currentKm, ...data }),
@@ -92,9 +92,9 @@ export default function TruckPage() {
       const updated = await res.json()
       setTrucks((prev) => prev.map((t) => (t.id === updated.id ? updated : t)))
       setEditingTruck(null)
-      toast.success("Camión actualizado", { position: "bottom-right", richColors: true })
+      toast.success("Camión actualizado")
     } catch {
-      toast.error("Error al actualizar camión", { position: "bottom-right", richColors: true })
+      toast.error("Error al actualizar camión")
     } finally {
       setIsUpdating(false)
     }
@@ -103,14 +103,14 @@ export default function TruckPage() {
   async function handleDeleteTruck(truck: Truck) {
     try {
       const res = await fetchWithAuth(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/trucks/${truck.id}`,
+        `/api/trucks/${truck.id}`,
         { method: "DELETE" }
       )
       if (!res.ok) throw new Error()
       setTrucks((prev) => prev.filter((t) => t.id !== truck.id))
-      toast.success("Camión eliminado", { position: "bottom-right", richColors: true })
+      toast.success("Camión eliminado")
     } catch {
-      toast.error("Error al eliminar camión", { position: "bottom-right", richColors: true })
+      toast.error("Error al eliminar camión")
     }
   }
 

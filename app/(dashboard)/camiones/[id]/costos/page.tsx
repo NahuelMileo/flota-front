@@ -22,7 +22,7 @@ export default function TruckCostsPage() {
   const [year, setYear] = useState(new Date().getFullYear())
 
   useEffect(() => {
-    fetchWithAuth(`${process.env.NEXT_PUBLIC_API_URL}/api/trucks/${id}`)
+    fetchWithAuth(`/api/trucks/${id}`)
       .then(async (res) => {
         if (!res.ok) { router.push("/camiones"); return }
         setTruck(await res.json())
@@ -129,7 +129,7 @@ export default function TruckCostsPage() {
         onUpdateAmount={updateAmount}
         onDeleteTemplate={async (templateId) => {
           const res = await fetchWithAuth(
-            `${process.env.NEXT_PUBLIC_API_URL}/api/costs/templates/${templateId}`,
+            `/api/costs/templates/${templateId}`,
             { method: "DELETE" }
           )
           if (!res.ok) { toast.error("Error al eliminar el costo fijo"); return }
@@ -138,7 +138,7 @@ export default function TruckCostsPage() {
         }}
         onDeleteEntry={async (entryId) => {
           const res = await fetchWithAuth(
-            `${process.env.NEXT_PUBLIC_API_URL}/api/costs/entries/${entryId}`,
+            `/api/costs/entries/${entryId}`,
             { method: "DELETE" }
           )
           if (!res.ok) { toast.error("Error al eliminar el costo"); return }
@@ -147,7 +147,7 @@ export default function TruckCostsPage() {
         }}
         onDeleteInstallmentPlan={async (planId) => {
           const res = await fetchWithAuth(
-            `${process.env.NEXT_PUBLIC_API_URL}/api/costs/installments/${planId}`,
+            `/api/costs/installments/${planId}`,
             { method: "DELETE" }
           )
           if (!res.ok) { toast.error("Error al eliminar el plan de cuotas"); return }

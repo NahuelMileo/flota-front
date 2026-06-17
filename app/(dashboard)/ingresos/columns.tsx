@@ -103,7 +103,7 @@ export function getColumns(
     },
     {
       accessorKey: "type",
-      header: "Tipo",
+      header: "Categoría",
       cell: ({ row }) => {
         const type = row.getValue("type") as string;
         const normalized = normalizeIncomeType(type);

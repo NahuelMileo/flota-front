@@ -16,11 +16,10 @@ export function useTruckCosts(truckId: string, year: number) {
     fetchingRef.current = true
     setIsLoading(true)
     try {
-      const base = process.env.NEXT_PUBLIC_API_URL
       const [summaryRes, ...monthlyResponses] = await Promise.all([
-        fetchWithAuth(`${base}/api/costs/summary?truckId=${truckId}&year=${year}`),
+        fetchWithAuth(`/api/costs/summary?truckId=${truckId}&year=${year}`),
         ...Array.from({ length: 12 }, (_, i) =>
-          fetchWithAuth(`${base}/api/costs/monthly?truckId=${truckId}&month=${i + 1}&year=${year}`)
+          fetchWithAuth(`/api/costs/monthly?truckId=${truckId}&month=${i + 1}&year=${year}`)
         ),
       ])
 
@@ -59,7 +58,7 @@ export function useTruckCosts(truckId: string, year: number) {
       }))
       try {
         const res = await fetchWithAuth(
-          `${process.env.NEXT_PUBLIC_API_URL}/api/costs/entries/${entryId}`,
+          `/api/costs/entries/${entryId}`,
           { method: "PATCH", body: JSON.stringify({ isPaid }) }
         )
         if (!res.ok) throw new Error()
@@ -87,7 +86,7 @@ export function useTruckCosts(truckId: string, year: number) {
       }))
       try {
         const res = await fetchWithAuth(
-          `${process.env.NEXT_PUBLIC_API_URL}/api/costs/entries/${entryId}`,
+          `/api/costs/entries/${entryId}`,
           { method: "PATCH", body: JSON.stringify({ amount }) }
         )
         if (!res.ok) throw new Error()

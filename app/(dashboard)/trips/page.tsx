@@ -3,7 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { DataTable } from "./data-table";
+import { DataTable } from "@/components/data-table";
 import {
   Sheet,
   SheetContent,
@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/sheet";
 import { toast } from "sonner";
 import { fetchWithAuth } from "@/lib/api";
-import type { Truck } from "@/types/truck";
+import { useTrucks } from "@/hooks/use-trucks";
 import { getColumns, Trip } from "./columns";
 import { useDateFilter } from "@/context/date-filter-context";
 import AddTripForm from "./AddTripForm";
@@ -55,7 +55,7 @@ function TableSkeleton() {
 export default function TripsPage() {
   const router = useRouter();
   const [trips, setTrips] = useState<Trip[]>([]);
-  const [trucks, setTrucks] = useState<Truck[]>([]);
+  const trucks = useTrucks();
   const [isLoading, setIsLoading] = useState(false);
 
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
@@ -70,35 +70,20 @@ export default function TripsPage() {
   // ================= FETCH =================
   useEffect(() => {
     fetchTrips();
-    fetchTrucks();
   }, []);
-
-  const fetchTrucks = async () => {
-    try {
-      const res = await fetchWithAuth(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/trucks`,
-        { method: "GET" }
-      );
-      if (!res.ok) throw new Error();
-      const data = await res.json();
-      setTrucks(data);
-    } catch {
-      toast.error("Error al cargar camiones", { position: "bottom-right", richColors: true });
-    }
-  };
 
   const fetchTrips = async () => {
     setIsLoading(true);
     try {
       const res = await fetchWithAuth(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/trips`,
+        `/api/trips`,
         { method: "GET" }
       );
       if (!res.ok) throw new Error();
       const data = await res.json();
       setTrips(data);
     } catch {
-      toast.error("Error al cargar viajes", { position: "bottom-right", richColors: true });
+      toast.error("Error al cargar viajes");
     } finally {
       setIsLoading(false);
     }
@@ -146,15 +131,15 @@ export default function TripsPage() {
   const handleDeleteTrip = useCallback(async (trip: Trip) => {
     try {
       const res = await fetchWithAuth(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/trips/${trip.id}`,
+        `/api/trips/${trip.id}`,
         { method: "DELETE" }
       );
       if (!res.ok) throw new Error();
 
       setTrips((prev) => prev.filter((t) => t.id !== trip.id));
-      toast.success("Viaje eliminado", { position: "bottom-right", richColors: true });
+      toast.success("Viaje eliminado");
     } catch {
-      toast.error("Error al eliminar viaje", { position: "bottom-right", richColors: true });
+      toast.error("Error al eliminar viaje");
     }
   }, []);
 

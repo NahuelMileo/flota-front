@@ -120,8 +120,8 @@ function MonthlyCostsContent() {
     setIsLoading(true)
     try {
       const [entriesRes, trucksRes] = await Promise.all([
-        fetchWithAuth(`${process.env.NEXT_PUBLIC_API_URL}/api/costs/monthly?month=${month}&year=${year}`),
-        fetchWithAuth(`${process.env.NEXT_PUBLIC_API_URL}/api/trucks`),
+        fetchWithAuth(`/api/costs/monthly?month=${month}&year=${year}`),
+        fetchWithAuth(`/api/trucks`),
       ])
       if (!entriesRes.ok) throw new Error()
       const [data, trucksData] = await Promise.all([entriesRes.json(), trucksRes.ok ? trucksRes.json() : []])
@@ -153,7 +153,7 @@ function MonthlyCostsContent() {
     setEntries((prev) => prev.map((e) => e.id === id ? { ...e, isPaid } : e))
     try {
       const res = await fetchWithAuth(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/costs/entries/${id}`,
+        `/api/costs/entries/${id}`,
         {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
@@ -172,7 +172,7 @@ function MonthlyCostsContent() {
     setEntries((prev) => prev.map((e) => e.id === id ? { ...e, amount } : e))
     try {
       const res = await fetchWithAuth(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/costs/entries/${id}`,
+        `/api/costs/entries/${id}`,
         {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },

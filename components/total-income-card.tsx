@@ -20,7 +20,7 @@ export function TotalIncomeCard({ total, variation }: Props) {
       </CardHeader>
 
       <CardContent>
-        <div className="text-2xl font-bold">
+        <div className="text-2xl font-bold text-green-600">
           {formatCurrency(total, displayCurrency)}
         </div>
 

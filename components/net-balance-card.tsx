@@ -21,7 +21,7 @@ export function NetBalanceCard({ income, expense }: Props) {
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <div className={`text-2xl font-bold ${isPositive ? "text-green-500" : "text-red-500"}`}>
+        <div className={`text-2xl font-bold ${isPositive ? "text-green-600" : "text-red-500"}`}>
           {isPositive ? "+" : ""}{formatCurrency(balance, displayCurrency)}
         </div>
         <p className="text-xs text-muted-foreground mt-1">

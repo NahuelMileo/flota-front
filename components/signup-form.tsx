@@ -11,6 +11,7 @@ import {
 import { useState } from "react"
 import { Input } from "@/components/ui/input"
 import { toast } from "sonner";
+import { apiUrl } from "@/lib/api";
 
 export function SignupForm({
   className,
@@ -33,8 +34,6 @@ export function SignupForm({
       setError("Las contraseñas deben coincidir");
       toast.error("Error al registrarse",{
         description:" Las contraseñas no coinciden.",
-        position:"bottom-right", 
-        // richColors:true,
       })
       return;
     }
@@ -43,8 +42,6 @@ export function SignupForm({
       setError("La contraseña debe tener como mínimo 8 caracteres")
       toast.error("Error al registrarse",{
         description:" La contraseña debe tener al menos 8 caracteres.",
-        position:"bottom-right", 
-        // richColors:true,
       })
       return;
     }
@@ -52,7 +49,7 @@ export function SignupForm({
     setIsLoading(true);
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth`, {
+      const response = await fetch(apiUrl("/api/auth"), {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
@@ -68,8 +65,6 @@ export function SignupForm({
         setError(data.message || "Ocurrió un error al crear la cuenta");
         toast.error("Error al registrarse",{
           description: data.message || "Ocurrió un error al crear la cuenta.",
-          position: "bottom-right",
-          // richColors: true,
         })
         setIsLoading(false);
         return;
@@ -82,8 +77,6 @@ export function SignupForm({
 
     toast.success("Cuenta creada exitosamente", {
       description: "Te redirigiremos al inicio de sesión",
-      position: "bottom-right",
-      // richColors: true,
     })
 
     setIsLoading(false);

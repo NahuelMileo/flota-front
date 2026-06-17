@@ -80,7 +80,7 @@ export default function AddTripForm({
   async function onSubmit(data: TripFormValues) {
     try {
       const res = await fetchWithAuth(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/trips`,
+        `/api/trips`,
         {
           method: "POST",
           body: JSON.stringify({

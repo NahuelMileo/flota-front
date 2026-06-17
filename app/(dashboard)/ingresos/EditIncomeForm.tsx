@@ -60,7 +60,7 @@ export default function EditIncomeForm({
   async function fetchActiveTrip(truckId: string | null) {
     if (!truckId || truckId === "none") { setActiveTrip(null); return; }
     try {
-      const res = await fetchWithAuth(`${process.env.NEXT_PUBLIC_API_URL}/api/trips/active?truckId=${truckId}`);
+      const res = await fetchWithAuth(`/api/trips/active?truckId=${truckId}`);
       if (res.ok) setActiveTrip(await res.json());
       else setActiveTrip(null);
     } catch { setActiveTrip(null); }
@@ -98,7 +98,7 @@ export default function EditIncomeForm({
   async function onSubmit(data: IncomeFormValues) {
     try {
       const res = await fetchWithAuth(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/incomes/${income.id}`,
+        `/api/incomes/${income.id}`,
         {
           method: "PUT",
           body: JSON.stringify({

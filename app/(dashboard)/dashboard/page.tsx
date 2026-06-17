@@ -51,8 +51,8 @@ export default function DashboardPage() {
 
   useEffect(() => {
     Promise.all([
-      fetchWithAuth(`${process.env.NEXT_PUBLIC_API_URL}/api/incomes`, { method: "GET" }),
-      fetchWithAuth(`${process.env.NEXT_PUBLIC_API_URL}/api/expenses`, { method: "GET" }),
+      fetchWithAuth(`/api/incomes`, { method: "GET" }),
+      fetchWithAuth(`/api/expenses`, { method: "GET" }),
     ])
       .then(async ([incRes, expRes]) => {
         if (!incRes.ok || !expRes.ok) throw new Error()

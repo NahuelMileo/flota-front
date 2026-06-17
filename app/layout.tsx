@@ -31,6 +31,7 @@ export default function RootLayout({
         {children}
         <Toaster
   richColors
+  position="bottom-right"
   toastOptions={{
     classNames: {
       error: "!text-gray-900 !bg-red-50 !border-red-200",

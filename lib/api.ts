@@ -1,7 +1,11 @@
+export function apiUrl(path: string): string {
+  return `${process.env.NEXT_PUBLIC_API_URL}${path}`;
+}
+
 async function refreshAccessToken(): Promise<string> {
   const refreshToken = localStorage.getItem('refreshToken');
 
-  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/refresh`, {
+  const res = await fetch(apiUrl('/api/auth/refresh'), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ refreshToken }),
@@ -19,6 +23,8 @@ return data.accessToken;
 }
 
 export async function fetchWithAuth(url: string, options: RequestInit = {}): Promise<Response> {
+  // Acepta rutas relativas ("/api/trucks") y las resuelve contra la API
+  if (url.startsWith('/')) url = apiUrl(url);
   const accessToken = localStorage.getItem('accessToken');
 
   let res = await fetch(url, {

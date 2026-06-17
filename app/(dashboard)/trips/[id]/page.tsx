@@ -124,15 +124,15 @@ export default function TripDetailPage() {
       try {
         const [tripRes, trucksRes, catsRes] = await Promise.all([
           fetchWithAuth(
-            `${process.env.NEXT_PUBLIC_API_URL}/api/trips/${tripId}`,
+            `/api/trips/${tripId}`,
             { method: "GET" }
           ),
           fetchWithAuth(
-            `${process.env.NEXT_PUBLIC_API_URL}/api/trucks`,
+            `/api/trucks`,
             { method: "GET" }
           ),
           fetchWithAuth(
-            `${process.env.NEXT_PUBLIC_API_URL}/api/expense-categories`,
+            `/api/expense-categories`,
             { method: "GET" }
           ),
         ]);
@@ -159,7 +159,7 @@ export default function TripDetailPage() {
   const handleDelete = async () => {
     try {
       const res = await fetchWithAuth(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/trips/${tripId}`,
+        `/api/trips/${tripId}`,
         { method: "DELETE" }
       );
       if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.message || e.title || "Error al eliminar viaje"); }
@@ -233,7 +233,7 @@ export default function TripDetailPage() {
   const handleDeleteIncome = async (id: string) => {
     try {
       const res = await fetchWithAuth(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/incomes/${id}`,
+        `/api/incomes/${id}`,
         { method: "DELETE" }
       );
       if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.message || e.title || "Error al eliminar ingreso"); }
@@ -273,7 +273,7 @@ export default function TripDetailPage() {
   const handleDeleteExpense = async (id: string) => {
     try {
       const res = await fetchWithAuth(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/expenses/${id}`,
+        `/api/expenses/${id}`,
         { method: "DELETE" }
       );
       if (!res.ok) { const err = await res.json().catch(() => ({})); throw new Error(err.message || err.title || "Error al eliminar egreso"); }

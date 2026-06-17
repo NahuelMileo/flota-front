@@ -60,19 +60,19 @@ export function getColumns(
       },
     },
     {
-      accessorKey: "categoryName",
-      header: "Tipo",
-      cell: ({ row }) => {
-        const name = row.getValue("categoryName") as string | null;
-        return <Badge variant="outline">{name ?? "Sin categoría"}</Badge>;
-      },
-    },
-    {
       accessorKey: "value",
       header: "Valor",
       cell: ({ row }) => {
         const displayVal = getDisplayValue(row.original, displayCurrency);
         return formatCurrency(displayVal, displayCurrency);
+      },
+    },
+    {
+      accessorKey: "categoryName",
+      header: "Tipo",
+      cell: ({ row }) => {
+        const name = row.getValue("categoryName") as string | null;
+        return <Badge variant="outline">{name ?? "Sin categoría"}</Badge>;
       },
     },
     {

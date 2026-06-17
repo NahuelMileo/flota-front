@@ -116,19 +116,19 @@ Sistema de gestión de flotas de transporte. Next.js 16 + React 19, shadcn/ui, T
 
 ## Egresos (`/egresos`)
 
-- Filtros: por camión, por tipo (17 tipos)
+- **Categorías dinámicas:** los egresos usan `ExpenseCategory` (`{ id, name, isDefault }`) de GET `/api/expense-categories` — ya no existe el enum numérico de 17 tipos ni `lib/expense-types.ts`
+- Las categorías se administran (CRUD) desde `/configuracion`
+- Filtros: por camión, por categoría (`expenseCategoryId`)
 - Filtro por camión también coincide por `truckLicensePlate` cuando `truckId` es null
-- Filtro por tipo normaliza el string enum del API (`"Gasoil"` → `1`) via `expenseTypeStringToNumber`
-- KPI cards (2): Total Egresos con variación %, Costo/km (solo combustible)
+- KPI card: Total Egresos con variación % (si hay camión seleccionado, suma el costo fijo mensual del summary)
 - Gráfico: egresos por categoría (barras, ordenado desc)
-- FuelEfficiencyCard (si hay registros con km + litros): km/L promedio, badge de eficiencia, tendencia, gráfico, tabla
-- Tabla: Nombre, Tipo (badge), Valor (en moneda de visualización), Camión, Fecha, Km, Litros, Acciones
-- Alta: nombre (opcional), valor, fecha, camión (opcional), tipo, moneda (BRL/USD/UYU), km y litros (solo si tipo es combustible: 1, 2, 5) → POST `/api/expenses`
+- Tabla: Nombre, Tipo (badge con `categoryName`), Valor (en moneda de visualización), Camión, Fecha, Km, Litros, Acciones
+- Alta: nombre (opcional), valor, fecha, camión (opcional), categoría, moneda (BRL/USD/UYU), km y litros solo si la categoría es combustible → POST `/api/expenses`
+- **Detección de combustible por nombre de categoría:** `FUEL_CATEGORY_NAMES` = `Gasoil`, `Arla32`/`Arla 32`, `Aceite` (en AddExpenseForm y EditExpenseForm)
 - Edición: mismos campos → PUT `/api/expenses/{id}`
 - Eliminación: AlertDialog → DELETE `/api/expenses/{id}`
 - Exportar CSV: `egresos.csv` (nombre, tipo, valor, camión, fecha, km, litros)
 - Filtro por mes/año del contexto global
-- **Enum normalización:** API devuelve `type` como string (`"Gasoil"`, `"Arla32"`, etc.); usar `normalizeExpenseType()` de `lib/expense-types.ts` en formularios de edición
 
 ---
 
@@ -145,7 +145,7 @@ Sistema de gestión de flotas de transporte. Next.js 16 + React 19, shadcn/ui, T
 | Eficiencia km/L | Σ(km) / Σ(litros) |
 | Margen | utilidad / ingresos × 100 |
 
-**Tipos combustible** (para filtros km/L y costo/km): 1=Gasoil, 2=Arla 32, 5=Aceite
+**Categorías combustible** (para filtros km/L y costo/km): se detectan por nombre de categoría — `Gasoil`, `Arla32`/`Arla 32`, `Aceite`
 
 ---
 
@@ -173,11 +173,16 @@ Status API (string): `"Scheduled"`, `"InProgress"`, `"Completed"`, `"Cancelled"`
 
 ### Expense
 ```
-{ id, date, type, value, valueUSD, valueBRL, valueUYU, currency, truckId, truckLicensePlate, name, kilometers, liters, tripId? }
+{ id, date, createdAt, expenseCategoryId, categoryName, value, valueUSD, valueBRL, valueUYU, currency, truckId, truckLicensePlate, name, kilometers, liters, tripId? }
 ```
-- `type` (API string): `"Gasoil"`, `"Arla32"`, `"Maintenance"`, etc. — usar `normalizeExpenseType()` para mapear a `"1"`–`"17"`
+- `expenseCategoryId` + `categoryName`: referencia a la categoría dinámica (ver Egresos) — reemplazó al viejo enum numérico `type`
 - `currency` (API string): `"USD"` | `"BRL"` | `"UYU"`
-- Types numéricos: 1=Gasoil, 2=Arla 32, 3=Mantenimiento, 4=Gomería, 5=Aceite, 6=Estacionamiento, 7=Peaje, 8=Salario, 9=Contador, 10=Financiamiento, 11=Otro, 12=Administrativo, 13=IPVA, 14=Rastreador, 15=Cooperativa, 16=Seguro, 17=Equipo Operacional
+
+### ExpenseCategory
+```
+{ id, name, isDefault }
+```
+- GET/POST/PUT/DELETE `/api/expense-categories` — administradas por el usuario en `/configuracion`
 
 ### CostEntry
 ```
@@ -188,7 +193,7 @@ Status API (string): `"Scheduled"`, `"InProgress"`, `"Completed"`, `"Cancelled"`
 
 ### CostTemplate
 ```
-{ id, name, amount, valueUSD?, valueBRL?, valueUYU?, type, scope, truckId?, isActive, expenseType, truckLicensePlate? }
+{ id, name, amount, valueUSD?, valueBRL?, valueUYU?, type, scope, truckId?, isActive, expenseCategoryId, categoryName, truckLicensePlate? }
 ```
 
 ---
@@ -215,12 +220,13 @@ Status API (string): `"Scheduled"`, `"InProgress"`, `"Completed"`, `"Cancelled"`
 
 ## Arquitectura
 
-- **Autenticación:** `fetchWithAuth()` en `lib/api.ts` — agrega Bearer token, refresca en 401
+- **Autenticación:** `fetchWithAuth()` en `lib/api.ts` — agrega Bearer token, refresca en 401. Acepta rutas relativas (`fetchWithAuth("/api/trucks")`) y las resuelve contra `NEXT_PUBLIC_API_URL`; usar siempre rutas relativas, no repetir el env var en los call sites. Para fetch sin auth (login/signup) usar `apiUrl(path)` del mismo módulo
 - **Filtro global de fecha:** `DateFilterContext` en `context/date-filter-context.tsx`, provisto en el layout del dashboard
 - **Moneda de visualización:** `CurrencyProvider` en `context/currency-context.tsx`, provisto en el layout del dashboard (wrappea a DateFilterProvider)
-- **Tablas:** componente genérico `DataTable` (TanStack Table) con búsqueda, ordenamiento y export CSV opcional
+- **Tablas:** componente genérico compartido `components/data-table.tsx` (TanStack Table) con búsqueda, ordenamiento, paginación y export CSV opcional — usado por camiones, trips, ingresos y egresos; no crear data-tables locales por ruta
+- **Camiones:** hook `useTrucks()` en `hooks/use-trucks.ts` para cargar la lista de camiones (solo lectura) — no duplicar el fetch en cada página
 - **Formularios:** React Hook Form + Zod en todos los CRUD; campos numéricos opcionales usan `setValueAs` (no `valueAsNumber`) para evitar conflictos con el resolver
-- **Enum normalización en formularios de edición:** la API devuelve strings (`"Freight"`, `"Gasoil"`, `"InProgress"`) — siempre normalizar antes de usar como defaultValue en selects numéricos
-- **Tipos compartidos:** `types/truck.ts`, `types/costs.ts` — no duplicar tipos localmente
-- **Notificaciones:** `sonner` (toast)
+- **Enum normalización en formularios de edición:** la API devuelve strings (`"Freight"`, `"InProgress"`) — siempre normalizar antes de usar como defaultValue en selects numéricos (`normalizeIncomeType`, mapeo de status en EditTripForm)
+- **Tipos compartidos:** `types/truck.ts`, `types/costs.ts`, `types/expense-category.ts` — no duplicar tipos localmente
+- **Notificaciones:** `sonner` (toast) — `position` y `richColors` se configuran globalmente en el `<Toaster />` de `app/layout.tsx`; no pasarlos por llamada
 - **Monitoreo:** Sentry (`sentry.client.config.ts`, `sentry.server.config.ts`)

@@ -102,7 +102,7 @@ export default function EditTripForm({
   async function onSubmit(data: TripFormValues) {
     try {
       const res = await fetchWithAuth(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/trips/${trip.id}`,
+        `/api/trips/${trip.id}`,
         {
           method: "PUT",
           body: JSON.stringify({

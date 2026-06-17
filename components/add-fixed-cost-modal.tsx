@@ -74,8 +74,8 @@ export function AddFixedCostModal({ onSuccess }: AddFixedCostModalProps) {
   useEffect(() => {
     if (!open) return
     Promise.all([
-      fetchWithAuth(`${process.env.NEXT_PUBLIC_API_URL}/api/trucks`).then((r) => r.json()).then((d) => setTrucks(Array.isArray(d) ? d : [])).catch(() => toast.error("Error al cargar camiones")),
-      fetchWithAuth(`${process.env.NEXT_PUBLIC_API_URL}/api/expense-categories`).then((r) => r.ok ? r.json() : []).then(setCategories).catch(() => {}),
+      fetchWithAuth(`/api/trucks`).then((r) => r.json()).then((d) => setTrucks(Array.isArray(d) ? d : [])).catch(() => toast.error("Error al cargar camiones")),
+      fetchWithAuth(`/api/expense-categories`).then((r) => r.ok ? r.json() : []).then(setCategories).catch(() => {}),
     ])
   }, [open])
 
@@ -108,7 +108,7 @@ export function AddFixedCostModal({ onSuccess }: AddFixedCostModalProps) {
   async function onSubmit(data: FormValues) {
     try {
       const res = await fetchWithAuth(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/costs/templates`,
+        `/api/costs/templates`,
         {
           method: "POST",
           body: JSON.stringify({

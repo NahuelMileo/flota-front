@@ -14,7 +14,7 @@ export function useOdometerReadings(truckId: string, year: number, month?: numbe
       const params = new URLSearchParams({ year: String(year) })
       if (month != null) params.set("month", String(month))
       const res = await fetchWithAuth(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/trucks/${truckId}/odometer-readings?${params}`
+        `/api/trucks/${truckId}/odometer-readings?${params}`
       )
       if (res.ok) {
         const data = await res.json()

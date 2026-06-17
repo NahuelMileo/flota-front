@@ -25,7 +25,7 @@ export default function OnboardingPage() {
     const accessToken = localStorage.getItem("accessToken");
     try {
       const response = await fetchWithAuth(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/tenants`,
+        `/api/tenants`,
         {
           method: "POST",
           body: JSON.stringify({ companyName }),
@@ -38,16 +38,12 @@ export default function OnboardingPage() {
           description:
             data.message ||
             "Ocurrió un error inesperado. Por favor, intenta de nuevo.",
-          position: "bottom-right",
-          richColors: true,
         })
         return
       }
 
       toast.success("Empresa creada exitosamente", {
         description: "Redirigiendote al dashboard...",
-        position: "bottom-right",
-        richColors: true, 
       })
 
       if (data.tenantId) {
@@ -65,8 +61,6 @@ export default function OnboardingPage() {
       toast.error("Error al crear la empresa", {
         description:
           "Ocurrió un error inesperado. Por favor, intenta de nuevo.",
-        position: "bottom-right",
-        richColors: true,
       })
     } finally {
       setIsCreating(false)
@@ -83,7 +77,7 @@ export default function OnboardingPage() {
     setIsJoining(true)
     try {
       const response = await fetchWithAuth(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/tenants/join`,
+        `/api/tenants/join`,
         {
           method: "POST",
           body: JSON.stringify({ code: inviteCode }),
@@ -97,16 +91,12 @@ export default function OnboardingPage() {
           description:
             data.message ||
             "Código de invitación inválido. Por favor, verifica e intenta de nuevo.",
-          position: "bottom-right",
-          richColors: true,
         })
         return
       }
 
       toast.success("Te has unido exitosamente", {
         description: "Redirigiendote al dashboard...",
-        position: "bottom-right",
-        richColors: true,
       })
 
       if (data.tenantId) {
@@ -123,8 +113,6 @@ export default function OnboardingPage() {
       toast.error("Error al unirse a la empresa", {
         description:
           "Ocurrió un error inesperado. Por favor, intenta de nuevo.",
-        position: "bottom-right",
-        richColors: true,
       })
     } finally {
       setIsJoining(false)

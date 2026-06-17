@@ -11,7 +11,8 @@ import {
   YAxis,
 } from "recharts"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { formatBRL } from "@/lib/format"
+import { formatCurrency } from "@/lib/format"
+import { useCurrency } from "@/context/currency-context"
 
 type MonthlyData = {
   month: string
@@ -25,6 +26,7 @@ type Props = {
 
 
 export function MonthlyComparisonChart({ data }: Props) {
+  const { displayCurrency } = useCurrency()
   if (data.every(d => d.ingresos === 0 && d.egresos === 0)) return null
 
   return (
@@ -39,8 +41,8 @@ export function MonthlyComparisonChart({ data }: Props) {
           <BarChart data={data} margin={{ top: 4, right: 8, left: 8, bottom: 4 }}>
             <CartesianGrid strokeDasharray="3 3" vertical={false} />
             <XAxis dataKey="month" tick={{ fontSize: 12 }} />
-            <YAxis tickFormatter={(v) => formatBRL(v)} tick={{ fontSize: 11 }} width={90} />
-            <Tooltip formatter={(value) => [typeof value === "number" ? formatBRL(value) : value]} />
+            <YAxis tickFormatter={(v) => formatCurrency(v, displayCurrency)} tick={{ fontSize: 11 }} width={90} />
+            <Tooltip formatter={(value) => [typeof value === "number" ? formatCurrency(value, displayCurrency) : value]} />
             <Legend />
             <Bar dataKey="ingresos" fill="#22c55e" radius={[4, 4, 0, 0]} />
             <Bar dataKey="egresos" fill="#ef4444" radius={[4, 4, 0, 0]} />

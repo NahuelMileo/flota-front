@@ -69,7 +69,7 @@ export default function AddIncomeForm({
   async function fetchActiveTrip(truckId: string | null) {
     if (!truckId || truckId === "none" || tripId) { setActiveTrip(null); return; }
     try {
-      const res = await fetchWithAuth(`${process.env.NEXT_PUBLIC_API_URL}/api/trips/active?truckId=${truckId}`);
+      const res = await fetchWithAuth(`/api/trips/active?truckId=${truckId}`);
       if (res.ok) setActiveTrip(await res.json());
       else setActiveTrip(null);
     } catch { setActiveTrip(null); }
@@ -128,7 +128,7 @@ export default function AddIncomeForm({
     }
     try {
       const res = await fetchWithAuth(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/incomes`,
+        `/api/incomes`,
         {
           method: "POST",
           body: JSON.stringify({
@@ -152,7 +152,7 @@ export default function AddIncomeForm({
         const driverValue = result.value * (driverPercentage / 100);
         const salaryCategory = categories?.find(c => c.id === salaryCategoryId) ?? null;
         try {
-          const expRes = await fetchWithAuth(`${process.env.NEXT_PUBLIC_API_URL}/api/expenses`, {
+          const expRes = await fetchWithAuth(`/api/expenses`, {
             method: "POST",
             body: JSON.stringify({
               name: "Salario chofer",

@@ -11,6 +11,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { useState } from "react";
 import { toast } from "sonner";
+import { apiUrl } from "@/lib/api";
 
 export function LoginForm({
   className,
@@ -27,7 +28,7 @@ export function LoginForm({
     setIsLoading(true);
     try {
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/auth/login`,
+        apiUrl("/api/auth/login"),
         {
           method: "POST",
           headers: {
@@ -44,16 +45,12 @@ export function LoginForm({
           description:
             data.message ||
             "Ocurrió un error inesperado. Por favor, intenta de nuevo.",
-          position: "bottom-right",
-          richColors: true,
         });
         setIsLoading(false);
         return;
       }
       toast.success("Inicio de sesión exitoso", {
         description: "Redirigiendote al dashboard...",
-        position: "bottom-right",
-        richColors: true,
       });
 
       localStorage.setItem("accessToken", data.accessToken);
@@ -92,8 +89,6 @@ export function LoginForm({
       toast.error("Error al iniciar sesión", {
         description:
           "Ocurrió un error inesperado. Por favor, intenta de nuevo.",
-        position: "bottom-right",
-        richColors: true,
       });
     } finally {
       setIsLoading(false);
