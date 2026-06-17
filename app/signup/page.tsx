@@ -1,8 +1,7 @@
-import { GalleryVerticalEnd } from "lucide-react";
-import image from "@/public/truck.jpg";
+import { GalleryVerticalEnd } from "lucide-react"
 
-import { SignupForm } from "@/components/signup-form";
-import GuestGuard from "@/components/guest-guard";
+import { SignupForm } from "@/components/signup-form"
+import GuestGuard from "@/components/guest-guard"
 
 export default function SignupPage() {
   return (
@@ -25,12 +24,12 @@ export default function SignupPage() {
         </div>
         <div className="relative hidden bg-muted lg:block">
           <img
-            src={image.src}
+            src="/truck.jpg"
             alt="Image"
             className="absolute inset-0 h-full w-full object-cover dark:brightness-[0.2] dark:grayscale"
           />
         </div>
       </div>
     </GuestGuard>
-  );
+  )
 }
