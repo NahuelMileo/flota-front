@@ -18,7 +18,6 @@ export function SignupForm({
   className,
   ...props
 }: React.ComponentProps<"form">) {
-  const PLACEHOLDER = "\u00A0"
   const [isLoading, setIsLoading] = useState(false);
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -61,13 +60,11 @@ export function SignupForm({
 
     const validation = validatePassword(pwd);
     if (!validation.isValid) {
-      setError(validation.errors.join(", "));
       toast.error("Error al registrarse",{
         description: validation.errors[0],
       })
       return;
     }
-    setError(PLACEHOLDER)
     setIsLoading(true);
 
     try {
