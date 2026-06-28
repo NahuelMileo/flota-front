@@ -9,7 +9,7 @@ import {
   FieldSeparator,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { apiUrl } from "@/lib/api";
 
@@ -18,6 +18,26 @@ export function LoginForm({
   ...props
 }: React.ComponentProps<"form">) {
   const [isLoading, setIsLoading] = useState(false);
+  const [isRateLimited, setIsRateLimited] = useState(false);
+  const [rateLimitRetryAfter, setRateLimitRetryAfter] = useState<number | null>(null);
+
+  // Countdown for rate limit (visual only - resets on page reload, backend enforces actual limit)
+  useEffect(() => {
+    if (!isRateLimited || !rateLimitRetryAfter) return;
+
+    const interval = setInterval(() => {
+      setRateLimitRetryAfter((prev) => {
+        if (prev === null || prev <= 1) {
+          setIsRateLimited(false);
+          clearInterval(interval);
+          return null;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [isRateLimited]);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -38,13 +58,34 @@ export function LoginForm({
         },
       );
 
+      // Handle rate limiting BEFORE parsing JSON (429 might not be valid JSON)
+      if (response.status === 429) {
+        const retryAfterHeader =
+          response.headers.get('retry-after') ||
+          response.headers.get('Retry-After') ||
+          response.headers.get('X-RateLimit-Reset-After') ||
+          '60';
+
+        const retryAfter = Math.max(1, parseInt(retryAfterHeader));
+        setIsRateLimited(true);
+        setRateLimitRetryAfter(retryAfter);
+
+        console.log('Rate limited. Retry after:', retryAfter, 'seconds. Backend enforces actual limit.');
+
+        toast.error("Demasiados intentos", {
+          description: `Por favor, intenta de nuevo en ${retryAfter} segundos.`,
+        });
+
+        setIsLoading(false);
+        return;
+      }
+
       const data = await response.json();
 
       if (!response.ok) {
+        // Generic error for invalid credentials (don't distinguish between user not found and wrong password)
         toast.error("Error al iniciar sesión", {
-          description:
-            data.message ||
-            "Ocurrió un error inesperado. Por favor, intenta de nuevo.",
+          description: "Email o contraseña inválidos.",
         });
         setIsLoading(false);
         return;
@@ -87,10 +128,8 @@ export function LoginForm({
       }, 1500);
     } catch (error) {
       toast.error("Error al iniciar sesión", {
-        description:
-          "Ocurrió un error inesperado. Por favor, intenta de nuevo.",
+        description: "Ocurrió un error inesperado. Por favor, intenta de nuevo.",
       });
-    } finally {
       setIsLoading(false);
     }
   }
@@ -125,8 +164,8 @@ export function LoginForm({
           <Input id="password" name="password" type="password" required />
         </Field>
         <Field>
-          <Button type="submit" disabled={isLoading}>
-            {isLoading ? "Iniciando sesión..." : "Inicia sesión"}
+          <Button type="submit" disabled={isLoading || isRateLimited}>
+            {isLoading ? "Iniciando sesión..." : isRateLimited ? `Intenta en ${rateLimitRetryAfter}s` : "Inicia sesión"}
           </Button>
         </Field>
         <Field>

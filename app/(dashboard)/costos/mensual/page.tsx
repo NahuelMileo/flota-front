@@ -6,6 +6,7 @@ import Link from "next/link"
 import { fetchWithAuth } from "@/lib/api"
 import { formatCurrency, formatCurrency2 } from "@/lib/format"
 import { useCurrency } from "@/context/currency-context"
+import { validateYear, validateMonth } from "@/utils/dateValidator"
 import { toast } from "sonner"
 import { ArrowLeft, ChevronLeft, ChevronRight, TruckIcon } from "lucide-react"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -41,7 +42,7 @@ function parseMonthParam(param: string | null): { month: number; year: number } 
   const [yearStr, monthStr] = param.split("-")
   const year = parseInt(yearStr)
   const month = parseInt(monthStr)
-  if (isNaN(year) || isNaN(month) || month < 1 || month > 12)
+  if (isNaN(year) || isNaN(month) || !validateMonth(month) || !validateYear(year))
     return { month: now.getMonth() + 1, year: now.getFullYear() }
   return { month, year }
 }

@@ -12,14 +12,20 @@ async function refreshAccessToken(): Promise<string> {
   });
 
   if (!res.ok) {
+    // Handle rate limiting on refresh
+    if (res.status === 429) {
+      localStorage.clear();
+      window.location.href = '/login';
+      throw new Error("Demasiados intentos de refresh. Por favor, intenta más tarde.");
+    }
     localStorage.clear();
     window.location.href = '/';
     throw new Error("Sesión expirada");
   }
 
   const data = await res.json();
-localStorage.setItem('accessToken', data.accessToken);
-return data.accessToken;
+  localStorage.setItem('accessToken', data.accessToken);
+  return data.accessToken;
 }
 
 export async function fetchWithAuth(url: string, options: RequestInit = {}): Promise<Response> {

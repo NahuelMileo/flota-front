@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import { fetchWithAuth } from "@/lib/api"
 import { toast } from "sonner"
+import { validateYear } from "@/utils/dateValidator"
 import type { AllMonthsData, CostRow, SummaryMonth } from "@/types/costs"
 
 export function useTruckCosts(truckId: string, year: number) {
@@ -16,6 +17,15 @@ export function useTruckCosts(truckId: string, year: number) {
     fetchingRef.current = true
     setIsLoading(true)
     try {
+      if (!validateYear(year)) {
+        toast.error("Año inválido", {
+          description: `El año debe estar entre 1900 y ${new Date().getFullYear() + 10}`,
+        })
+        setIsLoading(false)
+        fetchingRef.current = false
+        return
+      }
+
       const [summaryRes, ...monthlyResponses] = await Promise.all([
         fetchWithAuth(`/api/costs/summary?truckId=${truckId}&year=${year}`),
         ...Array.from({ length: 12 }, (_, i) =>

@@ -10,38 +10,63 @@ import {
 } from "@/components/ui/field"
 import { useState } from "react"
 import { Input } from "@/components/ui/input"
+import { useEffect } from "react";
 import { toast } from "sonner";
 import { apiUrl } from "@/lib/api";
+import { validatePassword } from "@/utils/passwordValidator";
 
 export function SignupForm({
   className,
   ...props
 }: React.ComponentProps<"form">) {
-  const MINIMUM_PASSWORD_LENGTH = 8;
   const PLACEHOLDER = "\u00A0"
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [isRateLimited, setIsRateLimited] = useState(false);
+  const [rateLimitRetryAfter, setRateLimitRetryAfter] = useState<number | null>(null);
+  const passwordValidation = validatePassword(password);
+
+  // Countdown for rate limit (visual only - resets on page reload, backend enforces actual limit)
+  useEffect(() => {
+    if (!isRateLimited || !rateLimitRetryAfter) return;
+
+    const interval = setInterval(() => {
+      setRateLimitRetryAfter((prev) => {
+        if (prev === null || prev <= 1) {
+          setIsRateLimited(false);
+          clearInterval(interval);
+          return null;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [isRateLimited]);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
     const formData = new FormData(event.currentTarget)
     const username = formData.get("username");
     const email = formData.get("email")
-    const password = formData.get("password")
-    const confirmPassword = formData.get("confirm-password");
+    const pwd = formData.get("password") as string
+    const confirmPwd = formData.get("confirm-password") as string;
 
-    if (password != confirmPassword) {
+    if (pwd !== confirmPwd) {
       setError("Las contraseñas deben coincidir");
       toast.error("Error al registrarse",{
-        description:" Las contraseñas no coinciden.",
+        description:"Las contraseñas no coinciden.",
       })
       return;
     }
 
-    if (password!.toString().length < MINIMUM_PASSWORD_LENGTH) {
-      setError("La contraseña debe tener como mínimo 8 caracteres")
+    const validation = validatePassword(pwd);
+    if (!validation.isValid) {
+      setError(validation.errors.join(", "));
       toast.error("Error al registrarse",{
-        description:" La contraseña debe tener al menos 8 caracteres.",
+        description: validation.errors[0],
       })
       return;
     }
@@ -55,9 +80,31 @@ export function SignupForm({
           "Content-Type": "application/json"
         },
         body: JSON.stringify({
-          username, email, password
+          username, email, password: pwd
         })
       })
+
+      // Handle rate limiting BEFORE parsing JSON (429 might not be valid JSON)
+      if (response.status === 429) {
+        const retryAfterHeader =
+          response.headers.get('retry-after') ||
+          response.headers.get('Retry-After') ||
+          response.headers.get('X-RateLimit-Reset-After') ||
+          '180';
+
+        const retryAfter = Math.max(1, parseInt(retryAfterHeader));
+        setIsRateLimited(true);
+        setRateLimitRetryAfter(retryAfter);
+
+        console.log('Rate limited. Retry after:', retryAfter, 'seconds. Backend enforces actual limit.');
+
+        toast.error("Demasiados intentos", {
+          description: `Por favor, intenta de nuevo en ${retryAfter} segundos.`,
+        });
+
+        setIsLoading(false);
+        return;
+      }
 
       const data = await response.json();
 
@@ -105,18 +152,61 @@ return (
       </Field>
       <Field>
         <FieldLabel htmlFor="password">Contraseña</FieldLabel>
-        <Input id="password" name="password" type="password" required />
-        <FieldDescription className="text-sm">
-          La contraseña debe tener al menos {MINIMUM_PASSWORD_LENGTH} caracteres.
-        </FieldDescription>
+        <Input
+          id="password"
+          name="password"
+          type="password"
+          required
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+        />
+        {password && (
+          <div className="mt-2 space-y-2">
+            <div className="flex items-center gap-2">
+              <div className="text-sm font-medium">Seguridad:
+                <span className={cn("ml-1", {
+                  "text-red-500": passwordValidation.strength === 'weak',
+                  "text-yellow-500": passwordValidation.strength === 'medium',
+                  "text-green-500": passwordValidation.strength === 'strong',
+                })}>
+                  {passwordValidation.strength === 'weak' && 'Débil'}
+                  {passwordValidation.strength === 'medium' && 'Media'}
+                  {passwordValidation.strength === 'strong' && 'Fuerte'}
+                </span>
+              </div>
+            </div>
+            {passwordValidation.errors.length > 0 && (
+              <ul className="text-sm text-red-500 space-y-1">
+                {passwordValidation.errors.map((err) => (
+                  <li key={err}>• {err}</li>
+                ))}
+              </ul>
+            )}
+          </div>
+        )}
       </Field>
       <Field>
         <FieldLabel htmlFor="confirm-password">Confirmar contraseña</FieldLabel>
-        <Input id="confirm-password" name="confirm-password" type="password" required />
+        <Input
+          id="confirm-password"
+          name="confirm-password"
+          type="password"
+          required
+          value={confirmPassword}
+          onChange={(e) => setConfirmPassword(e.target.value)}
+        />
+        {password && confirmPassword && password !== confirmPassword && (
+          <FieldDescription className="text-red-500">
+            Las contraseñas no coinciden
+          </FieldDescription>
+        )}
       </Field>
       <Field>
-        <Button type="submit" disabled={isLoading}>
-          {isLoading ? "Creando cuenta..." : "Crear Cuenta"}
+        <Button
+          type="submit"
+          disabled={isLoading || isRateLimited || !passwordValidation.isValid || password !== confirmPassword || !password}
+        >
+          {isLoading ? "Creando cuenta..." : isRateLimited ? `Intenta en ${rateLimitRetryAfter}s` : "Crear Cuenta"}
         </Button>
       </Field>
       <Field>
