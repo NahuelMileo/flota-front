@@ -15,7 +15,6 @@ import { toast } from "sonner";
 import { fetchWithAuth } from "@/lib/api";
 import { useTrucks } from "@/hooks/use-trucks";
 import type { ExpenseCategory } from "@/types/expense-category";
-import type { CostEntry } from "@/types/costs";
 import { getColumns, Expense } from "./columns";
 import { TotalExpenseCard } from "@/components/total-expense-card";
 import { ExpenseBreakdownChart } from "@/components/expense-breakdown-chart";
@@ -54,7 +53,6 @@ export default function ExpensePage() {
 
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
-  const [monthCostEntries, setMonthCostEntries] = useState<CostEntry[]>([]);
 
   const [selectedTruckId, setSelectedTruckId] = useState<string | null>(null);
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
@@ -67,18 +65,6 @@ export default function ExpensePage() {
     fetchExpenses();
     fetchCategories();
   }, []);
-
-  // Costos fijos del mes: entries con valueUSD/BRL/UYU (el summary no trae montos convertidos)
-  useEffect(() => {
-    if (!selectedTruckId) { setMonthCostEntries([]); return; }
-    const date = selectedDate ?? new Date();
-    const month = date.getMonth() + 1;
-    const year = date.getFullYear();
-    fetchWithAuth(`/api/costs/monthly?truckId=${selectedTruckId}&month=${month}&year=${year}`)
-      .then((r) => r.ok ? r.json() : [])
-      .then((data) => setMonthCostEntries(Array.isArray(data) ? data : []))
-      .catch(() => setMonthCostEntries([]));
-  }, [selectedTruckId, selectedDate]);
 
   const fetchCategories = async () => {
     try {
@@ -148,14 +134,9 @@ export default function ExpensePage() {
       });
   }, [expenses, selectedDate, matchesTruckFilter, selectedCategoryId]);
 
-  const monthlyCost = useMemo(() => {
-    if (!selectedTruckId || selectedCategoryId) return 0;
-    return monthCostEntries.reduce((acc, e) => acc + getDisplayValue(e), 0);
-  }, [monthCostEntries, selectedTruckId, selectedCategoryId, getDisplayValue]);
-
   const total = useMemo(
-    () => filteredExpenses.reduce((acc, e) => acc + getDisplayValue(e), 0) + monthlyCost,
-    [filteredExpenses, getDisplayValue, monthlyCost]
+    () => filteredExpenses.reduce((acc, e) => acc + getDisplayValue(e), 0),
+    [filteredExpenses, getDisplayValue]
   );
 
   const previousMonthTotal = useMemo(() => {
