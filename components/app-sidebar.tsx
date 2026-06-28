@@ -20,6 +20,7 @@ import {
   MapPin,
   ReceiptIcon,
   Settings2Icon,
+  Wrench,
 } from "lucide-react";
 import { useLayoutEffect, useState } from "react";
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
@@ -74,6 +75,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         title: "Costos fijos",
         url: "/costos",
         icon: <ReceiptIcon />,
+      },
+      {
+        title: "Mantenimientos",
+        url: "/mantenimientos",
+        icon: <Wrench />,
       },
       {
         title: "Configuración",
