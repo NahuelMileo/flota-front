@@ -9,7 +9,6 @@ import {
   SheetHeader,
   SheetTitle,
   SheetDescription,
-  SheetTrigger,
 } from "@/components/ui/sheet";
 import { toast } from "sonner";
 import { fetchWithAuth } from "@/lib/api";
@@ -92,9 +91,11 @@ export default function ConceptsPage() {
           <h1 className="text-xl font-bold">Conceptos de Mantenimiento</h1>
         </div>
 
-        <Sheet open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-          <SheetTrigger render={<Button>Crear concepto</Button>} />
+        <Button onClick={() => setIsAddDialogOpen(true)}>
+          Crear concepto
+        </Button>
 
+        <Sheet open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
           <SheetContent className="overflow-y-auto">
             <SheetHeader>
               <SheetTitle>Crear concepto</SheetTitle>

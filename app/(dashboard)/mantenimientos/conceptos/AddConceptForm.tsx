@@ -16,12 +16,7 @@ const conceptSchema = z.object({
   name: z.string().min(1, "El nombre es requerido"),
   kilometerInterval: z.number().positive().optional().nullable(),
   dateInterval: z.number().positive().optional().nullable(),
-}).refine(
-  (data) => !!data.kilometerInterval || !!data.dateInterval,
-  {
-    message: "Debe especificar al menos un intervalo (km o días)",
-  }
-);
+});
 
 type ConceptFormValues = z.infer<typeof conceptSchema>;
 
