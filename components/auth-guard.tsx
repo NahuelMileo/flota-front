@@ -1,9 +1,7 @@
 "use client"
-import React, { useEffect, useState } from "react";
+import React, { useEffect } from "react";
 
 export default function AuthGuard({ children }: { children: React.ReactNode }) {
-  const [isChecking, setIsChecking] = useState(true);
-
   useEffect(() => {
     const token = localStorage.getItem("accessToken");
     const tenantId = localStorage.getItem("tenantId");
@@ -17,10 +15,7 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
       window.location.href = "/onboarding";
       return;
     }
-
-    setIsChecking(false);
   }, []);
-  
-  if (isChecking) return null;
+
   return <>{children}</>;
 }

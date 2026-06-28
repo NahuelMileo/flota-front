@@ -19,7 +19,7 @@ import { useForm, Controller, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { Expense } from "./columns";
 
 type ActiveTrip = { id: string; origin: string; destination: string };
@@ -74,18 +74,18 @@ export default function AddExpenseForm({
   const todayIso = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
   const [activeTrip, setActiveTrip] = useState<ActiveTrip | null>(null);
 
-  async function fetchActiveTrip(truckId: string | null) {
+  const fetchActiveTrip = useCallback(async (truckId: string | null) => {
     if (!truckId || truckId === "none" || tripId) { setActiveTrip(null); return; }
     try {
       const res = await fetchWithAuth(`/api/trips/active?truckId=${truckId}`);
       if (res.ok) setActiveTrip(await res.json());
       else setActiveTrip(null);
     } catch { setActiveTrip(null); }
-  }
+  }, [tripId]);
 
   useEffect(() => {
     if (defaultTruckId && !tripId) fetchActiveTrip(defaultTruckId);
-  }, [defaultTruckId]);
+  }, [defaultTruckId, tripId, fetchActiveTrip]);
 
   const truckItems = [
     { label: "Sin asignar", value: "none" },

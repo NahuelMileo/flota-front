@@ -1,8 +1,6 @@
 "use client";
 import * as React from "react";
-import { NavDocuments } from "@/components/nav-documents";
 import { NavMain } from "@/components/nav-main";
-import { NavSecondary } from "@/components/nav-secondary";
 import { NavUser } from "@/components/nav-user";
 import {
   Sidebar,
@@ -22,21 +20,24 @@ import {
   MapPin,
   ReceiptIcon,
   Settings2Icon,
-  ClipboardListIcon,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useLayoutEffect, useState } from "react";
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const [userInfo, setUserInfo] = useState({
     username: "",
     email: "",
     tenantName: "",
   });
-  useEffect(() => {
-    setUserInfo({
-      username: localStorage.getItem("username") || "",
-      email: localStorage.getItem("email") || "",
-      tenantName: localStorage.getItem("tenantName") || "",
-    });
+
+  useLayoutEffect(() => {
+    const username = localStorage.getItem("username") || "";
+    const email = localStorage.getItem("email") || "";
+    const tenantName = localStorage.getItem("tenantName") || "";
+
+    if (username || email || tenantName) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setUserInfo({ username, email, tenantName });
+    }
   }, []);
   const data = {
     user: {

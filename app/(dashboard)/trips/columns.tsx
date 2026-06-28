@@ -15,7 +15,6 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
-import { useRouter } from "next/navigation";
 
 export type Trip = {
   id: string;

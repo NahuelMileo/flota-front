@@ -655,7 +655,7 @@ export default function TripDetailPage() {
       {/* FUEL EFFICIENCY - Solo mostrar si hay egresos con combustible */}
       {trip.expenses.length > 0 && (
         <FuelEfficiencyCard
-          expenses={trip.expenses as any}
+          expenses={trip.expenses as Expense[]}
           truckId={trip.truckId}
           tripKm={trip.initialKm != null && trip.finalKm != null ? trip.finalKm - trip.initialKm : trip.kilometers ?? undefined}
         />

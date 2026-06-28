@@ -6,7 +6,6 @@ import {
   FieldDescription,
   FieldGroup,
   FieldLabel,
-  FieldSeparator,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { useState, useEffect } from "react";
@@ -37,7 +36,7 @@ export function LoginForm({
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [isRateLimited]);
+  }, [isRateLimited, rateLimitRetryAfter]);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -122,11 +121,13 @@ export function LoginForm({
       }
 
       setTimeout(() => {
-        data.tenantId
-          ? (window.location.href = "/dashboard")
-          : (window.location.href = "/onboarding");
+        if (data.tenantId) {
+          window.location.href = "/dashboard";
+        } else {
+          window.location.href = "/onboarding";
+        }
       }, 1500);
-    } catch (error) {
+    } catch {
       toast.error("Error al iniciar sesión", {
         description: "Ocurrió un error inesperado. Por favor, intenta de nuevo.",
       });

@@ -6,7 +6,6 @@ import {
   FieldDescription,
   FieldGroup,
   FieldLabel,
-  FieldSeparator,
 } from "@/components/ui/field"
 import { useState } from "react"
 import { Input } from "@/components/ui/input"
@@ -21,7 +20,6 @@ export function SignupForm({
 }: React.ComponentProps<"form">) {
   const PLACEHOLDER = "\u00A0"
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isRateLimited, setIsRateLimited] = useState(false);
@@ -44,7 +42,7 @@ export function SignupForm({
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [isRateLimited]);
+  }, [isRateLimited, rateLimitRetryAfter]);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -55,7 +53,6 @@ export function SignupForm({
     const confirmPwd = formData.get("confirm-password") as string;
 
     if (pwd !== confirmPwd) {
-      setError("Las contraseñas deben coincidir");
       toast.error("Error al registrarse",{
         description:"Las contraseñas no coinciden.",
       })
@@ -109,15 +106,13 @@ export function SignupForm({
       const data = await response.json();
 
       if (!response.ok) {
-        setError(data.message || "Ocurrió un error al crear la cuenta");
         toast.error("Error al registrarse",{
           description: data.message || "Ocurrió un error al crear la cuenta.",
         })
         setIsLoading(false);
         return;
       }
-    } catch (error) {
-      setError("Ocurrió un error al crear la cuenta");
+    } catch {
       setIsLoading(false);
       return;
     }

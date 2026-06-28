@@ -438,6 +438,7 @@ export default function TruckDetailPage() {
     [handleDeleteExpense, displayCurrency, getDisplayValue],
   )
 
+
   return (
     <div className="p-6 flex flex-col gap-4">
       <div className="flex items-center gap-3">
@@ -524,14 +525,7 @@ export default function TruckDetailPage() {
                 <MetricCard
                   title="Km actual"
                   value={`${truck.currentKm.toLocaleString("es-UY")} km`}
-                  subtitle={
-                    truck.lastKmUpdatedAt
-                      ? `Hace ${Math.floor(
-                          (Date.now() - new Date(truck.lastKmUpdatedAt).getTime()) /
-                            (1000 * 60 * 60 * 24)
-                        )} días`
-                      : undefined
-                  }
+                  subtitle={truck?.lastKmUpdatedAt ? formatDate(truck.lastKmUpdatedAt) : undefined}
                 />
               )}
               {truck?.estimatedMonthlyKm != null && (

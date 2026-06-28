@@ -21,7 +21,7 @@ import { z } from "zod";
 import { toast } from "sonner";
 import { Income } from "./columns";
 import { Expense } from "@/app/(dashboard)/egresos/columns";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Checkbox } from "@/components/ui/checkbox";
 
 type ActiveTrip = { id: string; origin: string; destination: string };
@@ -66,18 +66,18 @@ export default function AddIncomeForm({
   const todayIso = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
   const [activeTrip, setActiveTrip] = useState<ActiveTrip | null>(null);
 
-  async function fetchActiveTrip(truckId: string | null) {
+  const fetchActiveTrip = useCallback(async (truckId: string | null) => {
     if (!truckId || truckId === "none" || tripId) { setActiveTrip(null); return; }
     try {
       const res = await fetchWithAuth(`/api/trips/active?truckId=${truckId}`);
       if (res.ok) setActiveTrip(await res.json());
       else setActiveTrip(null);
     } catch { setActiveTrip(null); }
-  }
+  }, [tripId]);
 
   useEffect(() => {
     if (defaultTruckId && !tripId) fetchActiveTrip(defaultTruckId);
-  }, [defaultTruckId]);
+  }, [defaultTruckId, tripId, fetchActiveTrip]);
 
   const truckItems = [
     { label: "Sin asignar", value: "none" },
@@ -97,7 +97,7 @@ export default function AddIncomeForm({
     if (defaultSalaryCategory && !salaryCategoryId) {
       setSalaryCategoryId(defaultSalaryCategory.id);
     }
-  }, [categories]);
+  }, [defaultSalaryCategory, salaryCategoryId]);
 
   const {
     register,

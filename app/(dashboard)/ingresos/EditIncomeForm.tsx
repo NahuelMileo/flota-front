@@ -19,7 +19,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
 import { Income, normalizeIncomeType } from "./columns";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 
 type ActiveTrip = { id: string; origin: string; destination: string };
 
@@ -57,18 +57,18 @@ export default function EditIncomeForm({
 }) {
   const [activeTrip, setActiveTrip] = useState<ActiveTrip | null>(null);
 
-  async function fetchActiveTrip(truckId: string | null) {
+  const fetchActiveTrip = useCallback(async (truckId: string | null) => {
     if (!truckId || truckId === "none") { setActiveTrip(null); return; }
     try {
       const res = await fetchWithAuth(`/api/trips/active?truckId=${truckId}`);
       if (res.ok) setActiveTrip(await res.json());
       else setActiveTrip(null);
     } catch { setActiveTrip(null); }
-  }
+  }, []);
 
   useEffect(() => {
     if (income.truckId) fetchActiveTrip(income.truckId);
-  }, []);
+  }, [income.truckId, fetchActiveTrip]);
 
   const truckItems = [
     { label: "Sin asignar", value: "none" },

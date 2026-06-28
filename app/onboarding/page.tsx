@@ -22,7 +22,6 @@ export default function OnboardingPage() {
     if (!companyName?.trim()) return
 
     setIsCreating(true)
-    const accessToken = localStorage.getItem("accessToken");
     try {
       const response = await fetchWithAuth(
         `/api/tenants`,
@@ -56,8 +55,8 @@ export default function OnboardingPage() {
       setTimeout(() => {
         window.location.href = "/dashboard"
       }, 1500);
-     
-    } catch (error) {
+
+    } catch {
       toast.error("Error al crear la empresa", {
         description:
           "Ocurrió un error inesperado. Por favor, intenta de nuevo.",
@@ -109,7 +108,7 @@ export default function OnboardingPage() {
       setTimeout(() => {
         window.location.href = "/dashboard"
       }, 1500)
-    } catch (error) {
+    } catch {
       toast.error("Error al unirse a la empresa", {
         description:
           "Ocurrió un error inesperado. Por favor, intenta de nuevo.",
