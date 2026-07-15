@@ -334,10 +334,15 @@ function ChangePasswordSection() {
 
       if (!res.ok) {
         const data = await res.json().catch(() => ({}))
-        if (res.status === 400) {
+        const msg: string = data.message || ""
+        if (res.status === 400 && msg.startsWith("Current password")) {
           setErrors({ currentPassword: "La contraseña actual es incorrecta" })
+        } else if (res.status === 400 && msg.toLowerCase().includes("weak patterns")) {
+          setErrors({ newPassword: "La contraseña contiene patrones comunes débiles. Elegí una más única." })
+        } else if (res.status === 400 && msg.toLowerCase().includes("too weak")) {
+          setErrors({ newPassword: "La contraseña es muy débil. Combiná mayúsculas, minúsculas, números y símbolos." })
         } else {
-          toast.error(data.message || "Error al cambiar la contraseña")
+          toast.error(msg || "Error al cambiar la contraseña")
         }
         setIsLoading(false)
         return

@@ -103,8 +103,17 @@ export function SignupForm({
       const data = await response.json();
 
       if (!response.ok) {
+        const msg: string = data.message || ""
+        let description = msg || "Ocurrió un error al crear la cuenta."
+        if (response.status === 409) {
+          description = "Ya existe una cuenta con ese email o nombre de usuario."
+        } else if (msg.toLowerCase().includes("weak patterns")) {
+          description = "La contraseña contiene patrones comunes débiles. Elegí una más única."
+        } else if (msg.toLowerCase().includes("too weak")) {
+          description = "La contraseña es muy débil. Combiná mayúsculas, minúsculas, números y símbolos."
+        }
         toast.error("Error al registrarse",{
-          description: data.message || "Ocurrió un error al crear la cuenta.",
+          description,
         })
         setIsLoading(false);
         return;

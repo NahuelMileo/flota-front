@@ -134,12 +134,12 @@ export default function TripsPage() {
         `/api/trips/${trip.id}`,
         { method: "DELETE" }
       );
-      if (!res.ok) throw new Error();
+      if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.message || e.title || "Error al eliminar viaje"); }
 
       setTrips((prev) => prev.filter((t) => t.id !== trip.id));
       toast.success("Viaje eliminado");
-    } catch {
-      toast.error("Error al eliminar viaje");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Error al eliminar viaje");
     }
   }, []);
 

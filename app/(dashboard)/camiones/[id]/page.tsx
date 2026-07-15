@@ -347,14 +347,14 @@ export default function TruckDetailPage() {
 
   const handleDeleteIncome = useCallback(async (income: Income) => {
     const res = await fetchWithAuth(`/api/incomes/${income.id}`, { method: "DELETE" })
-    if (!res.ok) { toast.error("Error al eliminar ingreso"); return }
+    if (!res.ok) { const e = await res.json().catch(() => ({})); toast.error(e.message || e.title || "Error al eliminar ingreso"); return }
     toast.success("Ingreso eliminado")
     setAllIncomes((prev) => prev.filter((i) => i.id !== income.id))
   }, [])
 
   const handleDeleteExpense = useCallback(async (expense: Expense) => {
     const res = await fetchWithAuth(`/api/expenses/${expense.id}`, { method: "DELETE" })
-    if (!res.ok) { toast.error("Error al eliminar egreso"); return }
+    if (!res.ok) { const e = await res.json().catch(() => ({})); toast.error(e.message || e.title || "Error al eliminar egreso"); return }
     toast.success("Egreso eliminado")
     setAllExpenses((prev) => prev.filter((e) => e.id !== expense.id))
   }, [])

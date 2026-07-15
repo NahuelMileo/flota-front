@@ -43,7 +43,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { CalendarDays, Pencil, Trash2, TruckIcon } from "lucide-react"
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover"
+import { AlertTriangle, CalendarDays, CalendarPlus, Pencil, Power, Trash2, TruckIcon } from "lucide-react"
 import { AddCostModal } from "@/components/add-cost-modal"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -64,6 +69,18 @@ type CostTemplate = {
   expenseCategoryId: string | null
   categoryName: string | null
   truckLicensePlate: string | null
+  generatedUntilYear: number | null
+  generatedUntilMonth: number | null
+}
+
+// Meses que faltan entre el mes actual y el último generado (negativo si ya se cortó)
+function monthsUntilGenerated(t: CostTemplate): number | null {
+  if (t.generatedUntilYear == null || t.generatedUntilMonth == null) return null
+  const now = new Date()
+  return (
+    (t.generatedUntilYear * 12 + t.generatedUntilMonth) -
+    (now.getFullYear() * 12 + now.getMonth() + 1)
+  )
 }
 
 const editSchema = z.object({
@@ -120,12 +137,12 @@ function EditFixedCostModal({
           }),
         }
       )
-      if (!res.ok) throw new Error()
+      if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.message || e.title || "Error al actualizar costo fijo") }
       const updated = await res.json()
       toast.success("Costo fijo actualizado")
       onSuccess(updated)
-    } catch {
-      toast.error("Error al actualizar costo fijo")
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Error al actualizar costo fijo")
     }
   }
 
@@ -183,6 +200,161 @@ function EditFixedCostModal({
   )
 }
 
+function ExtendTemplatePopover({
+  template,
+  onSuccess,
+}: {
+  template: CostTemplate
+  onSuccess: (updated: CostTemplate) => void
+}) {
+  const [open, setOpen] = useState(false)
+  const [months, setMonths] = useState("12")
+  const [isSubmitting, setIsSubmitting] = useState(false)
+
+  async function handleExtend() {
+    const parsed = parseInt(months, 10)
+    if (isNaN(parsed) || parsed < 1 || parsed > 60) {
+      toast.error("Ingresá una cantidad de meses entre 1 y 60")
+      return
+    }
+    setIsSubmitting(true)
+    try {
+      const res = await fetchWithAuth(
+        `/api/costs/templates/${template.id}/extend`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ months: parsed }),
+        }
+      )
+      if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.message || e.title || "Error al expandir el costo fijo") }
+      const updated = await res.json()
+      toast.success("Costo fijo expandido")
+      onSuccess(updated)
+      setOpen(false)
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Error al expandir el costo fijo")
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger
+        render={
+          <button
+            title="Expandir generación"
+            className="p-1.5 rounded text-muted-foreground/50 hover:text-foreground hover:bg-muted transition-colors"
+          >
+            <CalendarPlus className="size-4" />
+          </button>
+        }
+      />
+      <PopoverContent className="w-56 p-3" align="end">
+        <p className="text-sm font-medium mb-1">Expandir generación</p>
+        <p className="text-xs text-muted-foreground mb-2">
+          Genera cuotas por los próximos meses (1 a 60).
+        </p>
+        <div className="flex gap-1.5">
+          <Input
+            value={months}
+            onChange={(e) => setMonths(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && handleExtend()}
+            type="number"
+            min={1}
+            max={60}
+            className="h-8 text-sm"
+            autoFocus
+          />
+          <Button size="sm" className="h-8" onClick={handleExtend} disabled={isSubmitting}>
+            Expandir
+          </Button>
+        </div>
+      </PopoverContent>
+    </Popover>
+  )
+}
+
+function ToggleActiveButton({
+  template,
+  onSuccess,
+}: {
+  template: CostTemplate
+  onSuccess: (updated: CostTemplate) => void
+}) {
+  const [isSubmitting, setIsSubmitting] = useState(false)
+
+  async function patchIsActive(isActive: boolean) {
+    setIsSubmitting(true)
+    try {
+      const res = await fetchWithAuth(
+        `/api/costs/templates/${template.id}`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ isActive }),
+        }
+      )
+      if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.message || e.title || "Error al actualizar el costo fijo") }
+      const updated = await res.json()
+      toast.success(isActive ? "Costo fijo reactivado" : "Costo fijo desactivado")
+      onSuccess(updated)
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Error al actualizar el costo fijo")
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  if (!template.isActive) {
+    return (
+      <button
+        title="Reactivar"
+        disabled={isSubmitting}
+        onClick={() => patchIsActive(true)}
+        className="p-1.5 rounded text-muted-foreground/50 hover:text-foreground hover:bg-muted transition-colors"
+      >
+        <Power className="size-4" />
+      </button>
+    )
+  }
+
+  return (
+    <AlertDialog>
+      <AlertDialogTrigger
+        render={
+          <button
+            title="Desactivar"
+            disabled={isSubmitting}
+            className="p-1.5 rounded text-muted-foreground/50 hover:text-foreground hover:bg-muted transition-colors"
+          >
+            <Power className="size-4" />
+          </button>
+        }
+      />
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>¿Desactivar costo fijo?</AlertDialogTitle>
+          <AlertDialogDescription>
+            <strong>{template.name}</strong> dejará de generar costos desde el mes que viene
+            y las cuotas futuras sin pagar se eliminarán.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+          <AlertDialogAction
+            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            onClick={() => patchIsActive(false)}
+          >
+            Desactivar
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  )
+}
+
 export default function CostosPage() {
   const { displayCurrency } = useCurrency()
   const [templates, setTemplates] = useState<CostTemplate[]>([])
@@ -215,7 +387,7 @@ export default function CostosPage() {
       `/api/costs/templates/${id}`,
       { method: "DELETE" }
     )
-    if (!res.ok) { toast.error("Error al eliminar el costo fijo"); return }
+    if (!res.ok) { const e = await res.json().catch(() => ({})); toast.error(e.message || e.title || "Error al eliminar el costo fijo"); return }
     toast.success("Costo fijo eliminado")
     setTemplates((prev) => prev.filter((t) => t.id !== id))
   }
@@ -298,6 +470,7 @@ export default function CostosPage() {
                 <th className="text-left px-4 py-2.5 font-medium text-muted-foreground">Alcance</th>
                 <th className="text-left px-4 py-2.5 font-medium text-muted-foreground">Camión</th>
                 <th className="text-right px-4 py-2.5 font-medium text-muted-foreground">Monto/mes</th>
+                <th className="text-left px-4 py-2.5 font-medium text-muted-foreground">Generado hasta</th>
                 <th className="px-4 py-2.5" />
               </tr>
             </thead>
@@ -348,8 +521,42 @@ export default function CostosPage() {
                       <p className="text-xs text-muted-foreground">total empresa</p>
                     )}
                   </td>
+                  <td className="px-4 py-3">
+                    {t.generatedUntilYear != null && t.generatedUntilMonth != null ? (
+                      (() => {
+                        const remaining = monthsUntilGenerated(t) ?? 0
+                        const label = `${String(t.generatedUntilMonth).padStart(2, "0")}/${t.generatedUntilYear}`
+                        if (t.isActive && remaining <= 2) {
+                          return (
+                            <span
+                              className="inline-flex items-center gap-1.5 text-amber-600"
+                              title="La generación está por cortarse — expandí el costo para que siga generando cuotas"
+                            >
+                              <AlertTriangle className="size-3.5" />
+                              <span className="tabular-nums font-medium">{label}</span>
+                            </span>
+                          )
+                        }
+                        return <span className="tabular-nums text-muted-foreground">{label}</span>
+                      })()
+                    ) : (
+                      <span className="text-muted-foreground">—</span>
+                    )}
+                  </td>
                   <td className="px-4 py-3 text-right">
                     <div className="flex items-center justify-end gap-1">
+                    <ExtendTemplatePopover
+                      template={t}
+                      onSuccess={(updated) =>
+                        setTemplates((prev) => prev.map((x) => x.id === updated.id ? updated : x))
+                      }
+                    />
+                    <ToggleActiveButton
+                      template={t}
+                      onSuccess={(updated) =>
+                        setTemplates((prev) => prev.map((x) => x.id === updated.id ? updated : x))
+                      }
+                    />
                     <button
                       onClick={() => setEditingTemplate(t)}
                       className="p-1.5 rounded text-muted-foreground/50 hover:text-foreground hover:bg-muted transition-colors"

@@ -35,7 +35,10 @@ const tripSchema = z.object({
   finalKm: z.number().positive("Debe ser mayor a 0").nullable().optional(),
   status: z.enum(["1", "2", "3", "4"]),
   notes: z.string().optional(),
-});
+}).refine(
+  (data) => data.initialKm == null || data.finalKm == null || data.finalKm >= data.initialKm,
+  { message: "El km final no puede ser menor al km inicial", path: ["finalKm"] }
+);
 
 type TripFormValues = z.infer<typeof tripSchema>;
 

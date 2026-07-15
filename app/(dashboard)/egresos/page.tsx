@@ -186,12 +186,12 @@ export default function ExpensePage() {
         `/api/expenses/${expense.id}`,
         { method: "DELETE" }
       );
-      if (!res.ok) throw new Error();
+      if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.message || e.title || "Error al eliminar egreso"); }
 
       setExpenses((prev) => prev.filter((e) => e.id !== expense.id));
       toast.success("Egreso eliminado");
-    } catch {
-      toast.error("Error al eliminar egreso");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Error al eliminar egreso");
     }
   }, []);
 
