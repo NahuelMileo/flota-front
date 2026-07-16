@@ -8,8 +8,8 @@ export type CostEntry = {
   type: "Fixed" | "Installment"
   scope?: "PerTruck" | "CompanyWide" | null
   isPaid: boolean
-  costTemplateId?: string | null
-  costTemplateName?: string | null
+  fixedCostId?: string | null
+  fixedCostName?: string | null
   installmentPlanId?: string | null
   installmentPlanName?: string | null
   truckId?: string | null
@@ -37,7 +37,7 @@ export type CostRow = {
   name: string
   type: "Fixed" | "Installment"
   scope?: "PerTruck" | "CompanyWide" | null
-  costTemplateId?: string | null
+  fixedCostId?: string | null
   installmentPlanId?: string | null
   months: { [m: number]: CostEntry | null }
 }

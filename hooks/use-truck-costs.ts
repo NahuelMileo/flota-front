@@ -127,7 +127,7 @@ export function useTruckCosts(truckId: string, year: number) {
             name: entry.name,
             type: entry.type,
             scope: entry.scope,
-            costTemplateId: entry.costTemplateId,
+            fixedCostId: entry.fixedCostId,
             installmentPlanId: entry.installmentPlanId,
             months: {},
           })

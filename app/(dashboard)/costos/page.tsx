@@ -7,7 +7,7 @@ import { formatCurrency, type DisplayCurrency } from "@/lib/format"
 import { useCurrency } from "@/context/currency-context"
 import { useDateFilter } from "@/context/date-filter-context"
 
-function getTemplateDisplayAmount(t: CostTemplate, currency: DisplayCurrency): number {
+function getTemplateDisplayAmount(t: FixedCost, currency: DisplayCurrency): number {
   if (currency === "USD") return t.valueUSD ?? t.amount
   if (currency === "UYU") return t.valueUYU ?? t.amount
   return t.valueBRL ?? t.amount
@@ -57,7 +57,7 @@ import { z } from "zod"
 import type { ExpenseCategory } from "@/types/expense-category"
 import type { CostEntry } from "@/types/costs"
 
-type CostTemplate = {
+type FixedCost = {
   id: string
   name: string
   amount: number
@@ -76,7 +76,7 @@ type CostTemplate = {
 }
 
 // Meses que faltan entre el mes actual y el último generado (negativo si ya se cortó)
-function monthsUntilGenerated(t: CostTemplate): number | null {
+function monthsUntilGenerated(t: FixedCost): number | null {
   if (t.generatedUntilYear == null || t.generatedUntilMonth == null) return null
   const now = new Date()
   return (
@@ -101,10 +101,10 @@ function EditFixedCostModal({
   onClose,
   onSuccess,
 }: {
-  template: CostTemplate
+  template: FixedCost
   categories: ExpenseCategory[]
   onClose: () => void
-  onSuccess: (updated: CostTemplate) => void
+  onSuccess: (updated: FixedCost) => void
 }) {
   const {
     register,
@@ -206,8 +206,8 @@ function ExtendTemplatePopover({
   template,
   onSuccess,
 }: {
-  template: CostTemplate
-  onSuccess: (updated: CostTemplate) => void
+  template: FixedCost
+  onSuccess: (updated: FixedCost) => void
 }) {
   const [open, setOpen] = useState(false)
   const [months, setMonths] = useState("12")
@@ -282,8 +282,8 @@ function ToggleActiveButton({
   template,
   onSuccess,
 }: {
-  template: CostTemplate
-  onSuccess: (updated: CostTemplate) => void
+  template: FixedCost
+  onSuccess: (updated: FixedCost) => void
 }) {
   const [isSubmitting, setIsSubmitting] = useState(false)
 
@@ -360,11 +360,11 @@ function ToggleActiveButton({
 export default function CostosPage() {
   const { displayCurrency } = useCurrency()
   const { selectedDate } = useDateFilter()
-  const [templates, setTemplates] = useState<CostTemplate[]>([])
+  const [templates, setTemplates] = useState<FixedCost[]>([])
   const [monthlyEntries, setMonthlyEntries] = useState<CostEntry[]>([])
   const [categories, setCategories] = useState<ExpenseCategory[]>([])
   const [isLoading, setIsLoading] = useState(true)
-  const [editingTemplate, setEditingTemplate] = useState<CostTemplate | null>(null)
+  const [editingTemplate, setEditingTemplate] = useState<FixedCost | null>(null)
 
   const fetchTemplates = useCallback(async () => {
     setIsLoading(true)

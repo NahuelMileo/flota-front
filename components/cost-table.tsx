@@ -193,7 +193,7 @@ export function CostTable({
                       Empresa
                     </span>
                   )}
-                  {onDeleteTemplate && row.costTemplateId && (
+                  {onDeleteTemplate && row.fixedCostId && (
                     <AlertDialog>
                       <AlertDialogTrigger
                         render={
@@ -213,7 +213,7 @@ export function CostTable({
                           <AlertDialogCancel>Cancelar</AlertDialogCancel>
                           <AlertDialogAction
                             className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                            onClick={() => onDeleteTemplate(row.costTemplateId!)}
+                            onClick={() => onDeleteTemplate(row.fixedCostId!)}
                           >
                             Eliminar
                           </AlertDialogAction>
@@ -249,7 +249,7 @@ export function CostTable({
                       </AlertDialogContent>
                     </AlertDialog>
                   )}
-                  {!row.costTemplateId && !row.installmentPlanId && onDeleteEntry && (() => {
+                  {!row.fixedCostId && !row.installmentPlanId && onDeleteEntry && (() => {
                     const firstEntry = Object.values(row.months).find(Boolean)
                     if (!firstEntry) return null
                     return (
