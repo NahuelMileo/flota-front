@@ -23,7 +23,6 @@ import type { Maintenance, MaintenanceConcept, CreateMaintenanceDto } from "@/ty
 import { useState } from "react";
 
 const typeMap: Record<string, 0 | 1> = { "Preventive": 0, "Corrective": 1 };
-const currencyMap: Record<string, 0 | 1 | 2> = { "BRL": 0, "USD": 1, "UYU": 2 };
 
 const maintenanceSchema = z.object({
   maintenanceConceptId: z.string().min(1, "El concepto es requerido"),
@@ -33,7 +32,7 @@ const maintenanceSchema = z.object({
   kilometers: z.number().positive("Los km deben ser mayor a 0"),
   value: z.number().nonnegative("El valor no puede ser negativo").optional(),
   currency: z.enum(["BRL", "USD", "UYU"]).optional(),
-  notes: z.string().min(1, "Las notas son requeridas"),
+  notes: z.string().optional(),
 });
 
 type MaintenanceFormValues = z.infer<typeof maintenanceSchema>;
@@ -92,7 +91,7 @@ export default function EditMaintenanceForm({
         type: typeMap[data.type],
         notes: data.notes,
         value: data.value && data.value > 0 ? data.value : undefined,
-        currency: data.currency ? currencyMap[data.currency] : undefined,
+        currency: data.currency,
         date: data.date + "T00:00:00Z",
         kilometers: data.kilometers,
         truckId: data.truckId,
@@ -298,7 +297,7 @@ export default function EditMaintenanceForm({
 
       {/* NOTAS */}
       <Field>
-        <Label>Notas *</Label>
+        <Label>Notas</Label>
         <Controller
           name="notes"
           control={control}

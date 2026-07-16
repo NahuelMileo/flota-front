@@ -35,9 +35,9 @@ export type Maintenance = {
 
 export type CreateMaintenanceDto = {
   type: 0 | 1  // 0 = Preventive, 1 = Corrective
-  notes: string
+  notes?: string | null
   value?: number | null
-  currency?: 0 | 1 | 2  // 0 = BRL, 1 = USD, 2 = UYU
+  currency?: "BRL" | "USD" | "UYU"
   date: string  // ISO datetime
   kilometers: number
   truckId: string
