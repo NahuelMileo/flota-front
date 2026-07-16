@@ -120,7 +120,7 @@ export default function DashboardPage() {
   // Last 6 months for chart
   const monthlyData = useMemo(() => {
     return Array.from({ length: 6 }, (_, i) => {
-      const d = new Date()
+      const d = new Date(selectedDate ?? new Date())
       d.setDate(1)
       d.setMonth(d.getMonth() - (5 - i))
       const label = d.toLocaleDateString("es-UY", { month: "short", year: "2-digit" })
@@ -141,7 +141,7 @@ export default function DashboardPage() {
 
       return { month: label, ingresos: monthIncome, egresos: monthExpense }
     })
-  }, [incomes, expenses, getDisplayValue])
+  }, [incomes, expenses, selectedDate, getDisplayValue])
 
   return (
     <div className="p-6 flex flex-col gap-4">

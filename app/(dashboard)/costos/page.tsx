@@ -5,6 +5,7 @@ import Link from "next/link"
 import { fetchWithAuth } from "@/lib/api"
 import { formatCurrency, type DisplayCurrency } from "@/lib/format"
 import { useCurrency } from "@/context/currency-context"
+import { useDateFilter } from "@/context/date-filter-context"
 
 function getTemplateDisplayAmount(t: CostTemplate, currency: DisplayCurrency): number {
   if (currency === "USD") return t.valueUSD ?? t.amount
@@ -54,6 +55,7 @@ import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
 import type { ExpenseCategory } from "@/types/expense-category"
+import type { CostEntry } from "@/types/costs"
 
 type CostTemplate = {
   id: string
@@ -86,7 +88,10 @@ function monthsUntilGenerated(t: CostTemplate): number | null {
 const editSchema = z.object({
   name: z.string().min(1, "El nombre es requerido"),
   amount: z.number().positive("El valor debe ser mayor a 0"),
-  expenseCategoryId: z.string().nullable(),
+  expenseCategoryId: z
+    .string()
+    .nullable()
+    .refine((v) => v !== null && v !== "none", { message: "La categoría es requerida" }),
 })
 type EditFormValues = z.infer<typeof editSchema>
 
@@ -118,10 +123,7 @@ function EditFixedCostModal({
 
   const expenseCategoryId = watch("expenseCategoryId")
 
-  const categoryItems = [
-    { label: "Sin categoría", value: "none" },
-    ...categories.map((c) => ({ label: c.name, value: c.id })),
-  ]
+  const categoryItems = categories.map((c) => ({ label: c.name, value: c.id }))
 
   async function onSubmit(data: EditFormValues) {
     try {
@@ -164,7 +166,7 @@ function EditFixedCostModal({
                 <Label>Categoría</Label>
                 <Select
                   items={categoryItems}
-                  value={expenseCategoryId ?? "none"}
+                  value={expenseCategoryId ?? null}
                   onValueChange={(v) => setValue("expenseCategoryId", v === "none" ? null : (v ?? null), { shouldValidate: true })}
                 >
                   <SelectTrigger className="w-full">
@@ -357,7 +359,9 @@ function ToggleActiveButton({
 
 export default function CostosPage() {
   const { displayCurrency } = useCurrency()
+  const { selectedDate } = useDateFilter()
   const [templates, setTemplates] = useState<CostTemplate[]>([])
+  const [monthlyEntries, setMonthlyEntries] = useState<CostEntry[]>([])
   const [categories, setCategories] = useState<ExpenseCategory[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [editingTemplate, setEditingTemplate] = useState<CostTemplate | null>(null)
@@ -365,20 +369,26 @@ export default function CostosPage() {
   const fetchTemplates = useCallback(async () => {
     setIsLoading(true)
     try {
-      const [templatesRes, catsRes] = await Promise.all([
+      const activeMonth = selectedDate ?? new Date()
+      const [templatesRes, monthlyRes, catsRes] = await Promise.all([
         fetchWithAuth(`/api/costs/templates`),
+        fetchWithAuth(`/api/costs/monthly?month=${activeMonth.getMonth() + 1}&year=${activeMonth.getFullYear()}`),
         fetchWithAuth(`/api/expense-categories`),
       ])
-      if (!templatesRes.ok) throw new Error()
-      const data = await templatesRes.json()
-      setTemplates(data)
+      if (!templatesRes.ok || !monthlyRes.ok) throw new Error()
+      const [data, monthlyData] = await Promise.all([
+        templatesRes.json(),
+        monthlyRes.json(),
+      ])
+      setTemplates(Array.isArray(data) ? data : [])
+      setMonthlyEntries(Array.isArray(monthlyData) ? monthlyData : [])
       if (catsRes.ok) setCategories(await catsRes.json())
     } catch {
       toast.error("Error al cargar costos fijos")
     } finally {
       setIsLoading(false)
     }
-  }, [])
+  }, [selectedDate])
 
   useEffect(() => { fetchTemplates() }, [fetchTemplates])
 
@@ -392,17 +402,24 @@ export default function CostosPage() {
     setTemplates((prev) => prev.filter((t) => t.id !== id))
   }
 
-  const monthlyTotal = templates
-    .filter((t) => t.isActive)
-    .reduce((acc, t) => acc + getTemplateDisplayAmount(t, displayCurrency), 0)
+  const getEntryDisplayAmount = (entry: CostEntry): number => {
+    if (displayCurrency === "USD") return entry.valueUSD ?? entry.amount
+    if (displayCurrency === "UYU") return entry.valueUYU ?? entry.amount
+    return entry.valueBRL ?? entry.amount
+  }
 
-  const companyWideTotal = templates
-    .filter((t) => t.isActive && t.scope === "CompanyWide")
-    .reduce((acc, t) => acc + getTemplateDisplayAmount(t, displayCurrency), 0)
+  // Los KPI representan el mes actual. Las plantillas son configuración y pueden
+  // diferir de las entradas ya generadas (por cambios de monto o vigencia).
+  const monthlyTotal = monthlyEntries
+    .reduce((acc, entry) => acc + getEntryDisplayAmount(entry), 0)
 
-  const perTruckTotal = templates
-    .filter((t) => t.isActive && t.scope === "PerTruck")
-    .reduce((acc, t) => acc + getTemplateDisplayAmount(t, displayCurrency), 0)
+  const companyWideTotal = monthlyEntries
+    .filter((entry) => entry.truckId == null)
+    .reduce((acc, entry) => acc + getEntryDisplayAmount(entry), 0)
+
+  const perTruckTotal = monthlyEntries
+    .filter((entry) => entry.truckId != null)
+    .reduce((acc, entry) => acc + getEntryDisplayAmount(entry), 0)
 
   return (
     <div className="p-6 flex flex-col gap-5">
@@ -415,7 +432,7 @@ export default function CostosPage() {
         </div>
         <div className="flex items-center gap-2">
           <Link
-            href={`/costos/mensual?month=${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, "0")}`}
+            href={`/costos/mensual?month=${(selectedDate ?? new Date()).getFullYear()}-${String((selectedDate ?? new Date()).getMonth() + 1).padStart(2, "0")}`}
             className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors border rounded-md px-3 py-1.5"
           >
             <CalendarDays className="size-4" />

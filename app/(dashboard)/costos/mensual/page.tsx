@@ -181,6 +181,7 @@ function MonthlyCostsContent() {
         }
       )
       if (!res.ok) throw new Error()
+      await fetchEntries()
       toast.success("Monto actualizado")
     } catch {
       setEntries((prev) =>
@@ -419,7 +420,7 @@ function MonthlyCostsContent() {
                           </td>
                           <td className="px-3 py-2.5">
                             <Badge variant="outline" className="text-xs">
-                              {e.type === "Fixed" ? "Fijo" : "Variable"}
+                              {e.type === "Fixed" ? "Fijo" : "Cuota"}
                             </Badge>
                           </td>
                           <td className="px-3 py-2.5 text-right">

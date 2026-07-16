@@ -62,7 +62,7 @@ export default function TruckCostsPage() {
                 </span>
               )}
             </h1>
-            <p className="text-sm text-muted-foreground mt-0.5">Costos fijos y variables</p>
+            <p className="text-sm text-muted-foreground mt-0.5">Costos fijos y cuotas</p>
           </div>
         ) : (
           <h1 className="text-xl font-bold">Camión no encontrado</h1>
@@ -98,14 +98,6 @@ export default function TruckCostsPage() {
 
       {/* Legend */}
       <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
-        <span className="flex items-center gap-1.5">
-          <span className="inline-block size-3 rounded-sm bg-green-200 dark:bg-green-800" />
-          Costo fijo
-        </span>
-        <span className="flex items-center gap-1.5">
-          <span className="inline-block size-3 rounded-sm bg-background border" />
-          Costo variable
-        </span>
         <span className="flex items-center gap-1.5">
           <span className="inline-block size-3 rounded-sm bg-cyan-200 dark:bg-cyan-800" />
           Costo x km real

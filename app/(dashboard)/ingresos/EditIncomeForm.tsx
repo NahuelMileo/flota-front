@@ -71,7 +71,7 @@ export default function EditIncomeForm({
   }, [income.truckId, fetchActiveTrip]);
 
   const truckItems = [
-    { label: "Sin asignar", value: "none" },
+    { label: "Empresa", value: "none" },
     ...trucks.map((t) => ({
       label: `${t.licensePlate}${t.model ? ` - ${t.model}` : ""}`,
       value: t.id,

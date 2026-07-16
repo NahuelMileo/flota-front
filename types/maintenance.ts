@@ -5,12 +5,14 @@ export type MaintenanceConcept = {
   dateInterval?: number | null
   lastKilometers?: number | null
   lastMaintenanceDate?: string | null
+  expenseCategoryId?: string | null
 }
 
 export type CreateMaintenanceConceptDto = {
   name: string
   kilometerInterval?: number | null
   dateInterval?: number | null
+  expenseCategoryId: string
 }
 
 export type Maintenance = {

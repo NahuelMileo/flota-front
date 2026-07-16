@@ -183,19 +183,9 @@ export function CostTable({
           {costRows.map((row) => (
             <tr
               key={`${row.name}__${row.type}`}
-              className={cn(
-                "border-b last:border-b-0 hover:brightness-95 transition-colors",
-                row.type === "Fixed"
-                  ? "bg-green-50 dark:bg-green-950/20"
-                  : "bg-background"
-              )}
+              className="border-b last:border-b-0 bg-background hover:brightness-95 transition-colors"
             >
-              <td className={cn(
-                "sticky left-0 z-10 px-3 py-1 font-medium text-xs max-w-44",
-                row.type === "Fixed"
-                  ? "bg-green-50 dark:bg-green-950/20"
-                  : "bg-background"
-              )}>
+              <td className="sticky left-0 z-10 bg-background px-3 py-1 font-medium text-xs max-w-44">
                 <div className="flex items-center gap-1 min-w-0">
                   <span className="truncate flex-1">{row.name}</span>
                   {row.scope === "CompanyWide" && (
@@ -231,7 +221,7 @@ export function CostTable({
                       </AlertDialogContent>
                     </AlertDialog>
                   )}
-                  {row.type === "Variable" && row.installmentPlanId && onDeleteInstallmentPlan && (
+                  {row.installmentPlanId && onDeleteInstallmentPlan && (
                     <AlertDialog>
                       <AlertDialogTrigger
                         render={
@@ -259,7 +249,7 @@ export function CostTable({
                       </AlertDialogContent>
                     </AlertDialog>
                   )}
-                  {row.type === "Variable" && !row.installmentPlanId && onDeleteEntry && (() => {
+                  {!row.costTemplateId && !row.installmentPlanId && onDeleteEntry && (() => {
                     const firstEntry = Object.values(row.months).find(Boolean)
                     if (!firstEntry) return null
                     return (
@@ -273,7 +263,7 @@ export function CostTable({
                         />
                         <AlertDialogContent>
                           <AlertDialogHeader>
-                            <AlertDialogTitle>¿Eliminar costo variable?</AlertDialogTitle>
+                            <AlertDialogTitle>¿Eliminar costo?</AlertDialogTitle>
                             <AlertDialogDescription>
                               Se eliminará <strong>{row.name}</strong>.
                             </AlertDialogDescription>

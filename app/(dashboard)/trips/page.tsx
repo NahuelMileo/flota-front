@@ -93,15 +93,15 @@ export default function TripsPage() {
   const filteredTrips = useMemo(() => {
     return trips.filter((trip) => {
       if (selectedDate) {
-        const isActive = trip.status === "InProgress" || trip.status === "Scheduled";
-        if (!isActive) {
-          const date = new Date(trip.departureDate);
-          if (
-            date.getMonth() !== selectedDate.getMonth() ||
-            date.getFullYear() !== selectedDate.getFullYear()
-          )
-            return false;
-        }
+        const [year, month] = trip.departureDate
+          .split("T")[0]
+          .split("-")
+          .map(Number);
+        if (
+          month - 1 !== selectedDate.getMonth() ||
+          year !== selectedDate.getFullYear()
+        )
+          return false;
       }
       if (showOpenOnly && trip.status !== "InProgress") return false;
       if (selectedTruckId && trip.truckId !== selectedTruckId) return false;

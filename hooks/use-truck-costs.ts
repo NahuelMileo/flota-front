@@ -26,24 +26,24 @@ export function useTruckCosts(truckId: string, year: number) {
         return
       }
 
-      const [summaryRes, ...monthlyResponses] = await Promise.all([
+      const [summaryRes, yearlyRes] = await Promise.all([
         fetchWithAuth(`/api/costs/summary?truckId=${truckId}&year=${year}`),
-        ...Array.from({ length: 12 }, (_, i) =>
-          fetchWithAuth(`/api/costs/monthly?truckId=${truckId}&month=${i + 1}&year=${year}`)
-        ),
+        fetchWithAuth(`/api/costs/yearly?truckId=${truckId}&year=${year}`),
       ])
 
       const summaryData = summaryRes.ok ? await summaryRes.json() : []
-      const monthlyJsons = await Promise.all(
-        monthlyResponses.map((r) => (r.ok ? r.json() : Promise.resolve([])))
-      )
+      const yearlyData = yearlyRes.ok ? await yearlyRes.json() : []
 
       setSummary(Array.isArray(summaryData) ? summaryData : [])
 
       const all: AllMonthsData = {}
-      monthlyJsons.forEach((data, i) => {
-        all[i + 1] = Array.isArray(data) ? data : []
-      })
+      for (let m = 1; m <= 12; m++) all[m] = []
+      for (const entry of (Array.isArray(yearlyData) ? yearlyData : [])) {
+        // Las cuotas de planes (Installment) no se muestran en la tabla de costos:
+        // ya están registradas como egresos del camión
+        if (entry.type === "Installment") continue
+        if (entry.month >= 1 && entry.month <= 12) all[entry.month].push(entry)
+      }
       setMonthsData(all)
     } catch {
       toast.error("Error al cargar costos")
@@ -100,6 +100,7 @@ export function useTruckCosts(truckId: string, year: number) {
           { method: "PATCH", body: JSON.stringify({ amount }) }
         )
         if (!res.ok) throw new Error()
+        await fetchAll()
         toast.success("Monto actualizado")
       } catch {
         setMonthsData((prev) => ({
@@ -111,7 +112,7 @@ export function useTruckCosts(truckId: string, year: number) {
         toast.error("Error al actualizar el monto")
       }
     },
-    [monthsData]
+    [monthsData, fetchAll]
   )
 
   const costRows: CostRow[] = (() => {

@@ -41,7 +41,6 @@ import EditExpenseForm from "@/app/(dashboard)/egresos/EditExpenseForm"
 import type { Income } from "@/app/(dashboard)/ingresos/columns"
 import type { Expense } from "@/app/(dashboard)/egresos/columns"
 import type { Truck } from "@/types/truck"
-import type { CostEntry } from "@/types/costs"
 import { useOdometerReadings } from "@/hooks/use-odometer-readings"
 
 type Trip = {
@@ -302,7 +301,6 @@ export default function TruckDetailPage() {
   const [allTrips, setAllTrips] = useState<Trip[]>([])
   const [allIncomes, setAllIncomes] = useState<Income[]>([])
   const [allExpenses, setAllExpenses] = useState<Expense[]>([])
-  const [monthCostEntries, setMonthCostEntries] = useState<CostEntry[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [editingIncome, setEditingIncome] = useState<Income | null>(null)
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null)
@@ -333,17 +331,6 @@ export default function TruckDetailPage() {
       .catch(() => toast.error("Error al cargar datos del camión"))
       .finally(() => setIsLoading(false))
   }, [id, router])
-
-  // Costos fijos del mes: entries con valueUSD/BRL/UYU (el summary no trae montos convertidos)
-  useEffect(() => {
-    const date = selectedDate ?? new Date()
-    const month = date.getMonth() + 1
-    const year = date.getFullYear()
-    fetchWithAuth(`/api/costs/monthly?truckId=${id}&month=${month}&year=${year}`)
-      .then((r) => (r.ok ? r.json() : []))
-      .then((data) => setMonthCostEntries(Array.isArray(data) ? data : []))
-      .catch(() => setMonthCostEntries([]))
-  }, [id, selectedDate])
 
   const handleDeleteIncome = useCallback(async (income: Income) => {
     const res = await fetchWithAuth(`/api/incomes/${income.id}`, { method: "DELETE" })
@@ -391,12 +378,10 @@ export default function TruckDetailPage() {
     const date = selectedDate ?? new Date()
     const year = date.getFullYear()
     const month = date.getMonth()
-    const firstOfMonth = new Date(year, month, 1)
-    const lastOfMonth = new Date(year, month + 1, 0, 23, 59, 59, 999)
 
     const inMonth = odometerReadings.filter((r) => {
       const d = new Date(r.readingDateUtc)
-      return d >= firstOfMonth && d <= lastOfMonth
+      return d.getUTCFullYear() === year && d.getUTCMonth() === month
     })
 
     if (inMonth.length < 2) return null
@@ -413,20 +398,15 @@ export default function TruckDetailPage() {
   const kmForMetrics = odometerResult?.km ?? (totalKm > 0 ? totalKm : null)
   const revenuePerKm = useMemo(() => kmForMetrics != null ? totalIncome / kmForMetrics : null, [totalIncome, kmForMetrics])
 
-  const monthlyCost = useMemo(
-    () => monthCostEntries.reduce((acc, e) => acc + getDisplayValue(e), 0),
-    [monthCostEntries, getDisplayValue]
-  )
-
   const totalCostPerKm = useMemo(() => {
     if (kmForMetrics == null) return null
-    return (totalExpense + monthlyCost) / kmForMetrics
-  }, [totalExpense, monthlyCost, kmForMetrics])
+    return totalExpense / kmForMetrics
+  }, [totalExpense, kmForMetrics])
 
   const profitPerKm = useMemo(() => {
     if (kmForMetrics == null) return null
-    return (totalIncome - totalExpense - monthlyCost) / kmForMetrics
-  }, [totalIncome, totalExpense, monthlyCost, kmForMetrics])
+    return (totalIncome - totalExpense) / kmForMetrics
+  }, [totalIncome, totalExpense, kmForMetrics])
 
   const tripCols = useMemo(() => buildTripColumns(), [])
   const incomeCols = useMemo(
@@ -487,8 +467,8 @@ export default function TruckDetailPage() {
         <>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <TotalIncomeCard total={totalIncome} />
-            <TotalExpenseCard total={totalExpense + monthlyCost} />
-            <NetBalanceCard income={totalIncome} expense={totalExpense + monthlyCost} />
+            <TotalExpenseCard total={totalExpense} />
+            <NetBalanceCard income={totalIncome} expense={totalExpense} />
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <MetricCard
@@ -500,13 +480,13 @@ export default function TruckDetailPage() {
             <MetricCard
               title="Costo/km total"
               value={totalCostPerKm !== null ? `${formatCurrency2(totalCostPerKm, displayCurrency)}/km` : "—"}
-              subtitle={kmForMetrics == null ? "Sin km registrados" : "Egresos + costos fijos / km"}
+              subtitle={kmForMetrics == null ? "Sin km registrados" : "Egresos totales / km"}
               valueColor="text-red-600"
             />
             <MetricCard
               title="Utilidad/km"
               value={profitPerKm !== null ? `${formatCurrency2(profitPerKm, displayCurrency)}/km` : "—"}
-              subtitle={kmForMetrics == null ? "Sin km registrados" : "Ingresos − egresos − costos fijos / km"}
+              subtitle={kmForMetrics == null ? "Sin km registrados" : "Ingresos − egresos / km"}
               valueColor={profitPerKm !== null ? (profitPerKm >= 0 ? "text-green-600" : "text-red-600") : undefined}
             />
           </div>

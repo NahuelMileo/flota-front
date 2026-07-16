@@ -30,7 +30,7 @@ type Props = {
 export function IncomeByTruckChart({ incomes, displayCurrency }: Props) {
   const data = Object.entries(
     incomes.reduce((acc, i) => {
-      const label = i.truckLicensePlate ?? "Sin asignar";
+      const label = i.truckLicensePlate ?? "Empresa";
       acc[label] = (acc[label] ?? 0) + getDisplayValue(i, displayCurrency);
       return acc;
     }, {} as Record<string, number>)

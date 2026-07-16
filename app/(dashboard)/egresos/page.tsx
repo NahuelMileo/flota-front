@@ -242,6 +242,10 @@ export default function ExpensePage() {
 
             <div className="px-4 pb-6">
               <AddExpenseForm
+                onInstallmentsCreated={() => {
+                  setIsAddDialogOpen(false);
+                  fetchExpenses();
+                }}
                 trucks={trucks}
                 categories={categories}
                 onSuccess={handleAddExpense}

@@ -37,7 +37,10 @@ const expenseSchema = z.object({
   value: z.number().positive("El valor debe ser mayor a 0"),
   date: z.string().min(1, "La fecha es requerida"),
   truckId: z.string().nullable(),
-  expenseCategoryId: z.string().nullable(),
+  expenseCategoryId: z
+    .string()
+    .nullable()
+    .refine((v) => v !== null && v !== "none", { message: "La categoría es requerida" }),
   currency: z.enum(["USD", "BRL", "UYU"]),
   kilometers: z.number().positive("Debe ser mayor a 0").nullable(),
   liters: z.number().positive("Debe ser mayor a 0").nullable(),
@@ -72,17 +75,14 @@ export default function EditExpenseForm({
   }, [expense.truckId, fetchActiveTrip]);
 
   const truckItems = [
-    { label: "Sin asignar", value: "none" },
+    { label: "Empresa", value: "none" },
     ...trucks.map((t) => ({
       label: `${t.licensePlate}`,
       value: t.id,
     })),
   ];
 
-  const categoryItems = [
-    { label: "Sin categoría", value: "none" },
-    ...categories.map((c) => ({ label: c.name, value: c.id })),
-  ];
+  const categoryItems = categories.map((c) => ({ label: c.name, value: c.id }));
 
   const {
     register,
@@ -246,7 +246,7 @@ export default function EditExpenseForm({
             render={({ field }) => (
               <Select
                 items={categoryItems}
-                value={field.value ?? "none"}
+                value={field.value ?? null}
                 onValueChange={(value) => field.onChange(value === "none" ? null : value)}
               >
                 <SelectTrigger className="w-full">
@@ -264,6 +264,7 @@ export default function EditExpenseForm({
               </Select>
             )}
           />
+          <FieldError errors={[errors.expenseCategoryId]} />
         </Field>
 
         {isFuelType && (

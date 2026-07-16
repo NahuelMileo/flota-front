@@ -4,28 +4,44 @@ import { Button } from "@/components/ui/button";
 import { Field, FieldError } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { fetchWithAuth } from "@/lib/api";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
 import type { MaintenanceConcept, CreateMaintenanceConceptDto } from "@/types/maintenance";
+import type { ExpenseCategory } from "@/types/expense-category";
 import { useState } from "react";
 
 const conceptSchema = z.object({
   name: z.string().min(1, "El nombre es requerido"),
   kilometerInterval: z.number().positive().optional().nullable(),
   dateInterval: z.number().positive().optional().nullable(),
+  expenseCategoryId: z
+    .string()
+    .nullable()
+    .refine((v) => v !== null, { message: "La categoría es requerida" }),
 });
 
 type ConceptFormValues = z.infer<typeof conceptSchema>;
 
 export default function AddConceptForm({
+  categories,
   onSuccess,
 }: {
+  categories: ExpenseCategory[];
   onSuccess: (concept: MaintenanceConcept) => void;
 }) {
   const [isLoading, setIsLoading] = useState(false);
+  const categoryItems = categories.map((c) => ({ label: c.name, value: c.id }));
 
   const {
     control,
@@ -34,12 +50,13 @@ export default function AddConceptForm({
     register: formRegister,
     formState: { errors },
     setError,
-  } = useForm<ConceptFormValues>({
+  } = useForm({
     resolver: zodResolver(conceptSchema),
     defaultValues: {
       name: "",
       kilometerInterval: undefined,
       dateInterval: undefined,
+      expenseCategoryId: null as string | null,
     },
   });
 
@@ -50,6 +67,7 @@ export default function AddConceptForm({
         name: data.name,
         kilometerInterval: data.kilometerInterval ?? null,
         dateInterval: data.dateInterval ?? null,
+        expenseCategoryId: data.expenseCategoryId!,
       };
 
       const res = await fetchWithAuth("/api/maintenances/concepts", {
@@ -92,6 +110,38 @@ export default function AddConceptForm({
           )}
         />
         {errors.name && <FieldError>{errors.name.message}</FieldError>}
+      </Field>
+
+      {/* CATEGORÍA */}
+      <Field>
+        <Label>Categoría del gasto *</Label>
+        <Controller
+          name="expenseCategoryId"
+          control={control}
+          render={({ field }) => (
+            <Select
+              items={categoryItems}
+              value={field.value ?? null}
+              onValueChange={(v) => field.onChange(v || null)}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Seleccionar categoría" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectGroup>
+                  {categoryItems.map((item) => (
+                    <SelectItem key={item.value} value={item.value}>
+                      {item.label}
+                    </SelectItem>
+                  ))}
+                </SelectGroup>
+              </SelectContent>
+            </Select>
+          )}
+        />
+        {errors.expenseCategoryId && (
+          <FieldError>{errors.expenseCategoryId.message}</FieldError>
+        )}
       </Field>
 
       {/* INTERVALO KM */}

@@ -5,7 +5,7 @@ export type CostEntry = {
   valueUSD?: number | null
   valueBRL?: number | null
   valueUYU?: number | null
-  type: "Fixed" | "Variable"
+  type: "Fixed" | "Installment"
   scope?: "PerTruck" | "CompanyWide" | null
   isPaid: boolean
   costTemplateId?: string | null
@@ -35,7 +35,7 @@ export type AllMonthsData = {
 
 export type CostRow = {
   name: string
-  type: "Fixed" | "Variable"
+  type: "Fixed" | "Installment"
   scope?: "PerTruck" | "CompanyWide" | null
   costTemplateId?: string | null
   installmentPlanId?: string | null

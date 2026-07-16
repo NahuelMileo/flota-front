@@ -1,7 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { DataTable } from "@/components/data-table";
 import {
   Sheet,
@@ -17,6 +17,7 @@ import { getColumns } from "./columns";
 import AddConceptForm from "./AddConceptForm";
 import EditConceptForm from "./EditConceptForm";
 import type { MaintenanceConcept } from "@/types/maintenance";
+import type { ExpenseCategory } from "@/types/expense-category";
 import { Skeleton } from "@/components/ui/skeleton";
 import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
@@ -39,6 +40,14 @@ export default function ConceptsPage() {
   const [editingConcept, setEditingConcept] = useState<MaintenanceConcept | null>(
     null
   );
+  const [categories, setCategories] = useState<ExpenseCategory[]>([]);
+
+  useEffect(() => {
+    fetchWithAuth(`/api/expense-categories`)
+      .then((res) => (res.ok ? res.json() : []))
+      .then((data) => setCategories(Array.isArray(data) ? data : []))
+      .catch(() => toast.error("Error al cargar categorías"));
+  }, []);
 
   // ================= CRUD =================
   const handleAddConcept = (newConcept: MaintenanceConcept) => {
@@ -105,7 +114,7 @@ export default function ConceptsPage() {
             </SheetHeader>
 
             <div className="px-4 pb-6">
-              <AddConceptForm onSuccess={handleAddConcept} />
+              <AddConceptForm categories={categories} onSuccess={handleAddConcept} />
             </div>
           </SheetContent>
         </Sheet>
@@ -126,6 +135,7 @@ export default function ConceptsPage() {
             {editingConcept && (
               <EditConceptForm
                 concept={editingConcept}
+                categories={categories}
                 onSuccess={handleUpdateConcept}
               />
             )}
