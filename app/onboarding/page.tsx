@@ -49,9 +49,6 @@ export default function OnboardingPage() {
         localStorage.setItem("tenantId", data.tenantId)
       }
 
-      localStorage.setItem("accessToken", data.accessToken);
-
-
       setTimeout(() => {
         window.location.href = "/dashboard"
       }, 1500);
@@ -100,9 +97,6 @@ export default function OnboardingPage() {
 
       if (data.tenantId) {
         localStorage.setItem("tenantId", data.tenantId)
-      }
-      if (data.accessToken) {
-        localStorage.setItem("accessToken", data.accessToken)
       }
 
       setTimeout(() => {

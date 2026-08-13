@@ -53,6 +53,7 @@ export function LoginForm({
           headers: {
             "Content-Type": "application/json",
           },
+          credentials: "include",
           body: JSON.stringify({ email, password }),
         },
       );
@@ -93,8 +94,7 @@ export function LoginForm({
         description: "Redirigiendote al dashboard...",
       });
 
-      localStorage.setItem("accessToken", data.accessToken);
-      localStorage.setItem("refreshToken", data.refreshToken);
+      localStorage.setItem("isAuthenticated", "true");
       localStorage.setItem("username", data.username)
       localStorage.setItem("email", data.email)
 
