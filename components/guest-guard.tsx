@@ -7,10 +7,10 @@ export default function GuestGuard({
   children: React.ReactNode;
 }) {
   useEffect(() => {
-    const token = localStorage.getItem("accessToken");
+    const isAuthenticated = localStorage.getItem("isAuthenticated");
     const tenantId = localStorage.getItem("tenantId");
 
-    if (token) {
+    if (isAuthenticated) {
       if (tenantId) {
         window.location.href = "/dashboard";
       } else {

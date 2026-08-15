@@ -2,55 +2,55 @@ export function apiUrl(path: string): string {
   return `${process.env.NEXT_PUBLIC_API_URL}${path}`;
 }
 
-async function refreshAccessToken(): Promise<string> {
-  const refreshToken = localStorage.getItem('refreshToken');
+function clearSessionAndRedirect(path: string) {
+  localStorage.removeItem("isAuthenticated");
+  localStorage.removeItem("username");
+  localStorage.removeItem("email");
+  localStorage.removeItem("userId");
+  localStorage.removeItem("tenantId");
+  localStorage.removeItem("tenantName");
+  localStorage.removeItem("displayCurrency");
+  window.location.href = path;
+}
 
-  const res = await fetch(apiUrl('/api/auth/refresh'), {
+async function refreshSession(): Promise<void> {
+  const res = await fetch(apiUrl("/api/auth/refresh"), {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ refreshToken }),
+    credentials: "include",
   });
 
   if (!res.ok) {
-    // Handle rate limiting on refresh
     if (res.status === 429) {
-      localStorage.clear();
-      window.location.href = '/login';
+      clearSessionAndRedirect("/login");
       throw new Error("Demasiados intentos de refresh. Por favor, intenta más tarde.");
     }
-    localStorage.clear();
-    window.location.href = '/';
+    clearSessionAndRedirect("/login");
     throw new Error("Sesión expirada");
   }
-
-  const data = await res.json();
-  localStorage.setItem('accessToken', data.accessToken);
-  return data.accessToken;
 }
 
 export async function fetchWithAuth(url: string, options: RequestInit = {}): Promise<Response> {
   // Acepta rutas relativas ("/api/trucks") y las resuelve contra la API
   if (url.startsWith('/')) url = apiUrl(url);
-  const accessToken = localStorage.getItem('accessToken');
 
   let res = await fetch(url, {
     ...options,
+    credentials: "include",
     headers: {
       "Content-Type": "application/json",
       ...options.headers,
-      "Authorization": `Bearer ${accessToken}`,
     },
   });
 
   if (res.status === 401) {
-    const newToken = await refreshAccessToken();
+    await refreshSession();
 
     res = await fetch(url, {
       ...options,
+      credentials: "include",
       headers: {
         "Content-Type": "application/json",
         ...options.headers,
-        "Authorization": `Bearer ${newToken}`,
       },
     });
   }

@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/sidebar"
 import { EllipsisVerticalIcon, LogOutIcon } from "lucide-react"
 import { useRouter } from "next/navigation"
+import { fetchWithAuth } from "@/lib/api"
 
 export function NavUser({
   user,
@@ -33,13 +34,18 @@ export function NavUser({
   const { isMobile } = useSidebar()
   const router = useRouter();
   async function handleLogout(){
-    localStorage.removeItem("accessToken");
-    localStorage.removeItem("refreshToken");
+    try {
+      await fetchWithAuth("/api/auth/logout", { method: "POST" });
+    } catch {
+      // igual limpiamos el estado local aunque el logout remoto falle
+    }
+    localStorage.removeItem("isAuthenticated");
     localStorage.removeItem("tenantId");
     localStorage.removeItem("userId");
     localStorage.removeItem("username");
     localStorage.removeItem("email");
     localStorage.removeItem("tenantName");
+    localStorage.removeItem("displayCurrency");
     router.push("/login");
   }
   return (
