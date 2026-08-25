@@ -116,17 +116,17 @@ export function getColumns(
         const trip = row.original;
         return (
           <div key={trip.id} className="flex gap-2 justify-end">
-            <Button variant="ghost" size="icon" onClick={() => onView(trip)}>
+            <Button variant="ghost" size="icon" aria-label="Ver viaje" onClick={() => onView(trip)}>
               <Eye className="h-4 w-4" />
             </Button>
-            <Button variant="ghost" size="icon" onClick={() => onEdit(trip)}>
+            <Button variant="ghost" size="icon" aria-label="Editar viaje" onClick={() => onEdit(trip)}>
               <Pencil className="h-4 w-4" />
             </Button>
 
             <AlertDialog>
               <AlertDialogTrigger
                 render={
-                  <Button variant="ghost" size="icon">
+                  <Button variant="ghost" size="icon" aria-label="Eliminar viaje">
                     <Trash2 className="h-4 w-4 text-destructive" />
                   </Button>
                 }

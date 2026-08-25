@@ -246,7 +246,7 @@ export default function AddMaintenanceForm({
           type="number"
           placeholder="0"
           {...formRegister("kilometers", {
-            setValueAs: (v: any) => (v === "" ? 0 : Number(v)),
+            setValueAs: (v: string) => (v === "" ? 0 : Number(v)),
           })}
         />
         {errors.kilometers && (
@@ -261,7 +261,7 @@ export default function AddMaintenanceForm({
           type="number"
           placeholder="0"
           {...formRegister("value", {
-            setValueAs: (v: any) => (v === "" ? 0 : Number(v)),
+            setValueAs: (v: string) => (v === "" ? 0 : Number(v)),
           })}
         />
         {errors.value && <FieldError>{errors.value.message}</FieldError>}

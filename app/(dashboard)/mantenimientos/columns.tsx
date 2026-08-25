@@ -143,6 +143,7 @@ export function getColumns(
             <Button
               variant="ghost"
               size="icon"
+              aria-label="Editar mantenimiento"
               onClick={() => onEdit(maintenance)}
             >
               <Pencil className="h-4 w-4" />
@@ -151,7 +152,7 @@ export function getColumns(
             <AlertDialog>
               <AlertDialogTrigger
                 render={
-                  <Button variant="ghost" size="icon">
+                  <Button variant="ghost" size="icon" aria-label="Eliminar mantenimiento">
                     <Trash2 className="h-4 w-4 text-destructive" />
                   </Button>
                 }

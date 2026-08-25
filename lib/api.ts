@@ -2,6 +2,7 @@ export function apiUrl(path: string): string {
   return `${process.env.NEXT_PUBLIC_API_URL}${path}`;
 }
 
+<<<<<<< HEAD
 function clearSessionAndRedirect(path: string) {
   localStorage.removeItem("isAuthenticated");
   localStorage.removeItem("username");
@@ -16,6 +17,12 @@ function clearSessionAndRedirect(path: string) {
 async function refreshSession(): Promise<void> {
   const res = await fetch(apiUrl("/api/auth/refresh"), {
     method: "POST",
+=======
+async function refreshAccessToken(): Promise<void> {
+  const res = await fetch(apiUrl('/api/auth/refresh'), {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+>>>>>>> 7d28b39 (some fixes: cookies, charts)
     credentials: "include",
   });
 
@@ -43,7 +50,11 @@ export async function fetchWithAuth(url: string, options: RequestInit = {}): Pro
   });
 
   if (res.status === 401) {
+<<<<<<< HEAD
     await refreshSession();
+=======
+    await refreshAccessToken();
+>>>>>>> 7d28b39 (some fixes: cookies, charts)
 
     res = await fetch(url, {
       ...options,

@@ -8,13 +8,13 @@ Sistema de gestión de flotas de transporte. Next.js 16 + React 19, shadcn/ui, T
 
 ## Auth
 
-- Login con email + password → Bearer token (JWT) en localStorage
+- Login con email + password → sesión vía **cookies httpOnly** (no Bearer token, no JWT en localStorage)
 - Signup con username, email, password (mín 8 chars, confirmación)
-- Refresh automático de token en respuesta 401 (fetchWithAuth)
+- Refresh automático en respuesta 401 (`fetchWithAuth`) vía `POST /api/auth/refresh`, con `credentials: "include"` — el refresh token no se maneja en el cliente, viaja en cookie
 - Multitenant: al login, si no hay `tenantId` redirige a `/onboarding`
 - Onboarding: crear empresa (POST `/api/tenants`) o unirse con invite code (POST `/api/companies/join`)
 - AuthGuard protege rutas del dashboard; GuestGuard protege rutas públicas
-- Datos en localStorage: `accessToken`, `refreshToken`, `username`, `email`, `userId`, `tenantId`, `tenantName`, `displayCurrency`
+- Datos en localStorage: solo `tenantId` y `displayCurrency` — `accessToken`, `refreshToken`, `username`, `email`, `userId`, `tenantName` ya **no** se persisten en el cliente (migración a cookies httpOnly)
 
 ---
 
@@ -218,9 +218,26 @@ Status API (string): `"Scheduled"`, `"InProgress"`, `"Completed"`, `"Cancelled"`
 
 ---
 
+## Mantenimientos (`/mantenimientos`)
+
+- CRUD de mantenimientos de camiones, con conceptos administrables en `/mantenimientos/conceptos`
+- Tipos: `Maintenance` y `MaintenanceConcept` en `types/maintenance.ts`; hook `use-maintenance-concepts.ts`
+- `Maintenance` sigue el patrón multi-moneda (`value`, `valueUSD`, `valueBRL`, `valueUYU`)
+- Se vincula a una categoría de egreso (`expenseCategoryId`) y opcionalmente a un egreso (`expenseId`) o viaje (`tripId`) existente
+
+---
+
+## Lecturas de odómetro
+
+- `OdometerReading` (`types/odometer.ts`) registra actualizaciones de `currentKm` del camión, con `source`: `"Manual"`, `"FuelExpense"`, `"MaintenanceExpense"`, `"TripStart"`, `"TripEnd"`
+- Hook `use-odometer-readings.ts`
+- `currentKm` del camión ya no se actualiza solo manualmente: se alimenta también desde gastos de combustible/mantenimiento y desde el inicio/fin de viajes
+
+---
+
 ## Arquitectura
 
-- **Autenticación:** `fetchWithAuth()` en `lib/api.ts` — agrega Bearer token, refresca en 401. Acepta rutas relativas (`fetchWithAuth("/api/trucks")`) y las resuelve contra `NEXT_PUBLIC_API_URL`; usar siempre rutas relativas, no repetir el env var en los call sites. Para fetch sin auth (login/signup) usar `apiUrl(path)` del mismo módulo
+- **Autenticación:** `fetchWithAuth()` en `lib/api.ts` — envía `credentials: "include"` (cookies httpOnly), refresca en 401 vía `POST /api/auth/refresh`. Acepta rutas relativas (`fetchWithAuth("/api/trucks")`) y las resuelve contra `NEXT_PUBLIC_API_URL`; usar siempre rutas relativas, no repetir el env var en los call sites. Para fetch sin auth (login/signup) usar `apiUrl(path)` del mismo módulo
 - **Filtro global de fecha:** `DateFilterContext` en `context/date-filter-context.tsx`, provisto en el layout del dashboard
 - **Moneda de visualización:** `CurrencyProvider` en `context/currency-context.tsx`, provisto en el layout del dashboard (wrappea a DateFilterProvider)
 - **Tablas:** componente genérico compartido `components/data-table.tsx` (TanStack Table) con búsqueda, ordenamiento, paginación y export CSV opcional — usado por camiones, trips, ingresos y egresos; no crear data-tables locales por ruta

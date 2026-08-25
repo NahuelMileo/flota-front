@@ -120,11 +120,8 @@ export default function OnboardingPage() {
           {/* Logo */}
           <div className="mb-12 flex justify-center">
             <div className="flex items-center gap-2">
-              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-foreground">
-                <span className="text-lg font-bold text-background">M</span>
-              </div>
               <span className="text-xl font-semibold tracking-tight text-foreground">
-                Mileo Express
+                Kilometria
               </span>
             </div>
           </div>
@@ -132,7 +129,7 @@ export default function OnboardingPage() {
           {/* Header */}
           <div className="mb-10 text-center">
             <h1 className="text-balance text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
-              Bienvenido a Mileo Express
+              Bienvenido a Kilometria
             </h1>
             <p className="mt-3 text-pretty text-base text-muted-foreground sm:text-lg">
               Para continuar, crea tu empresa o únete a una existente.

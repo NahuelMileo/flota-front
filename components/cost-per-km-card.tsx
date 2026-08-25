@@ -13,10 +13,8 @@ export function CostPerKmCard({ expenses, totalKm }: Props) {
   const { displayCurrency, getDisplayValue } = useCurrency();
 
   const totalValue = expenses.reduce((acc, e) => acc + getDisplayValue(e), 0);
-
-  if (!totalKm || totalKm === 0 || totalValue === 0) return null;
-
-  const costPerKm = totalValue / totalKm;
+  const hasData = !!totalKm && totalKm > 0 && totalValue > 0;
+  const costPerKm = hasData ? totalValue / totalKm! : 0;
 
   return (
     <Card>
@@ -26,10 +24,16 @@ export function CostPerKmCard({ expenses, totalKm }: Props) {
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="text-2xl font-bold">{formatCurrency2(costPerKm, displayCurrency)}/km</div>
-        <p className="text-xs text-muted-foreground mt-1">
-          {totalKm.toLocaleString("es-UY")} km en viajes
-        </p>
+        {hasData ? (
+          <>
+            <div className="text-2xl font-bold">{formatCurrency2(costPerKm, displayCurrency)}/km</div>
+            <p className="text-xs text-muted-foreground mt-1">
+              {totalKm!.toLocaleString("es-UY")} km en viajes
+            </p>
+          </>
+        ) : (
+          <p className="text-sm text-muted-foreground">Sin datos de km o egresos.</p>
+        )}
       </CardContent>
     </Card>
   );

@@ -90,7 +90,26 @@ export function FuelEfficiencyCard({ expenses, truckId, tripKm }: FuelEfficiency
   const variationIsPositive = variation >= 0;
 
   if (fuelExpenses.length === 0) {
-    return null;
+    return (
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Costo por km</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground">Sin datos de combustible.</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Precio por litro</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground">Sin datos de combustible.</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
   }
 
   return (

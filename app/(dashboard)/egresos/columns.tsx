@@ -125,14 +125,14 @@ export function getColumns(
         const expense = row.original;
         return (
           <div key={expense.id} className="flex gap-2 justify-end">
-            <Button variant="ghost" size="icon" onClick={() => onEdit(expense)}>
+            <Button variant="ghost" size="icon" aria-label="Editar egreso" onClick={() => onEdit(expense)}>
               <Pencil className="h-4 w-4" />
             </Button>
 
             <AlertDialog>
               <AlertDialogTrigger
                 render={
-                  <Button variant="ghost" size="icon">
+                  <Button variant="ghost" size="icon" aria-label="Eliminar egreso">
                     <Trash2 className="h-4 w-4 text-destructive" />
                   </Button>
                 }

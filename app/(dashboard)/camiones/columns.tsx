@@ -60,13 +60,14 @@ export function getColumns(
             <Button
               variant="ghost"
               size="icon"
+              aria-label="Editar camión"
               onClick={() => onEdit(truck)}
             >
               <Pencil className="h-4 w-4" />
             </Button>
 
             <AlertDialog>
-              <AlertDialogTrigger render={<Button variant="ghost" size="icon"><Trash2 className="h-4 w-4 text-destructive" /></Button>} />
+              <AlertDialogTrigger render={<Button variant="ghost" size="icon" aria-label="Eliminar camión"><Trash2 className="h-4 w-4 text-destructive" /></Button>} />
               <AlertDialogContent size="sm">
                 <AlertDialogHeader>
                   <AlertDialogTitle>¿Eliminar camión?</AlertDialogTitle>

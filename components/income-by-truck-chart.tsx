@@ -38,8 +38,6 @@ export function IncomeByTruckChart({ incomes, displayCurrency }: Props) {
     .map(([name, total]) => ({ name, total }))
     .sort((a, b) => b.total - a.total);
 
-  if (data.length === 0) return null;
-
   return (
     <Card>
       <CardHeader className="pb-2">
@@ -48,6 +46,11 @@ export function IncomeByTruckChart({ incomes, displayCurrency }: Props) {
         </CardTitle>
       </CardHeader>
       <CardContent>
+        {data.length === 0 ? (
+          <div className="flex h-60 items-center justify-center text-sm text-muted-foreground">
+            Todavía no hay ingresos para mostrar.
+          </div>
+        ) : (
         <ResponsiveContainer width="100%" height={240}>
           <BarChart data={data} margin={{ top: 4, right: 8, left: 8, bottom: 20 }}>
             <CartesianGrid strokeDasharray="3 3" vertical={false} />
@@ -70,6 +73,7 @@ export function IncomeByTruckChart({ incomes, displayCurrency }: Props) {
             <Bar dataKey="total" fill="#22c55e" radius={[4, 4, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
+        )}
       </CardContent>
     </Card>
   );

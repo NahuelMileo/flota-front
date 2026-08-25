@@ -154,7 +154,7 @@ export default function EditConceptForm({
           type="number"
           placeholder="Ej: 10000"
           {...formRegister("kilometerInterval", {
-            setValueAs: (v: any) => (v === "" ? undefined : Number(v)),
+            setValueAs: (v: string) => (v === "" ? undefined : Number(v)),
           })}
         />
         {errors.kilometerInterval && (
@@ -169,7 +169,7 @@ export default function EditConceptForm({
           type="number"
           placeholder="Ej: 30"
           {...formRegister("dateInterval", {
-            setValueAs: (v: any) => (v === "" ? undefined : Number(v)),
+            setValueAs: (v: string) => (v === "" ? undefined : Number(v)),
           })}
         />
         {errors.dateInterval && (
@@ -178,7 +178,7 @@ export default function EditConceptForm({
       </Field>
 
       {errors.root && (
-        <FieldError>{(errors.root as any).message}</FieldError>
+        <FieldError>{errors.root.message}</FieldError>
       )}
 
       <Button type="submit" disabled={isLoading} className="w-full">

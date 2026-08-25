@@ -94,7 +94,10 @@ export function LoginForm({
         description: "Redirigiendote al dashboard...",
       });
 
+<<<<<<< HEAD
       localStorage.setItem("isAuthenticated", "true");
+=======
+>>>>>>> 7d28b39 (some fixes: cookies, charts)
       localStorage.setItem("username", data.username)
       localStorage.setItem("email", data.email)
 

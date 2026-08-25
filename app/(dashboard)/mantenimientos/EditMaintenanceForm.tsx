@@ -77,7 +77,10 @@ export default function EditMaintenanceForm({
       date: maintenance.date,
       kilometers: maintenance.kilometers,
       value: maintenance.value || 0,
-      currency: (maintenance.currency as any) || "BRL",
+      currency:
+        maintenance.currency === "USD" || maintenance.currency === "UYU"
+          ? maintenance.currency
+          : "BRL",
       notes: maintenance.notes || "",
     },
   });
@@ -244,7 +247,7 @@ export default function EditMaintenanceForm({
           type="number"
           placeholder="0"
           {...formRegister("kilometers", {
-            setValueAs: (v: any) => (v === "" ? 0 : Number(v)),
+            setValueAs: (v: string) => (v === "" ? 0 : Number(v)),
           })}
         />
         {errors.kilometers && (
@@ -259,7 +262,7 @@ export default function EditMaintenanceForm({
           type="number"
           placeholder="0"
           {...formRegister("value", {
-            setValueAs: (v: any) => (v === "" ? 0 : Number(v)),
+            setValueAs: (v: string) => (v === "" ? 0 : Number(v)),
           })}
         />
         {errors.value && <FieldError>{errors.value.message}</FieldError>}
