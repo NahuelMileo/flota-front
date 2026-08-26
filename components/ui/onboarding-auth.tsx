@@ -9,17 +9,10 @@ export default function OnboardingAuth({
   const [authorized, setAuthorized] = useState(false);
 
   useEffect(() => {
-<<<<<<< HEAD
     const isAuthenticated = localStorage.getItem("isAuthenticated");
     const tenantId = localStorage.getItem("tenantId");
 
     if (!isAuthenticated) {
-=======
-    const userId = localStorage.getItem("userId");
-    const tenantId = localStorage.getItem("tenantId");
-
-    if (!userId) {
->>>>>>> 7d28b39 (some fixes: cookies, charts)
       window.location.href = "/login";
       return;
     }
