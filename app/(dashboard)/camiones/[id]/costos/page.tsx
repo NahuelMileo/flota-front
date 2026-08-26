@@ -10,7 +10,6 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { Button } from "@/components/ui/button"
 import { CostTable } from "@/components/cost-table"
 import { AddCostModal } from "@/components/add-cost-modal"
-import { OdometerReadingsPanel } from "@/components/odometer-readings-panel"
 import { useTruckCosts } from "@/hooks/use-truck-costs"
 import type { Truck } from "@/types/truck"
 
@@ -147,9 +146,6 @@ export default function TruckCostsPage() {
           refetch()
         }}
       />
-
-      {/* Odometer readings */}
-      <OdometerReadingsPanel truckId={id} year={year} />
     </div>
   )
 }
