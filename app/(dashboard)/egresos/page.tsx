@@ -61,16 +61,6 @@ export default function ExpensePage() {
   const { selectedDate } = useDateFilter();
   const { displayCurrency, getDisplayValue } = useCurrency();
 
-  // ================= FETCH =================
-  useEffect(() => {
-    fetchExpenses();
-    fetchPrevMonthExpenses();
-  }, [fetchExpenses, fetchPrevMonthExpenses]);
-
-  useEffect(() => {
-    fetchCategories();
-  }, []);
-
   const fetchCategories = async () => {
     try {
       const res = await fetchWithAuth(
@@ -126,6 +116,16 @@ export default function ExpensePage() {
       setPrevMonthExpenses([]);
     }
   }, [selectedDate]);
+
+  // ================= FETCH =================
+  useEffect(() => {
+    fetchExpenses();
+    fetchPrevMonthExpenses();
+  }, [fetchExpenses, fetchPrevMonthExpenses]);
+
+  useEffect(() => {
+    fetchCategories();
+  }, []);
 
   // ================= DERIVADOS =================
   const selectedTruck = useMemo(
