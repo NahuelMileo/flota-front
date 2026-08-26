@@ -53,6 +53,7 @@ function TableSkeleton() {
 
 export default function IncomePage() {
   const [incomes, setIncomes] = useState<Income[]>([]);
+  const [prevMonthIncomes, setPrevMonthIncomes] = useState<Income[]>([]);
   const trucks = useTrucks();
   const [categories, setCategories] = useState<ExpenseCategory[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -66,24 +67,18 @@ export default function IncomePage() {
   const { selectedDate } = useDateFilter();
   const { displayCurrency, getDisplayValue } = useCurrency();
 
-  // ================= FETCH =================
-  useEffect(() => {
-    fetchIncomes();
-    fetchCategories();
-  }, []);
-
-  const fetchCategories = async () => {
-    try {
-      const res = await fetchWithAuth(`/api/expense-categories`);
-      if (res.ok) setCategories(await res.json());
-    } catch { /* non-critical */ }
+  const buildMonthQuery = (date: Date | null) => {
+    if (!date) return "";
+    const month = date.getMonth() + 1;
+    const year = date.getFullYear();
+    return `?month=${month}&year=${year}`;
   };
 
-  const fetchIncomes = async () => {
+  const fetchIncomes = useCallback(async () => {
     setIsLoading(true);
     try {
       const res = await fetchWithAuth(
-        `/api/incomes`,
+        `/api/incomes${buildMonthQuery(selectedDate)}`,
         { method: "GET" }
       );
       if (!res.ok) throw new Error();
@@ -94,25 +89,52 @@ export default function IncomePage() {
     } finally {
       setIsLoading(false);
     }
+  }, [selectedDate]);
+
+  const fetchPrevMonthIncomes = useCallback(async () => {
+    if (!selectedDate) {
+      setPrevMonthIncomes([]);
+      return;
+    }
+    const prevMonth = new Date(selectedDate.getFullYear(), selectedDate.getMonth() - 1);
+    try {
+      const res = await fetchWithAuth(
+        `/api/incomes${buildMonthQuery(prevMonth)}`,
+        { method: "GET" }
+      );
+      if (!res.ok) throw new Error();
+      setPrevMonthIncomes(await res.json());
+    } catch {
+      setPrevMonthIncomes([]);
+    }
+  }, [selectedDate]);
+
+  const fetchCategories = async () => {
+    try {
+      const res = await fetchWithAuth(`/api/expense-categories`);
+      if (res.ok) setCategories(await res.json());
+    } catch { /* non-critical */ }
   };
+
+  // ================= FETCH =================
+  useEffect(() => {
+    fetchIncomes();
+    fetchPrevMonthIncomes();
+  }, [fetchIncomes, fetchPrevMonthIncomes]);
+
+  useEffect(() => {
+    fetchCategories();
+  }, []);
 
   // ================= DERIVADOS =================
   const filteredIncomes = useMemo(() => {
     return incomes.filter((income) => {
-      if (selectedDate) {
-        const date = new Date(income.dateUtc);
-        if (
-          date.getUTCMonth() !== selectedDate.getMonth() ||
-          date.getUTCFullYear() !== selectedDate.getFullYear()
-        )
-          return false;
-      }
       if (selectedTruckId && income.truckId !== selectedTruckId) return false;
       if (selectedTypeFilter !== null && normalizeIncomeType(String(income.type)) !== selectedTypeFilter)
         return false;
       return true;
     });
-  }, [incomes, selectedDate, selectedTruckId, selectedTypeFilter]);
+  }, [incomes, selectedTruckId, selectedTypeFilter]);
 
   const total = useMemo(
     () => filteredIncomes.reduce((acc, i) => acc + getDisplayValue(i), 0),
@@ -120,28 +142,15 @@ export default function IncomePage() {
   );
 
   const previousMonthTotal = useMemo(() => {
-    if (!selectedDate) return 0;
-
-    const prevMonth = new Date(
-      selectedDate.getFullYear(),
-      selectedDate.getMonth() - 1
-    );
-
-    return incomes
+    return prevMonthIncomes
       .filter((income) => {
-        const date = new Date(income.dateUtc);
-        if (
-          date.getUTCMonth() !== prevMonth.getMonth() ||
-          date.getUTCFullYear() !== prevMonth.getFullYear()
-        )
-          return false;
         if (selectedTruckId && income.truckId !== selectedTruckId) return false;
         if (selectedTypeFilter !== null && normalizeIncomeType(String(income.type)) !== selectedTypeFilter)
           return false;
         return true;
       })
       .reduce((acc, i) => acc + getDisplayValue(i), 0);
-  }, [incomes, selectedDate, selectedTruckId, selectedTypeFilter, getDisplayValue]);
+  }, [prevMonthIncomes, selectedTruckId, selectedTypeFilter, getDisplayValue]);
 
   const variation = useMemo(() => {
     if (previousMonthTotal === 0) return undefined;

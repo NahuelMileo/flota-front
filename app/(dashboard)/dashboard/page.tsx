@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import { fetchWithAuth } from "@/lib/api"
 import { toast } from "sonner"
 import { useDateFilter } from "@/context/date-filter-context"
@@ -11,30 +11,21 @@ import { NetBalanceCard } from "@/components/net-balance-card"
 import { MonthlyComparisonChart } from "@/components/monthly-comparison-chart"
 import { Skeleton } from "@/components/ui/skeleton"
 
-type Income = {
-  id: string
-  value: number
-  valueUSD: number | null
-  valueBRL: number | null
-  valueUYU: number | null
-  dateUtc: string
-  truckLicensePlate: string | null
-  type: string
+type MonthlyTotal = {
+  month: number
+  year: number
+  incomeUSD: number
+  incomeBRL: number
+  incomeUYU: number
+  expenseUSD: number
+  expenseBRL: number
+  expenseUYU: number
 }
 
-type Expense = {
-  id: string
-  value: number
-  valueUSD: number | null
-  valueBRL: number | null
-  valueUYU: number | null
-  date: string
-  type: number
-  truckId: string | null
-  truckLicensePlate: string | null
-  name: string | null
-  kilometers: number | null
-  liters: number | null
+type DashboardSummary = {
+  currentMonth: MonthlyTotal
+  previousMonth: MonthlyTotal
+  last6Months: MonthlyTotal[]
 }
 
 function CardSkeleton() {
@@ -42,70 +33,50 @@ function CardSkeleton() {
 }
 
 export default function DashboardPage() {
-  const [incomes, setIncomes] = useState<Income[]>([])
-  const [expenses, setExpenses] = useState<Expense[]>([])
+  const [summary, setSummary] = useState<DashboardSummary | null>(null)
   const [isLoading, setIsLoading] = useState(true)
 
   const { selectedDate } = useDateFilter()
-  const { getDisplayValue } = useCurrency()
+  const { displayCurrency } = useCurrency()
+
+  // Los totales, la variación % y los últimos 6 meses ya vienen sumarizados
+  // del backend (GROUP BY mes) — el frontend no trae filas crudas para sumar.
+  const fetchSummary = useCallback(async () => {
+    const date = selectedDate ?? new Date()
+    const month = date.getMonth() + 1
+    const year = date.getFullYear()
+    setIsLoading(true)
+    try {
+      const res = await fetchWithAuth(`/api/dashboard/summary?month=${month}&year=${year}`, { method: "GET" })
+      if (!res.ok) throw new Error()
+      setSummary(await res.json())
+    } catch {
+      toast.error("Error al cargar datos")
+    } finally {
+      setIsLoading(false)
+    }
+  }, [selectedDate])
 
   useEffect(() => {
-    Promise.all([
-      fetchWithAuth(`/api/incomes`, { method: "GET" }),
-      fetchWithAuth(`/api/expenses`, { method: "GET" }),
-    ])
-      .then(async ([incRes, expRes]) => {
-        if (!incRes.ok || !expRes.ok) throw new Error()
-        const [incData, expData] = await Promise.all([incRes.json(), expRes.json()])
-        setIncomes(incData)
-        setExpenses(expData)
-      })
-      .catch(() => toast.error("Error al cargar datos"))
-      .finally(() => setIsLoading(false))
-  }, [])
+    fetchSummary()
+  }, [fetchSummary])
 
-  // Filter by selected month
-  const filteredIncomes = useMemo(() => {
-    if (!selectedDate) return incomes
-    return incomes.filter((i) => {
-      const d = new Date(i.dateUtc)
-      return d.getUTCMonth() === selectedDate.getMonth() && d.getUTCFullYear() === selectedDate.getFullYear()
-    })
-  }, [incomes, selectedDate])
+  const pickIncome = useCallback((m: MonthlyTotal) => {
+    if (displayCurrency === "USD") return m.incomeUSD
+    if (displayCurrency === "UYU") return m.incomeUYU
+    return m.incomeBRL
+  }, [displayCurrency])
 
-  const filteredExpenses = useMemo(() => {
-    if (!selectedDate) return expenses
-    return expenses.filter((e) => {
-      const d = new Date(e.date + "T00:00:00")
-      return d.getMonth() === selectedDate.getMonth() && d.getFullYear() === selectedDate.getFullYear()
-    })
-  }, [expenses, selectedDate])
+  const pickExpense = useCallback((m: MonthlyTotal) => {
+    if (displayCurrency === "USD") return m.expenseUSD
+    if (displayCurrency === "UYU") return m.expenseUYU
+    return m.expenseBRL
+  }, [displayCurrency])
 
-  const totalIncome = useMemo(() => filteredIncomes.reduce((acc, i) => acc + getDisplayValue(i), 0), [filteredIncomes, getDisplayValue])
-  const totalExpense = useMemo(() => filteredExpenses.reduce((acc, e) => acc + getDisplayValue(e), 0), [filteredExpenses, getDisplayValue])
-
-  // Previous month totals for variation
-  const prevMonthIncome = useMemo(() => {
-    if (!selectedDate) return 0
-    const prev = new Date(selectedDate.getFullYear(), selectedDate.getMonth() - 1)
-    return incomes
-      .filter((i) => {
-        const d = new Date(i.dateUtc)
-        return d.getUTCMonth() === prev.getMonth() && d.getUTCFullYear() === prev.getFullYear()
-      })
-      .reduce((acc, i) => acc + getDisplayValue(i), 0)
-  }, [incomes, selectedDate, getDisplayValue])
-
-  const prevMonthExpense = useMemo(() => {
-    if (!selectedDate) return 0
-    const prev = new Date(selectedDate.getFullYear(), selectedDate.getMonth() - 1)
-    return expenses
-      .filter((e) => {
-        const d = new Date(e.date + "T00:00:00")
-        return d.getMonth() === prev.getMonth() && d.getFullYear() === prev.getFullYear()
-      })
-      .reduce((acc, e) => acc + getDisplayValue(e), 0)
-  }, [expenses, selectedDate, getDisplayValue])
+  const totalIncome = summary ? pickIncome(summary.currentMonth) : 0
+  const totalExpense = summary ? pickExpense(summary.currentMonth) : 0
+  const prevMonthIncome = summary ? pickIncome(summary.previousMonth) : 0
+  const prevMonthExpense = summary ? pickExpense(summary.previousMonth) : 0
 
   const incomeVariation = useMemo(() => {
     if (prevMonthIncome === 0) return undefined
@@ -117,31 +88,13 @@ export default function DashboardPage() {
     return Math.round(((totalExpense - prevMonthExpense) / prevMonthExpense) * 100)
   }, [totalExpense, prevMonthExpense])
 
-  // Last 6 months for chart
   const monthlyData = useMemo(() => {
-    return Array.from({ length: 6 }, (_, i) => {
-      const d = new Date(selectedDate ?? new Date())
-      d.setDate(1)
-      d.setMonth(d.getMonth() - (5 - i))
-      const label = d.toLocaleDateString("es-UY", { month: "short", year: "2-digit" })
-
-      const monthIncome = incomes
-        .filter((inc) => {
-          const id = new Date(inc.dateUtc)
-          return id.getUTCMonth() === d.getMonth() && id.getUTCFullYear() === d.getFullYear()
-        })
-        .reduce((acc, inc) => acc + getDisplayValue(inc), 0)
-
-      const monthExpense = expenses
-        .filter((exp) => {
-          const ed = new Date(exp.date + "T00:00:00")
-          return ed.getMonth() === d.getMonth() && ed.getFullYear() === d.getFullYear()
-        })
-        .reduce((acc, exp) => acc + getDisplayValue(exp), 0)
-
-      return { month: label, ingresos: monthIncome, egresos: monthExpense }
+    if (!summary) return []
+    return summary.last6Months.map((m) => {
+      const label = new Date(m.year, m.month - 1, 1).toLocaleDateString("es-UY", { month: "short", year: "2-digit" })
+      return { month: label, ingresos: pickIncome(m), egresos: pickExpense(m) }
     })
-  }, [incomes, expenses, selectedDate, getDisplayValue])
+  }, [summary, pickIncome, pickExpense])
 
   return (
     <div className="p-6 flex flex-col gap-4">

@@ -47,6 +47,7 @@ function TableSkeleton() {
 
 export default function ExpensePage() {
   const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [prevMonthExpenses, setPrevMonthExpenses] = useState<Expense[]>([]);
   const trucks = useTrucks();
   const [categories, setCategories] = useState<ExpenseCategory[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -63,6 +64,10 @@ export default function ExpensePage() {
   // ================= FETCH =================
   useEffect(() => {
     fetchExpenses();
+    fetchPrevMonthExpenses();
+  }, [fetchExpenses, fetchPrevMonthExpenses]);
+
+  useEffect(() => {
     fetchCategories();
   }, []);
 
@@ -80,11 +85,18 @@ export default function ExpensePage() {
     }
   };
 
-  const fetchExpenses = async () => {
+  const buildMonthQuery = (date: Date | null) => {
+    if (!date) return "";
+    const month = date.getMonth() + 1;
+    const year = date.getFullYear();
+    return `?month=${month}&year=${year}`;
+  };
+
+  const fetchExpenses = useCallback(async () => {
     setIsLoading(true);
     try {
       const res = await fetchWithAuth(
-        `/api/expenses`,
+        `/api/expenses${buildMonthQuery(selectedDate)}`,
         { method: "GET" }
       );
       if (!res.ok) throw new Error();
@@ -95,7 +107,25 @@ export default function ExpensePage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [selectedDate]);
+
+  const fetchPrevMonthExpenses = useCallback(async () => {
+    if (!selectedDate) {
+      setPrevMonthExpenses([]);
+      return;
+    }
+    const prevMonth = new Date(selectedDate.getFullYear(), selectedDate.getMonth() - 1);
+    try {
+      const res = await fetchWithAuth(
+        `/api/expenses${buildMonthQuery(prevMonth)}`,
+        { method: "GET" }
+      );
+      if (!res.ok) throw new Error();
+      setPrevMonthExpenses(await res.json());
+    } catch {
+      setPrevMonthExpenses([]);
+    }
+  }, [selectedDate]);
 
   // ================= DERIVADOS =================
   const selectedTruck = useMemo(
@@ -116,14 +146,6 @@ export default function ExpensePage() {
   const filteredExpenses = useMemo(() => {
     return expenses
       .filter((expense) => {
-        if (selectedDate) {
-          const date = new Date(expense.date + "T00:00:00");
-          if (
-            date.getMonth() !== selectedDate.getMonth() ||
-            date.getFullYear() !== selectedDate.getFullYear()
-          )
-            return false;
-        }
         if (!matchesTruckFilter(expense)) return false;
         if (selectedCategoryId !== null && expense.expenseCategoryId !== selectedCategoryId) return false;
         return true;
@@ -132,7 +154,7 @@ export default function ExpensePage() {
         if (a.date !== b.date) return b.date > a.date ? 1 : -1;
         return (b.createdAt ?? "") > (a.createdAt ?? "") ? 1 : -1;
       });
-  }, [expenses, selectedDate, matchesTruckFilter, selectedCategoryId]);
+  }, [expenses, matchesTruckFilter, selectedCategoryId]);
 
   const total = useMemo(
     () => filteredExpenses.reduce((acc, e) => acc + getDisplayValue(e), 0),
@@ -140,27 +162,14 @@ export default function ExpensePage() {
   );
 
   const previousMonthTotal = useMemo(() => {
-    if (!selectedDate) return 0;
-
-    const prevMonth = new Date(
-      selectedDate.getFullYear(),
-      selectedDate.getMonth() - 1
-    );
-
-    return expenses
+    return prevMonthExpenses
       .filter((expense) => {
-        const date = new Date(expense.date + "T00:00:00");
-        if (
-          date.getMonth() !== prevMonth.getMonth() ||
-          date.getFullYear() !== prevMonth.getFullYear()
-        )
-          return false;
         if (!matchesTruckFilter(expense)) return false;
         if (selectedCategoryId !== null && expense.expenseCategoryId !== selectedCategoryId) return false;
         return true;
       })
       .reduce((acc, e) => acc + getDisplayValue(e), 0);
-  }, [expenses, selectedDate, matchesTruckFilter, selectedCategoryId, getDisplayValue]);
+  }, [prevMonthExpenses, matchesTruckFilter, selectedCategoryId, getDisplayValue]);
 
   const variation = useMemo(() => {
     if (previousMonthTotal === 0) return undefined;
