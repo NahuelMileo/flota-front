@@ -67,16 +67,14 @@ export default function TripsPage() {
 
   const { selectedDate } = useDateFilter();
 
-  // ================= FETCH =================
-  useEffect(() => {
-    fetchTrips();
-  }, []);
-
-  const fetchTrips = async () => {
+  const fetchTrips = useCallback(async () => {
     setIsLoading(true);
     try {
+      const query = selectedDate
+        ? `?month=${selectedDate.getMonth() + 1}&year=${selectedDate.getFullYear()}`
+        : "";
       const res = await fetchWithAuth(
-        `/api/trips`,
+        `/api/trips${query}`,
         { method: "GET" }
       );
       if (!res.ok) throw new Error();
@@ -87,29 +85,26 @@ export default function TripsPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [selectedDate]);
+
+  // ================= FETCH =================
+  useEffect(() => {
+    fetchTrips();
+  }, [fetchTrips]);
 
   // ================= DERIVADOS =================
+  // El backend ya filtra por mes/año (mantiene siempre visibles los viajes
+  // InProgress/Scheduled sin importar el mes pedido); acá solo quedan los
+  // filtros que no disparan un nuevo fetch.
   const filteredTrips = useMemo(() => {
     return trips.filter((trip) => {
-      if (selectedDate) {
-        const [year, month] = trip.departureDate
-          .split("T")[0]
-          .split("-")
-          .map(Number);
-        if (
-          month - 1 !== selectedDate.getMonth() ||
-          year !== selectedDate.getFullYear()
-        )
-          return false;
-      }
       if (showOpenOnly && trip.status !== "InProgress") return false;
       if (selectedTruckId && trip.truckId !== selectedTruckId) return false;
       if (selectedStatus !== null && String(trip.status) !== selectedStatus)
         return false;
       return true;
     });
-  }, [trips, selectedDate, selectedTruckId, selectedStatus, showOpenOnly]);
+  }, [trips, selectedTruckId, selectedStatus, showOpenOnly]);
 
   const totalTrips = useMemo(() => filteredTrips.length, [filteredTrips]);
   const totalKm = useMemo(
