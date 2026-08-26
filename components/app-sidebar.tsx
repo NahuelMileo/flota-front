@@ -21,6 +21,7 @@ import {
   ReceiptIcon,
   Settings2Icon,
   Wrench,
+  Users,
 } from "lucide-react";
 import { useLayoutEffect, useState } from "react";
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
@@ -70,6 +71,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         title: "Egresos",
         url: "/egresos",
         icon: <BanknoteArrowDown />,
+      },
+      {
+        title: "Clientes",
+        url: "/clientes",
+        icon: <Users />,
       },
       {
         title: "Costos fijos",
