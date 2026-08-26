@@ -21,7 +21,7 @@ import { z } from "zod";
 import { toast } from "sonner";
 import { Income } from "./columns";
 import { Expense } from "@/app/(dashboard)/egresos/columns";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Checkbox } from "@/components/ui/checkbox";
 
 type ActiveTrip = { id: string; origin: string; destination: string };
@@ -65,14 +65,19 @@ export default function AddIncomeForm({
   const today = new Date();
   const todayIso = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
   const [activeTrip, setActiveTrip] = useState<ActiveTrip | null>(null);
+  const activeTripRequestId = useRef(0);
 
   const fetchActiveTrip = useCallback(async (truckId: string | null) => {
+    const requestId = ++activeTripRequestId.current;
     if (!truckId || truckId === "none" || tripId) { setActiveTrip(null); return; }
     try {
       const res = await fetchWithAuth(`/api/trips/active?truckId=${truckId}`);
+      if (requestId !== activeTripRequestId.current) return; // el camión ya cambió de nuevo, descartar
       if (res.ok) setActiveTrip(await res.json());
       else setActiveTrip(null);
-    } catch { setActiveTrip(null); }
+    } catch {
+      if (requestId === activeTripRequestId.current) setActiveTrip(null);
+    }
   }, [tripId]);
 
   useEffect(() => {
@@ -238,6 +243,9 @@ export default function AddIncomeForm({
                 value={field.value ?? "none"}
                 onValueChange={(value) => {
                   field.onChange(value === "none" ? null : value);
+                  // Limpiar antes de refetchear: si el usuario envía el form mientras
+                  // el fetch está en curso, no debe quedar pegado el viaje del camión anterior.
+                  setActiveTrip(null);
                   fetchActiveTrip(value === "none" ? null : value);
                 }}
               >

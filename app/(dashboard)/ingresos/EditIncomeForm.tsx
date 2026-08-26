@@ -19,7 +19,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
 import { Income, normalizeIncomeType } from "./columns";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 
 type ActiveTrip = { id: string; origin: string; destination: string };
 
@@ -56,14 +56,19 @@ export default function EditIncomeForm({
   onSuccess: (income: Income) => void;
 }) {
   const [activeTrip, setActiveTrip] = useState<ActiveTrip | null>(null);
+  const activeTripRequestId = useRef(0);
 
   const fetchActiveTrip = useCallback(async (truckId: string | null) => {
+    const requestId = ++activeTripRequestId.current;
     if (!truckId || truckId === "none") { setActiveTrip(null); return; }
     try {
       const res = await fetchWithAuth(`/api/trips/active?truckId=${truckId}`);
+      if (requestId !== activeTripRequestId.current) return; // el camión ya cambió de nuevo, descartar
       if (res.ok) setActiveTrip(await res.json());
       else setActiveTrip(null);
-    } catch { setActiveTrip(null); }
+    } catch {
+      if (requestId === activeTripRequestId.current) setActiveTrip(null);
+    }
   }, []);
 
   useEffect(() => {
@@ -108,7 +113,9 @@ export default function EditIncomeForm({
             truckId: data.truckId === "none" ? null : data.truckId,
             type: parseInt(data.type),
             currency: data.currency,
-            tripId: activeTrip?.id ?? income.tripId ?? null,
+            // Solo conservar el tripId original si el camión no cambió — si cambió,
+            // ese viaje pertenece al camión anterior y no debe reenviarse.
+            tripId: activeTrip?.id ?? (data.truckId === income.truckId ? income.tripId : null) ?? null,
           }),
         },
       );
@@ -164,6 +171,9 @@ export default function EditIncomeForm({
                 value={field.value ?? "none"}
                 onValueChange={(value) => {
                   field.onChange(value === "none" ? null : value);
+                  // Limpiar antes de refetchear: si el usuario envía el form mientras
+                  // el fetch está en curso, no debe quedar pegado el viaje del camión anterior.
+                  setActiveTrip(null);
                   fetchActiveTrip(value === "none" ? null : value);
                 }}
               >

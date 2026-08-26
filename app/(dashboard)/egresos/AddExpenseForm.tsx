@@ -19,7 +19,7 @@ import { useForm, Controller, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { Expense } from "./columns";
 
 type ActiveTrip = { id: string; origin: string; destination: string };
@@ -109,14 +109,19 @@ export default function AddExpenseForm({
   const today = new Date();
   const todayIso = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
   const [activeTrip, setActiveTrip] = useState<ActiveTrip | null>(null);
+  const activeTripRequestId = useRef(0);
 
   const fetchActiveTrip = useCallback(async (truckId: string | null) => {
+    const requestId = ++activeTripRequestId.current;
     if (!truckId || truckId === "none" || tripId) { setActiveTrip(null); return; }
     try {
       const res = await fetchWithAuth(`/api/trips/active?truckId=${truckId}`);
+      if (requestId !== activeTripRequestId.current) return; // el camión ya cambió de nuevo, descartar
       if (res.ok) setActiveTrip(await res.json());
       else setActiveTrip(null);
-    } catch { setActiveTrip(null); }
+    } catch {
+      if (requestId === activeTripRequestId.current) setActiveTrip(null);
+    }
   }, [tripId]);
 
   useEffect(() => {
@@ -259,6 +264,9 @@ export default function AddExpenseForm({
                   value={field.value ?? "none"}
                   onValueChange={(value) => {
                     field.onChange(value === "none" ? null : value);
+                    // Limpiar antes de refetchear: si el usuario envía el form mientras
+                    // el fetch está en curso, no debe quedar pegado el viaje del camión anterior.
+                    setActiveTrip(null);
                     fetchActiveTrip(value === "none" ? null : value);
                   }}
                 >
