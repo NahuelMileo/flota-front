@@ -3,9 +3,16 @@ export type MaintenanceConcept = {
   name: string
   kilometerInterval?: number | null
   dateInterval?: number | null
-  lastKilometers?: number | null
-  lastMaintenanceDate?: string | null
   expenseCategoryId?: string | null
+}
+
+export type TruckConceptStatus = {
+  truckId: string
+  truckLicensePlate: string
+  lastKilometers: number
+  lastMaintenanceDate: string
+  nextDueKilometers?: number | null
+  nextDueDate?: string | null
 }
 
 export type CreateMaintenanceConceptDto = {
@@ -17,7 +24,7 @@ export type CreateMaintenanceConceptDto = {
 
 export type Maintenance = {
   id: string
-  conceptId: string
+  maintenanceConceptId: string
   conceptName: string
   type: "Preventive" | "Corrective"
   truckId: string

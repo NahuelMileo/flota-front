@@ -28,6 +28,11 @@ export function SiteHeader() {
       return "Detalle de camión";
     }
 
+    // Si es /mantenimientos/conceptos/[id], mostrar "Detalle de concepto"
+    if (segments[0] === "mantenimientos" && segments[1] === "conceptos" && segments[2]) {
+      return "Detalle de concepto";
+    }
+
     // Para otras rutas, usar el último segmento capitalizado
     const lastSegment = segments.pop() || "Inicio";
     return lastSegment

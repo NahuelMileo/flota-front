@@ -97,7 +97,7 @@ export default function MaintenancePage() {
       }
       if (selectedTruckId && maintenance.truckId !== selectedTruckId)
         return false;
-      if (selectedConceptId && maintenance.conceptId !== selectedConceptId)
+      if (selectedConceptId && maintenance.maintenanceConceptId !== selectedConceptId)
         return false;
       return true;
     });
@@ -106,7 +106,9 @@ export default function MaintenancePage() {
   const maintenanceRows: MaintenanceRow[] = useMemo(() => {
     return filteredMaintenances.map((m) => ({
       ...m,
-      concept: concepts.find((c) => c.id === m.conceptId) || ({} as MaintenanceConcept),
+      concept:
+        concepts.find((c) => c.id === m.maintenanceConceptId) ||
+        ({} as MaintenanceConcept),
     }));
   }, [filteredMaintenances, concepts]);
 
@@ -141,12 +143,11 @@ export default function MaintenancePage() {
   const columns = useMemo(
     () =>
       getColumns(
-        concepts,
         (maintenance) => setEditingMaintenance(maintenance),
         handleDeleteMaintenance,
         displayCurrency
       ),
-    [handleDeleteMaintenance, displayCurrency, concepts]
+    [handleDeleteMaintenance, displayCurrency]
   );
 
   // ================= FILTER OPTIONS =================
@@ -164,10 +165,7 @@ export default function MaintenancePage() {
   const conceptItems = useMemo(
     () => [
       { label: "Todos los conceptos", value: "all" },
-      ...concepts.map((c) => ({
-          label: c.name,
-          value: c.id,
-        })),
+      ...concepts.map((c) => ({ label: c.name, value: c.id })),
     ],
     [concepts]
   );

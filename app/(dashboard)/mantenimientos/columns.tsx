@@ -1,7 +1,7 @@
 "use client";
 import { ColumnDef } from "@tanstack/react-table";
 import { Button } from "@/components/ui/button";
-import { Pencil, Trash2, AlertCircle } from "lucide-react";
+import { Pencil, Trash2 } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -16,7 +16,6 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { formatCurrency, formatDate, DisplayCurrency } from "@/lib/format";
 import { Maintenance, MaintenanceConcept } from "@/types/maintenance";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 function getDisplayValue(
   item: Pick<Maintenance, "value" | "valueUSD" | "valueBRL" | "valueUYU">,
@@ -27,35 +26,9 @@ function getDisplayValue(
   return item.valueBRL ?? item.value ?? 0;
 }
 
-function isMaintenanceOverdue(
-  maintenance: Maintenance,
-  concept: MaintenanceConcept
-): boolean {
-  if (!concept.lastMaintenanceDate && !concept.lastKilometers) return false;
-
-  const now = new Date();
-  const lastDate = concept.lastMaintenanceDate
-    ? new Date(concept.lastMaintenanceDate)
-    : null;
-
-  if (concept.dateInterval && lastDate) {
-    const daysElapsed = Math.floor(
-      (now.getTime() - lastDate.getTime()) / (1000 * 60 * 60 * 24)
-    );
-    return daysElapsed > concept.dateInterval;
-  }
-
-  if (concept.kilometerInterval && concept.lastKilometers) {
-    return maintenance.kilometers > concept.lastKilometers + concept.kilometerInterval;
-  }
-
-  return false;
-}
-
 export type MaintenanceRow = Maintenance & { concept: MaintenanceConcept };
 
 export function getColumns(
-  concepts: MaintenanceConcept[],
   onEdit: (maintenance: Maintenance) => void,
   onDelete: (maintenance: Maintenance) => void,
   displayCurrency: DisplayCurrency = "BRL"
@@ -111,26 +84,6 @@ export function getColumns(
         if (!value) return <span className="text-muted-foreground">—</span>;
         const displayVal = getDisplayValue(row.original, displayCurrency);
         return formatCurrency(displayVal, displayCurrency);
-      },
-    },
-    {
-      id: "overdue",
-      header: "",
-      cell: ({ row }) => {
-        const concept = concepts.find((c) => c.id === row.original.conceptId);
-        if (!concept || !isMaintenanceOverdue(row.original, concept))
-          return null;
-
-        return (
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger>
-                <AlertCircle className="h-4 w-4 text-orange-500" />
-              </TooltipTrigger>
-              <TooltipContent>Intervalo de mantenimiento vencido</TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-        );
       },
     },
     {
