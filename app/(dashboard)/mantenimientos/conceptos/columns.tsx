@@ -13,8 +13,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Badge } from "@/components/ui/badge";
-import { formatDate } from "@/lib/format";
+import Link from "next/link";
 import { MaintenanceConcept } from "@/types/maintenance";
 
 export function getColumns(
@@ -25,6 +24,14 @@ export function getColumns(
     {
       accessorKey: "name",
       header: "Nombre",
+      cell: ({ row }) => (
+        <Link
+          href={`/mantenimientos/conceptos/${row.original.id}`}
+          className="hover:underline"
+        >
+          {row.original.name}
+        </Link>
+      ),
     },
     {
       accessorKey: "kilometerInterval",
@@ -42,15 +49,6 @@ export function getColumns(
         const days = row.getValue("dateInterval") as number | null;
         if (!days) return <span className="text-muted-foreground">—</span>;
         return `${days} días`;
-      },
-    },
-    {
-      accessorKey: "lastMaintenanceDate",
-      header: "Último mantenimiento",
-      cell: ({ row }) => {
-        const date = row.getValue("lastMaintenanceDate") as string | null;
-        if (!date) return <span className="text-muted-foreground">Sin registros</span>;
-        return formatDate(date);
       },
     },
     {

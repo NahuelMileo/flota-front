@@ -1,6 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import { Combobox } from "@/components/ui/combobox";
 import { Field, FieldError } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -84,6 +85,7 @@ export default function AddMaintenanceForm({
   });
 
   const value = watch("value");
+  const conceptItems = concepts.map((c) => ({ label: c.name, value: c.id }));
 
   const onSubmit = async (data: MaintenanceFormValues) => {
     setIsLoading(true);
@@ -126,26 +128,31 @@ export default function AddMaintenanceForm({
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-      {/* CONCEPTO */}
+      {/* CAMIÓN */}
       <Field>
-        <Label>Concepto *</Label>
+        <Label>Camión *</Label>
         <Controller
-          name="maintenanceConceptId"
+          name="truckId"
           control={control}
           render={({ field }) => {
-            const selectedConcept = concepts.find((c) => c.id === field.value);
+            const selectedTruck = trucks.find((t) => t.id === field.value);
             return (
               <Select value={field.value || ""} onValueChange={field.onChange}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Seleccionar concepto">
-                    {selectedConcept ? selectedConcept.name : "Seleccionar concepto"}
+                  <SelectValue placeholder="Seleccionar camión">
+                    {selectedTruck
+                      ? `${selectedTruck.licensePlate}${
+                          selectedTruck.model ? ` - ${selectedTruck.model}` : ""
+                        }`
+                      : "Seleccionar camión"}
                   </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   <SelectGroup>
-                    {concepts.map((c) => (
-                      <SelectItem key={c.id} value={c.id}>
-                        {c.name}
+                    {trucks.map((t) => (
+                      <SelectItem key={t.id} value={t.id}>
+                        {t.licensePlate}
+                        {t.model ? ` - ${t.model}` : ""}
                       </SelectItem>
                     ))}
                   </SelectGroup>
@@ -153,6 +160,26 @@ export default function AddMaintenanceForm({
               </Select>
             );
           }}
+        />
+        {errors.truckId && <FieldError>{errors.truckId.message}</FieldError>}
+      </Field>
+
+      {/* CONCEPTO */}
+      <Field>
+        <Label>Concepto *</Label>
+        <Controller
+          name="maintenanceConceptId"
+          control={control}
+          render={({ field }) => (
+            <Combobox
+              options={conceptItems}
+              value={field.value || ""}
+              onValueChange={field.onChange}
+              placeholder="Seleccionar concepto"
+              searchPlaceholder="Buscar concepto..."
+              emptyMessage="No se encontraron conceptos."
+            />
+          )}
         />
         {errors.maintenanceConceptId && (
           <FieldError>{errors.maintenanceConceptId.message}</FieldError>
@@ -188,42 +215,6 @@ export default function AddMaintenanceForm({
           )}
         />
         {errors.type && <FieldError>{errors.type.message}</FieldError>}
-      </Field>
-
-      {/* CAMIÓN */}
-      <Field>
-        <Label>Camión *</Label>
-        <Controller
-          name="truckId"
-          control={control}
-          render={({ field }) => {
-            const selectedTruck = trucks.find((t) => t.id === field.value);
-            return (
-              <Select value={field.value || ""} onValueChange={field.onChange}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Seleccionar camión">
-                    {selectedTruck
-                      ? `${selectedTruck.licensePlate}${
-                          selectedTruck.model ? ` - ${selectedTruck.model}` : ""
-                        }`
-                      : "Seleccionar camión"}
-                  </SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectGroup>
-                    {trucks.map((t) => (
-                      <SelectItem key={t.id} value={t.id}>
-                        {t.licensePlate}
-                        {t.model ? ` - ${t.model}` : ""}
-                      </SelectItem>
-                    ))}
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
-            );
-          }}
-        />
-        {errors.truckId && <FieldError>{errors.truckId.message}</FieldError>}
       </Field>
 
       {/* FECHA */}
@@ -268,7 +259,7 @@ export default function AddMaintenanceForm({
       </Field>
 
       {/* MONEDA */}
-      {value && value > 0 && (
+      {(value ?? 0) > 0 && (
         <Field>
           <Label>Moneda</Label>
           <Controller
