@@ -1,18 +1,49 @@
 "use client";
+import { useState } from "react";
 import { Separator } from "@/components/ui/separator";
 import { SidebarTrigger } from "@/components/ui/sidebar";
+import { Button } from "@/components/ui/button";
 import { useDateFilter } from "@/context/date-filter-context";
 import { useCurrency } from "@/context/currency-context";
 import { usePathname } from "next/navigation";
 import { DatePicker } from "./ui/date-picker";
 import type { DisplayCurrency } from "@/lib/format";
+import { WhatsNewModal, type WhatsNewNote } from "@/components/whats-new-modal";
 
 const CURRENCIES: DisplayCurrency[] = ["USD", "BRL", "UYU"];
+
+// TODO(preview): borrar este flag y el bloque asociado una vez validado visualmente
+const WHATS_NEW_PREVIEW = true;
+
+const MOCK_WHATS_NEW_NOTES: WhatsNewNote[] = [
+  {
+    id: "1",
+    title: "Costos fijos por camión",
+    description:
+      "Ahora podés configurar los km mensuales estimados para calcular el costo/km automáticamente.",
+    imageUrl: "https://picsum.photos/seed/novedad1/480/240",
+  },
+  {
+    id: "2",
+    title: "Categorías de egresos dinámicas",
+    description:
+      "Creá y administrá tus propias categorías de egresos desde Configuración.",
+    imageUrl: "https://picsum.photos/seed/novedad2/480/240",
+  },
+  {
+    id: "3",
+    title: "Lecturas de odómetro",
+    description:
+      "El km actual del camión ahora se actualiza también desde combustible, mantenimientos y viajes.",
+    imageUrl: "https://picsum.photos/seed/novedad3/480/240",
+  },
+];
 
 export function SiteHeader() {
   const pathname = usePathname();
   const { selectedDate, setSelectedDate } = useDateFilter();
   const { displayCurrency, setDisplayCurrency } = useCurrency();
+  const [whatsNewOpen, setWhatsNewOpen] = useState(false);
 
   // Detectar si es una ruta de detalle y mostrar título apropiado
   const getTitleFromPathname = (path: string): string => {
@@ -52,6 +83,15 @@ export function SiteHeader() {
         />
         <h1 className="text-base font-medium">{title}</h1>
         <div className="ml-auto flex items-center gap-2">
+          {WHATS_NEW_PREVIEW && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setWhatsNewOpen(true)}
+            >
+              Preview novedades
+            </Button>
+          )}
           <div className="flex rounded-md border overflow-hidden">
             {CURRENCIES.map((cur) => (
               <button
@@ -74,6 +114,13 @@ export function SiteHeader() {
           />
         </div>
       </div>
+      {WHATS_NEW_PREVIEW && (
+        <WhatsNewModal
+          notes={MOCK_WHATS_NEW_NOTES}
+          open={whatsNewOpen}
+          onClose={() => setWhatsNewOpen(false)}
+        />
+      )}
     </header>
   );
 }

@@ -1,7 +1,7 @@
 // components/ui/date-picker.tsx
 "use client"
 import { useState } from "react"
-import { format } from "date-fns"
+import { addYears, format } from "date-fns"
 import { es } from "date-fns/locale"
 import { CalendarIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -49,6 +49,7 @@ export function DatePicker({ value, onChange }: DatePickerProps) {
           locale={es}
           initialFocus
           captionLayout="dropdown"
+          endMonth={addYears(new Date(), 10)}
         />
         <div className="p-2 border-t">
   <Button

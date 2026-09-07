@@ -210,10 +210,14 @@ function ExtendTemplatePopover({
   onSuccess: (updated: FixedCost) => void
 }) {
   const [open, setOpen] = useState(false)
-  const [months, setMonths] = useState("12")
+  const [months, setMonths] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   async function handleExtend() {
+    if (months.trim() === "") {
+      toast.error("Ingresá la cantidad de meses a expandir")
+      return
+    }
     const parsed = parseInt(months, 10)
     if (isNaN(parsed) || parsed < 1 || parsed > 60) {
       toast.error("Ingresá una cantidad de meses entre 1 y 60")
@@ -234,6 +238,7 @@ function ExtendTemplatePopover({
       toast.success("Costo fijo expandido")
       onSuccess(updated)
       setOpen(false)
+      setMonths("")
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Error al expandir el costo fijo")
     } finally {
@@ -241,8 +246,33 @@ function ExtendTemplatePopover({
     }
   }
 
+  const currentLabel =
+    template.generatedUntilYear != null && template.generatedUntilMonth != null
+      ? `${String(template.generatedUntilMonth).padStart(2, "0")}/${template.generatedUntilYear}`
+      : null
+
+  const parsedPreview = parseInt(months, 10)
+  const previewLabel =
+    !isNaN(parsedPreview) && parsedPreview >= 1 && parsedPreview <= 60
+      ? (() => {
+          let year = template.generatedUntilYear ?? new Date().getFullYear()
+          let month = (template.generatedUntilMonth ?? new Date().getMonth() + 1) + parsedPreview
+          while (month > 12) {
+            month -= 12
+            year++
+          }
+          return `${String(month).padStart(2, "0")}/${year}`
+        })()
+      : null
+
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover
+      open={open}
+      onOpenChange={(next) => {
+        setOpen(next)
+        if (!next) setMonths("")
+      }}
+    >
       <PopoverTrigger
         render={
           <button
@@ -258,6 +288,17 @@ function ExtendTemplatePopover({
         <p className="text-xs text-muted-foreground mb-2">
           Genera cuotas por los próximos meses (1 a 60).
         </p>
+        {currentLabel && (
+          <p className="text-xs text-muted-foreground mb-2">
+            Generado hasta <span className="font-medium tabular-nums">{currentLabel}</span>
+            {previewLabel && (
+              <>
+                {" "}→ pasará a{" "}
+                <span className="font-medium tabular-nums">{previewLabel}</span>
+              </>
+            )}
+          </p>
+        )}
         <div className="flex gap-1.5">
           <Input
             value={months}
@@ -266,6 +307,7 @@ function ExtendTemplatePopover({
             type="number"
             min={1}
             max={60}
+            placeholder="Ej: 3"
             className="h-8 text-sm"
             autoFocus
           />
