@@ -7,12 +7,14 @@ import {
 } from "@/components/ui/sidebar"
 import { DateFilterProvider } from "@/context/date-filter-context"
 import { CurrencyProvider } from "@/context/currency-context"
+import { MaintenanceAlertsProvider } from "@/context/maintenance-alerts-context"
 
 export default function DashboardLayout({children} : {children:React.ReactNode}) {
   return (
     <AuthGuard>
       <CurrencyProvider>
       <DateFilterProvider>
+      <MaintenanceAlertsProvider>
     <SidebarProvider
       style={
         {
@@ -31,6 +33,7 @@ export default function DashboardLayout({children} : {children:React.ReactNode})
         </div>
       </SidebarInset>
     </SidebarProvider>
+      </MaintenanceAlertsProvider>
       </DateFilterProvider>
       </CurrencyProvider>
     </AuthGuard>
