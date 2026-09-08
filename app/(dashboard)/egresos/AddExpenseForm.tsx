@@ -322,24 +322,6 @@ export default function AddExpenseForm({
             />
           </Field>
         )}
-
-        {hasAnyFuel && !isInstallmentPlan && (
-          <Field>
-            <Label>Kilómetros</Label>
-            <Input
-              {...register("kilometers", {
-                setValueAs: (v) =>
-                  v === "" || v === null || v === undefined
-                    ? null
-                    : parseFloat(String(v).replace(",", ".")),
-              })}
-              type="text"
-              inputMode="decimal"
-              placeholder="Opcional"
-            />
-            <FieldError errors={[errors.kilometers]} />
-          </Field>
-        )}
       </FieldGroup>
 
       <div className="mt-4 space-y-3">
@@ -469,6 +451,24 @@ export default function AddExpenseForm({
           );
         })}
       </div>
+
+      {hasAnyFuel && !isInstallmentPlan && (
+        <Field className="mt-3">
+          <Label>Kilómetros</Label>
+          <Input
+            {...register("kilometers", {
+              setValueAs: (v) =>
+                v === "" || v === null || v === undefined
+                  ? null
+                  : parseFloat(String(v).replace(",", ".")),
+            })}
+            type="text"
+            inputMode="decimal"
+            placeholder="Opcional"
+          />
+          <FieldError errors={[errors.kilometers]} />
+        </Field>
+      )}
 
       {!isInstallmentPlan && (
         <Button

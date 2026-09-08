@@ -6,6 +6,7 @@ import { useCurrency } from "@/context/currency-context";
 import { usePathname } from "next/navigation";
 import { DatePicker } from "./ui/date-picker";
 import type { DisplayCurrency } from "@/lib/format";
+import { MaintenanceNotificationsBell } from "@/components/notifications/maintenance-notifications-bell";
 
 const CURRENCIES: DisplayCurrency[] = ["USD", "BRL", "UYU"];
 
@@ -72,6 +73,7 @@ export function SiteHeader() {
             value={selectedDate}
             onChange={(d) => setSelectedDate(d ?? null)}
           />
+          <MaintenanceNotificationsBell />
         </div>
       </div>
     </header>
