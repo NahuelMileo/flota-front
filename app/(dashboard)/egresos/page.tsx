@@ -136,6 +136,7 @@ export default function ExpensePage() {
   const matchesTruckFilter = useCallback(
     (expense: Expense) => {
       if (!selectedTruckId) return true;
+      if (selectedTruckId === "none") return !expense.truckId && !expense.truckLicensePlate;
       if (expense.truckId === selectedTruckId) return true;
       if (!expense.truckId && selectedTruck && expense.truckLicensePlate === selectedTruck.licensePlate) return true;
       return false;
@@ -143,18 +144,23 @@ export default function ExpensePage() {
     [selectedTruckId, selectedTruck]
   );
 
+  const matchesCategoryFilter = useCallback(
+    (expense: Expense) => {
+      if (selectedCategoryId === null) return true;
+      if (selectedCategoryId === "none") return !expense.expenseCategoryId;
+      return expense.expenseCategoryId === selectedCategoryId;
+    },
+    [selectedCategoryId]
+  );
+
   const filteredExpenses = useMemo(() => {
     return expenses
-      .filter((expense) => {
-        if (!matchesTruckFilter(expense)) return false;
-        if (selectedCategoryId !== null && expense.expenseCategoryId !== selectedCategoryId) return false;
-        return true;
-      })
+      .filter((expense) => matchesTruckFilter(expense) && matchesCategoryFilter(expense))
       .sort((a, b) => {
         if (a.date !== b.date) return b.date > a.date ? 1 : -1;
         return (b.createdAt ?? "") > (a.createdAt ?? "") ? 1 : -1;
       });
-  }, [expenses, matchesTruckFilter, selectedCategoryId]);
+  }, [expenses, matchesTruckFilter, matchesCategoryFilter]);
 
   const total = useMemo(
     () => filteredExpenses.reduce((acc, e) => acc + getDisplayValue(e), 0),
@@ -163,13 +169,9 @@ export default function ExpensePage() {
 
   const previousMonthTotal = useMemo(() => {
     return prevMonthExpenses
-      .filter((expense) => {
-        if (!matchesTruckFilter(expense)) return false;
-        if (selectedCategoryId !== null && expense.expenseCategoryId !== selectedCategoryId) return false;
-        return true;
-      })
+      .filter((expense) => matchesTruckFilter(expense) && matchesCategoryFilter(expense))
       .reduce((acc, e) => acc + getDisplayValue(e), 0);
-  }, [prevMonthExpenses, matchesTruckFilter, selectedCategoryId, getDisplayValue]);
+  }, [prevMonthExpenses, matchesTruckFilter, matchesCategoryFilter, getDisplayValue]);
 
   const variation = useMemo(() => {
     if (previousMonthTotal === 0) return undefined;
@@ -218,6 +220,7 @@ export default function ExpensePage() {
   const truckItems = useMemo(
     () => [
       { label: "Todos los camiones", value: "all" },
+      { label: "Empresa", value: "none" },
       ...trucks.map((t) => ({
         label: t.licensePlate,
         value: t.id,
@@ -229,6 +232,7 @@ export default function ExpensePage() {
   const categoryItems = useMemo(
     () => [
       { label: "Todas las categorías", value: "all" },
+      { label: "Sin categoría", value: "none" },
       ...categories.map((c) => ({ label: c.name, value: c.id })),
     ],
     [categories]
