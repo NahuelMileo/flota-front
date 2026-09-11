@@ -211,25 +211,8 @@ export default function ReceivablesPage() {
   // ================= UI =================
   return (
     <div className="p-6 flex flex-col gap-4">
-      <div className="flex justify-between">
-        <h1 className="text-xl font-bold">Cuentas a Recibir</h1>
-
-        <Sheet open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-          <SheetTrigger render={<Button>Añadir cuenta</Button>} />
-          <SheetContent className="overflow-y-auto">
-            <SheetHeader>
-              <SheetTitle>Agregar cuenta a recibir</SheetTitle>
-              <SheetDescription>Registrá un flete a cobrar.</SheetDescription>
-            </SheetHeader>
-            <div className="px-4 pb-6">
-              <AddReceivableForm clients={clients} trucks={trucks} onSuccess={handleAdd} />
-            </div>
-          </SheetContent>
-        </Sheet>
-      </div>
-
       {/* FILTERS */}
-      <div className="flex flex-wrap gap-1">
+      <div className="flex flex-wrap items-center gap-1">
         <FilterSelect
           label="Cliente"
           icon={Users}
@@ -254,6 +237,18 @@ export default function ReceivablesPage() {
           options={statusOptions}
           allLabel="Todos"
         />
+        <Sheet open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+          <SheetTrigger render={<Button className="ml-auto">Añadir cuenta</Button>} />
+          <SheetContent className="overflow-y-auto">
+            <SheetHeader>
+              <SheetTitle>Agregar cuenta a recibir</SheetTitle>
+              <SheetDescription>Registrá un flete a cobrar.</SheetDescription>
+            </SheetHeader>
+            <div className="px-4 pb-6">
+              <AddReceivableForm clients={clients} trucks={trucks} onSuccess={handleAdd} />
+            </div>
+          </SheetContent>
+        </Sheet>
       </div>
 
       {/* RESUMEN */}

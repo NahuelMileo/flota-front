@@ -116,8 +116,8 @@ export function FuelEfficiency({ expenses, truckId, tripKm }: FuelEfficiencyProp
             <span
               className={`flex items-center gap-0.5 tabular-nums ${
                 variationIsPositive
-                  ? "text-red-600 dark:text-red-500"
-                  : "text-emerald-600 dark:text-emerald-500"
+                  ? "text-danger"
+                  : "text-success"
               }`}
             >
               {variationIsPositive ? (

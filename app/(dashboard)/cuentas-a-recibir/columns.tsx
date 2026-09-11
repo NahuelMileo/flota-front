@@ -20,7 +20,6 @@ import { formatCurrency, formatCurrency2, formatDate, DisplayCurrency } from "@/
 import { readableTextColor } from "@/lib/color-contrast";
 import { todayIso } from "./ReceivableFormFields";
 import {
-  RECEIVABLE_COLORS,
   RECEIVABLE_ITEM_LABELS,
   RECEIVABLE_STATUS_LABELS,
   type Receivable,
@@ -28,10 +27,11 @@ import {
   type ReceivableItemStatus,
 } from "@/types/receivable";
 
-/** Fondo y texto de una pastilla de color, según el estado del ítem. */
-function itemColors(status: ReceivableItemStatus) {
-  const background = status === "Collected" ? RECEIVABLE_COLORS.collected : RECEIVABLE_COLORS.pending;
-  return { backgroundColor: background, color: readableTextColor(background) };
+/** Clases de la pastilla según el estado del ítem. */
+function itemClasses(status: ReceivableItemStatus) {
+  return status === "Collected"
+    ? "bg-green-600 text-white hover:bg-green-700"
+    : "bg-red-600 text-white hover:bg-red-700";
 }
 
 function displayValue(receivable: Receivable, currency: DisplayCurrency): number {
@@ -61,8 +61,8 @@ function AmountCell({
   const amount = formatCurrency2(item.amount, receivable.currency as DisplayCurrency);
   const label = RECEIVABLE_ITEM_LABELS[kind];
   const className =
-    "block w-full cursor-pointer rounded-md px-2.5 py-1.5 text-left font-medium tabular-nums transition hover:brightness-95 disabled:cursor-wait disabled:opacity-60";
-  const colors = itemColors(item.status);
+    "block w-full cursor-pointer rounded-md px-2.5 py-1.5 text-left font-semibold tabular-nums transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 disabled:cursor-wait disabled:opacity-60";
+  const colors = itemClasses(item.status);
 
   if (item.status === "Collected") {
     return (
@@ -73,8 +73,7 @@ function AmountCell({
               type="button"
               disabled={isBusy}
               aria-label={`${label} cobrado, deshacer cobro`}
-              className={className}
-              style={colors}
+              className={`${className} ${colors}`}
             >
               {amount}
               {item.collectedAt && (
@@ -119,8 +118,7 @@ function AmountCell({
             type="button"
             disabled={isBusy}
             aria-label={`Cobrar ${label.toLowerCase()}`}
-            className={className}
-            style={colors}
+            className={`${className} ${colors}`}
           >
             {amount}
           </button>

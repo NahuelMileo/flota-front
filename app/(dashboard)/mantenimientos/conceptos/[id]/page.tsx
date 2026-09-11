@@ -70,7 +70,7 @@ export default function ConceptDetailPage() {
     <div className="p-6 flex flex-col gap-4">
       <div className="flex items-center gap-2">
         <Link href="/mantenimientos/conceptos">
-          <Button variant="ghost" size="icon">
+          <Button variant="ghost" size="icon" aria-label="Volver a conceptos">
             <ChevronLeft className="h-4 w-4" />
           </Button>
         </Link>

@@ -26,10 +26,8 @@ export default function DashboardLayout({children} : {children:React.ReactNode})
       <AppSidebar />
       <SidebarInset>
         <SiteHeader />
-        <div className="flex flex-1 flex-col">
-          <div className="@container/main flex flex-1 flex-col gap-2">
-            {children} 
-          </div>
+        <div className="@container/main flex-1 overflow-y-auto">
+          {children}
         </div>
       </SidebarInset>
     </SidebarProvider>

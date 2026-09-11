@@ -7,8 +7,23 @@ import { usePathname } from "next/navigation";
 import { DatePicker } from "./ui/date-picker";
 import type { DisplayCurrency } from "@/lib/format";
 import { MaintenanceNotificationsBell } from "@/components/notifications/maintenance-notifications-bell";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 const CURRENCIES: DisplayCurrency[] = ["USD", "BRL", "UYU"];
+
+const PAGE_TITLES: Record<string, string> = {
+  "/dashboard": "Dashboard",
+  "/trips": "Viajes",
+  "/camiones": "Camiones",
+  "/mantenimientos": "Mantenimientos",
+  "/mantenimientos/conceptos": "Conceptos de mantenimiento",
+  "/cuentas-a-recibir": "Cuentas a recibir",
+  "/ingresos": "Ingresos",
+  "/egresos": "Egresos",
+  "/costos": "Costos fijos",
+  "/clientes": "Clientes",
+  "/configuracion": "Configuración",
+};
 
 export function SiteHeader() {
   const pathname = usePathname();
@@ -18,6 +33,10 @@ export function SiteHeader() {
   // Detectar si es una ruta de detalle y mostrar título apropiado
   const getTitleFromPathname = (path: string): string => {
     const segments = path.split("/").filter(Boolean);
+
+    if (PAGE_TITLES[path]) {
+      return PAGE_TITLES[path];
+    }
 
     // Si es /trips/[id], mostrar "Ver viaje"
     if (segments[0] === "trips" && segments[1]) {
@@ -51,7 +70,7 @@ export function SiteHeader() {
           orientation="vertical"
           className="mx-2 h-4 data-vertical:self-auto"
         />
-        <h1 className="text-base font-medium">{title}</h1>
+        <h1 className="text-lg font-semibold tracking-tight">{title}</h1>
         <div className="ml-auto flex items-center gap-2">
           <div
             role="group"
@@ -78,6 +97,7 @@ export function SiteHeader() {
             value={selectedDate}
             onChange={(d) => setSelectedDate(d ?? null)}
           />
+          <ThemeToggle />
           <MaintenanceNotificationsBell />
         </div>
       </div>

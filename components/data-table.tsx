@@ -11,6 +11,7 @@ import {
   useReactTable,
 } from "@tanstack/react-table"
 import { useEffect, useState } from "react"
+import type { ReactNode } from "react"
 import { ChevronUp, ChevronDown, ChevronsUpDown, Download, Search } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
@@ -33,6 +34,7 @@ interface DataTableProps<TData, TValue> {
   csvHeaders?: { key: keyof TData; label: string }[]
   /** Orden inicial de la tabla, para listados que tienen un orden natural (una fecha). */
   initialSorting?: SortingState
+  toolbarAction?: ReactNode
   /**
    * Para listados que pagina y filtra la API (no el navegador): la tabla muestra las
    * filas tal cual las recibe y delega el cambio de página y la búsqueda.
@@ -55,6 +57,7 @@ export function DataTable<TData, TValue>({
   csvHeaders,
   serverSide,
   initialSorting,
+  toolbarAction,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = useState<SortingState>(initialSorting ?? [])
   const [searchInput, setSearchInput] = useState("")
@@ -153,11 +156,16 @@ export function DataTable<TData, TValue>({
             className="border-transparent bg-muted/50 pl-8 hover:bg-muted focus-visible:bg-transparent"
           />
         </div>
-        {csvHeaders && (
-          <Button variant="outline" size="sm" onClick={exportCSV} className="ml-auto gap-1.5">
-            <Download className="h-4 w-4" />
-            Exportar CSV
-          </Button>
+        {(csvHeaders || toolbarAction) && (
+          <div className="ml-auto flex items-center gap-2">
+            {csvHeaders && (
+              <Button variant="outline" size="sm" onClick={exportCSV} className="gap-1.5">
+                <Download className="h-4 w-4" />
+                Exportar CSV
+              </Button>
+            )}
+            {toolbarAction}
+          </div>
         )}
       </div>
       <div className="overflow-x-auto">

@@ -164,7 +164,7 @@ function EditFixedCostModal({
                 <FieldError errors={[errors.amount]} />
               </Field>
             </FieldGroup>
-            <Button className="w-full" type="submit" disabled={isSubmitting}>
+            <Button className="w-full border-primary" type="submit" disabled={isSubmitting}>
               Guardar cambios
             </Button>
           </form>
@@ -255,13 +255,13 @@ export default function CostosPage() {
     <div className="p-6 flex flex-col gap-5">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h1 className="text-xl font-bold">Costos Fijos</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">
+          <p className="text-sm text-muted-foreground">
             Todos los costos fijos activos de la empresa
           </p>
         </div>
         <div className="flex items-center gap-2">
           <Button
+            nativeButton={false}
             variant="outline"
             render={
               <Link

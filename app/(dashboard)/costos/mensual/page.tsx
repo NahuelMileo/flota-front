@@ -27,7 +27,7 @@ import { ProportionSummary } from "@/components/proportion-summary"
 
 // Verde para lo pagado, naranja para lo que falta: los mismos que ya usaban los KPIs
 // y los badges de estado de esta pantalla.
-const COST_COLORS = { paid: "#57E355", pending: "#F59E0B" }
+const COST_COLORS = { paid: "var(--success)", pending: "var(--warning)" }
 
 function getEntryDisplayAmount(entry: CostEntry, currency: DisplayCurrency): number {
   if (currency === "USD") return entry.valueUSD ?? entry.amount
@@ -325,7 +325,7 @@ function MonthlyCostsContent() {
                     {truckData && !truckData.estimatedMonthlyKm && (
                       <Badge
                         variant="outline"
-                        className="text-xs text-orange-700 border-orange-300 bg-orange-50 dark:bg-orange-950/30 py-0 h-4"
+                        className="text-xs border-warning-border bg-warning-surface text-warning py-0 h-4"
                       >
                         Falta configurar
                       </Badge>
@@ -338,7 +338,7 @@ function MonthlyCostsContent() {
                       </span>
                     )}
                     <div className="flex items-center gap-1">
-                      <span className="text-green-600 font-medium">{formatCurrency(groupPaid, displayCurrency)}</span>
+                      <span className="text-success font-medium">{formatCurrency(groupPaid, displayCurrency)}</span>
                       <span className="text-muted-foreground">/</span>
                       <span className="font-medium">{formatCurrency(groupTotal, displayCurrency)}</span>
                     </div>
@@ -371,7 +371,7 @@ function MonthlyCostsContent() {
                           className={cn(
                             "border-b last:border-b-0 transition-colors",
                             e.type === "Fixed"
-                              ? "bg-green-50/50 dark:bg-green-950/20"
+                              ? "bg-success-surface/50"
                               : "hover:bg-muted/30",
                             e.isPaid && "opacity-60"
                           )}

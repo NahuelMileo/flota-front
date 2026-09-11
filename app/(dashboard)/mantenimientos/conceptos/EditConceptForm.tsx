@@ -181,7 +181,7 @@ export default function EditConceptForm({
         <FieldError>{errors.root.message}</FieldError>
       )}
 
-      <Button type="submit" disabled={isLoading} className="w-full">
+      <Button type="submit" disabled={isLoading} className="w-full border-primary">
         {isLoading ? "Guardando..." : "Actualizar concepto"}
       </Button>
     </form>

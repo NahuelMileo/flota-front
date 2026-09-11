@@ -191,11 +191,26 @@ export default function IncomePage() {
   // ================= UI =================
   return (
     <div className="p-6 flex flex-col gap-4">
-      <div className="flex justify-between">
-        <h1 className="text-xl font-bold">Ingresos</h1>
-
+      {/* FILTERS */}
+      <div className="flex flex-wrap items-center gap-1">
+        <FilterSelect
+          label="Camión"
+          icon={TruckIcon}
+          value={selectedTruckId}
+          onChange={setSelectedTruckId}
+          options={trucks.map((t) => ({ label: t.licensePlate, value: t.id }))}
+          allLabel="Todos"
+        />
+        <FilterSelect
+          label="Tipo"
+          icon={Tag}
+          value={selectedTypeFilter}
+          onChange={setSelectedTypeFilter}
+          options={incomeTypeOptions}
+          allLabel="Todos"
+        />
         <Sheet open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-          <SheetTrigger render={<Button>Añadir ingreso</Button>} />
+          <SheetTrigger render={<Button className="ml-auto">Añadir ingreso</Button>} />
 
           <SheetContent className="overflow-y-auto">
             <SheetHeader>
@@ -214,26 +229,6 @@ export default function IncomePage() {
             </div>
           </SheetContent>
         </Sheet>
-      </div>
-
-      {/* FILTERS */}
-      <div className="flex flex-wrap gap-1">
-        <FilterSelect
-          label="Camión"
-          icon={TruckIcon}
-          value={selectedTruckId}
-          onChange={setSelectedTruckId}
-          options={trucks.map((t) => ({ label: t.licensePlate, value: t.id }))}
-          allLabel="Todos"
-        />
-        <FilterSelect
-          label="Tipo"
-          icon={Tag}
-          value={selectedTypeFilter}
-          onChange={setSelectedTypeFilter}
-          options={incomeTypeOptions}
-          allLabel="Todos"
-        />
       </div>
 
       {/* TOTAL */}

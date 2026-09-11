@@ -43,8 +43,8 @@ export function MonthlyComparisonChart({ data }: Props) {
               <YAxis tickFormatter={(v) => formatCurrency(v, displayCurrency)} tick={{ fontSize: 11 }} width={90} />
               <Tooltip formatter={(value) => [typeof value === "number" ? formatCurrency(value, displayCurrency) : value]} />
               <Legend />
-              <Bar dataKey="ingresos" fill="#22c55e" radius={[4, 4, 0, 0]} />
-              <Bar dataKey="egresos" fill="#ef4444" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="ingresos" fill="var(--success)" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="egresos" fill="var(--danger)" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         )}

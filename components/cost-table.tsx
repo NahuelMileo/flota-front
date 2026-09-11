@@ -73,7 +73,7 @@ function CellPopover({
           <button
             className={cn(
               "h-full w-full rounded px-2 py-1 text-right text-xs tabular-nums transition-colors hover:bg-muted",
-              isPaid && "text-emerald-700 dark:text-emerald-400",
+              isPaid && "text-success",
             )}
           >
             {formatCurrency(getEntryDisplayAmount(entry, displayCurrency), displayCurrency)}

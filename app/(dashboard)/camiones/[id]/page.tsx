@@ -64,8 +64,8 @@ const tripStatusLabels: Record<string, string> = {
 const tripStatusColorMap: Record<string, string> = {
   Scheduled: "bg-yellow-100 text-yellow-800 border-yellow-300",
   InProgress: "bg-blue-100 text-blue-800 border-blue-300",
-  Completed: "bg-green-100 text-green-800 border-green-300",
-  Cancelled: "bg-red-100 text-red-800 border-red-300",
+  Completed: "border-success-border bg-success-surface text-success",
+  Cancelled: "border-danger-border bg-danger-surface text-danger",
 }
 
 
@@ -141,7 +141,7 @@ function buildIncomeColumns(
       cell: ({ row }) => {
         const type = row.getValue("type") as string
         return type === "1"
-          ? <Badge variant="outline" className="text-green-400 border-green-400 bg-green-100">Flete</Badge>
+          ? <Badge variant="outline" className="border-success-border bg-success-surface text-success">Flete</Badge>
           : <Badge variant="outline">Otro</Badge>
       },
     },
@@ -157,12 +157,12 @@ function buildIncomeColumns(
         const income = row.original
         return (
           <div className="flex gap-1 justify-end">
-            <Button variant="ghost" size="icon" onClick={() => onEdit(income)}>
+            <Button variant="ghost" size="icon" aria-label="Editar ingreso" onClick={() => onEdit(income)}>
               <Pencil className="h-4 w-4" />
             </Button>
             <AlertDialog>
               <AlertDialogTrigger render={
-                <Button variant="ghost" size="icon">
+                <Button variant="ghost" size="icon" aria-label="Eliminar ingreso">
                   <Trash2 className="h-4 w-4 text-destructive" />
                 </Button>
               } />
@@ -233,12 +233,12 @@ function buildExpenseColumns(
         const expense = row.original
         return (
           <div className="flex gap-1 justify-end">
-            <Button variant="ghost" size="icon" onClick={() => onEdit(expense)}>
+            <Button variant="ghost" size="icon" aria-label="Editar egreso" onClick={() => onEdit(expense)}>
               <Pencil className="h-4 w-4" />
             </Button>
             <AlertDialog>
               <AlertDialogTrigger render={
-                <Button variant="ghost" size="icon">
+                <Button variant="ghost" size="icon" aria-label="Eliminar egreso">
                   <Trash2 className="h-4 w-4 text-destructive" />
                 </Button>
               } />
@@ -422,7 +422,7 @@ export default function TruckDetailPage() {
         {truck && !truck.estimatedMonthlyKm && (
           <Badge
             variant="outline"
-            className="text-orange-700 border-orange-300 bg-orange-50 dark:bg-orange-950/30 gap-1"
+            className="border-warning-border bg-warning-surface text-warning gap-1"
           >
             <AlertTriangle className="size-3" />
             Falta configurar km estimados
@@ -471,8 +471,8 @@ export default function TruckDetailPage() {
                 <dd
                   className={`font-medium tabular-nums ${
                     profitPerKm >= 0
-                      ? "text-emerald-600 dark:text-emerald-500"
-                      : "text-red-600 dark:text-red-500"
+                      ? "text-success"
+                      : "text-danger"
                   }`}
                 >
                   {formatCurrency2(profitPerKm, displayCurrency)}

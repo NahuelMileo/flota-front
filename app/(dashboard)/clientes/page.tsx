@@ -149,29 +149,6 @@ export default function ClientsPage() {
 
   return (
     <div className="p-6 flex flex-col gap-4">
-      <div>
-        <div className="flex justify-between">
-          <h1 className="text-xl font-bold">Clientes</h1>
-          <Sheet open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-            <SheetTrigger render={<Button>Nuevo cliente</Button>} />
-            <SheetContent>
-              <SheetHeader>
-                <SheetTitle>Agregar cliente</SheetTitle>
-                <SheetDescription>Agrega un cliente a tu empresa.</SheetDescription>
-              </SheetHeader>
-              <div className="px-4">
-                <ClientForm
-                  onSubmit={handleAddClient}
-                  isSubmitting={isSubmitting}
-                  submitLabel="Agregar cliente"
-                />
-              </div>
-            </SheetContent>
-          </Sheet>
-        </div>
-        <p className="text-muted-foreground">Gestiona los clientes de tu empresa</p>
-      </div>
-
       {/* Edit sheet */}
       <Sheet open={!!editingClient} onOpenChange={(open) => !open && setEditingClient(null)}>
         <SheetContent>
@@ -203,6 +180,24 @@ export default function ClientsPage() {
           data={clients}
           emptyMessage="No hay clientes registrados."
           searchPlaceholder="Buscar cliente..."
+          toolbarAction={
+            <Sheet open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+              <SheetTrigger render={<Button>Nuevo cliente</Button>} />
+              <SheetContent>
+                <SheetHeader>
+                  <SheetTitle>Agregar cliente</SheetTitle>
+                  <SheetDescription>Agrega un cliente a tu empresa.</SheetDescription>
+                </SheetHeader>
+                <div className="px-4">
+                  <ClientForm
+                    onSubmit={handleAddClient}
+                    isSubmitting={isSubmitting}
+                    submitLabel="Agregar cliente"
+                  />
+                </div>
+              </SheetContent>
+            </Sheet>
+          }
           serverSide={{
             page,
             pageCount,

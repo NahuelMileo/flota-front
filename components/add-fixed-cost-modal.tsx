@@ -298,7 +298,7 @@ export function AddFixedCostModal({ onSuccess }: AddFixedCostModalProps) {
             )}
           </FieldGroup>
 
-          <Button className="w-full" type="submit" disabled={isSubmitting}>
+          <Button className="w-full border-primary" type="submit" disabled={isSubmitting}>
             Crear costo fijo
           </Button>
         </form>

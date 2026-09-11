@@ -145,30 +145,6 @@ export default function TripsPage() {
   // ================= UI =================
   return (
     <div className="p-6 flex flex-col gap-4">
-      <div className="flex justify-between">
-        <h1 className="text-xl font-bold">Viajes</h1>
-
-        <Sheet open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-          <SheetTrigger render={<Button>Añadir viaje</Button>} />
-
-          <SheetContent className="overflow-y-auto">
-            <SheetHeader>
-              <SheetTitle>Agregar viaje</SheetTitle>
-              <SheetDescription>
-                Registrá un nuevo viaje.
-              </SheetDescription>
-            </SheetHeader>
-
-            <div className="px-4 pb-6">
-              <AddTripForm
-                trucks={trucks}
-                onSuccess={handleAddTrip}
-              />
-            </div>
-          </SheetContent>
-        </Sheet>
-      </div>
-
       {/* FILTERS */}
       <div className="flex flex-wrap items-center gap-1">
         <FilterSelect
@@ -197,6 +173,25 @@ export default function TripsPage() {
             Solo viajes abiertos
           </Label>
         </div>
+        <Sheet open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+          <SheetTrigger render={<Button className="ml-auto">Añadir viaje</Button>} />
+
+          <SheetContent className="overflow-y-auto">
+            <SheetHeader>
+              <SheetTitle>Agregar viaje</SheetTitle>
+              <SheetDescription>
+                Registrá un nuevo viaje.
+              </SheetDescription>
+            </SheetHeader>
+
+            <div className="px-4 pb-6">
+              <AddTripForm
+                trucks={trucks}
+                onSuccess={handleAddTrip}
+              />
+            </div>
+          </SheetContent>
+        </Sheet>
       </div>
 
       {/* Cantidad y kilómetros son metadatos de la tabla de abajo, no métricas que

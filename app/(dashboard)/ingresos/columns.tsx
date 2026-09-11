@@ -68,7 +68,7 @@ export function getColumns(
       accessorKey: "value",
       header: "Valor",
       cell: ({ row }) => (
-        <span className="font-medium tabular-nums text-emerald-600 dark:text-emerald-500">
+        <span className="font-medium tabular-nums text-success">
           {formatCurrency(getDisplayValue(row.original, displayCurrency), displayCurrency)}
         </span>
       ),
@@ -79,9 +79,9 @@ export function getColumns(
       cell: ({ row }) => {
         const currency = row.original.currency;
         const colorMap: Record<string, string> = {
-          USD: "text-blue-600 border-blue-300 bg-blue-50",
-          BRL: "text-green-600 border-green-300 bg-green-50",
-          UYU: "text-purple-600 border-purple-300 bg-purple-50",
+          USD: "text-blue-600 border-blue-300 bg-blue-50 dark:border-blue-900 dark:bg-blue-950/40 dark:text-blue-400",
+          BRL: "border-success-border bg-success-surface text-success",
+          UYU: "text-purple-600 border-purple-300 bg-purple-50 dark:border-purple-900 dark:bg-purple-950/40 dark:text-purple-400",
         };
         return (
           <Badge variant="outline" className={colorMap[currency] ?? ""}>
@@ -113,7 +113,7 @@ export function getColumns(
       cell: ({ row }) => {
         const type = row.getValue("type") as string;
         const normalized = normalizeIncomeType(type);
-        if (normalized === "1") return <Badge variant="outline" className="text-green-400 border-green-400 bg-green-100">Flete</Badge>;
+        if (normalized === "1") return <Badge variant="outline" className="border-success-border bg-success-surface text-success">Flete</Badge>;
         return <Badge variant="outline">Otro</Badge>;
       },
     },

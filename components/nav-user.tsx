@@ -32,6 +32,15 @@ export function NavUser({
   }
 }) {
   const { isMobile } = useSidebar()
+
+  // Iniciales del usuario: el avatar traía "CN" fijo, de la plantilla.
+  const initials =
+    user.name
+      .split(" ")
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((part) => part[0]?.toUpperCase())
+      .join("") || "?"
   const router = useRouter();
   async function handleLogout(){
     try {
@@ -54,16 +63,16 @@ export function NavUser({
         <DropdownMenu>
           <DropdownMenuTrigger
             render={
-              <SidebarMenuButton size="lg" className="aria-expanded:bg-muted" />
+              <SidebarMenuButton size="lg" className="aria-expanded:bg-sidebar-accent" />
             }
           >
             <Avatar className="size-8 rounded-lg grayscale">
               {/* <AvatarImage src={user.avatar} alt={user.name} /> */}
-              <AvatarFallback className="rounded-lg">CN</AvatarFallback>
+              <AvatarFallback className="rounded-lg">{initials}</AvatarFallback>
             </Avatar>
             <div className="grid flex-1 text-left text-sm leading-tight">
               <span className="truncate font-medium">{user.name}</span>
-              <span className="truncate text-xs text-foreground/70">
+              <span className="truncate text-xs text-sidebar-foreground/70">
                 {user.email}
               </span>
             </div>
@@ -80,7 +89,7 @@ export function NavUser({
                 <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
                   <Avatar className="size-8">
                     {/* <AvatarImage src={user.avatar} alt={user.name} /> */}
-                    <AvatarFallback className="rounded-lg">CN</AvatarFallback>
+                    <AvatarFallback className="rounded-lg">{initials}</AvatarFallback>
                   </Avatar>
                   <div className="grid flex-1 text-left text-sm leading-tight">
                     <span className="truncate font-medium">{user.name}</span>

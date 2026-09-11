@@ -12,7 +12,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import {
+  Popover,
+  PopoverContent,
+  PopoverDescription,
+  PopoverHeader,
+  PopoverTitle,
+  PopoverTrigger,
+} from "@/components/ui/popover"
 import { cn } from "@/lib/utils"
 
 interface DatePickerProps {
@@ -29,7 +36,8 @@ const YEAR_RANGE = { past: 10, future: 5 }
 
 export function DatePicker({ value, onChange }: DatePickerProps) {
   const view = value ?? new Date()
-  const currentYear = new Date().getFullYear()
+  const today = new Date()
+  const currentYear = today.getFullYear()
   const yearItems = Array.from(
     { length: YEAR_RANGE.past + YEAR_RANGE.future + 1 },
     (_, i) => currentYear - YEAR_RANGE.past + i
@@ -48,36 +56,70 @@ export function DatePicker({ value, onChange }: DatePickerProps) {
     onChange?.(undefined)
   }
 
+  const isSameMonth = (date: Date, comparison: Date) =>
+    date.getFullYear() === comparison.getFullYear() &&
+    date.getMonth() === comparison.getMonth()
+
+  const previousMonth = new Date(currentYear, today.getMonth() - 1, 1)
+
   return (
     <Popover>
       <PopoverTrigger render={
         <Button
           variant="outline"
+          aria-label={value ? `Período: ${format(value, "MMMM yyyy", { locale: es })}` : "Período: todos los meses"}
           className={cn(
-            "justify-start gap-1.5 text-left font-normal",
+            "justify-start gap-2 text-left font-normal",
             value
               ? "border-border bg-muted hover:bg-muted/70"
               : "border-dashed border-border/70 bg-transparent text-muted-foreground hover:border-border hover:bg-muted/50 hover:text-foreground"
           )}
         >
-          <CalendarIcon className="size-3.5 opacity-70" />
-          <span className="text-muted-foreground">Mes</span>
+          <CalendarIcon className="size-3.5 text-muted-foreground" />
           <span className={value ? "font-medium text-foreground capitalize" : ""}>
             {value ? format(value, "MMMM yyyy", { locale: es }) : "Todos"}
           </span>
         </Button>
       } />
-      <PopoverContent className="w-80 p-3">
-        <div className="flex items-center gap-1.5">
+      <PopoverContent
+        align="end"
+        sideOffset={8}
+        className="w-[min(22rem,calc(100vw-2rem))] gap-0 overflow-hidden p-0"
+      >
+        <PopoverHeader className="border-b px-4 py-3.5">
+          <PopoverTitle className="text-base font-semibold">Período</PopoverTitle>
+          <PopoverDescription>Elegí el mes que querés analizar.</PopoverDescription>
+        </PopoverHeader>
+
+        <div className="grid grid-cols-2 gap-2 px-4 pt-4">
+          <Button
+            type="button"
+            variant={value && isSameMonth(value, today) ? "default" : "outline"}
+            className={cn("justify-center", value && isSameMonth(value, today) && "border-primary")}
+            onClick={() => selectMonth(currentYear, today.getMonth())}
+          >
+            Este mes
+          </Button>
+          <Button
+            type="button"
+            variant={value && isSameMonth(value, previousMonth) ? "default" : "outline"}
+            className={cn("justify-center", value && isSameMonth(value, previousMonth) && "border-primary")}
+            onClick={() => selectMonth(previousMonth.getFullYear(), previousMonth.getMonth())}
+          >
+            Mes anterior
+          </Button>
+        </div>
+
+        <div className="flex items-center gap-1.5 px-4 py-4">
           <Button
             type="button"
             variant="ghost"
             size="icon-sm"
-            className="shrink-0"
+            className="shrink-0 border border-transparent hover:border-border"
             aria-label="Mes anterior"
             onClick={() => goToMonth(-1)}
           >
-            <ChevronLeftIcon className="size-4" />
+            <ChevronLeftIcon className="size-4" aria-hidden />
           </Button>
 
           <Select
@@ -85,7 +127,7 @@ export function DatePicker({ value, onChange }: DatePickerProps) {
             value={String(view.getMonth())}
             onValueChange={(v) => selectMonth(view.getFullYear(), Number(v))}
           >
-            <SelectTrigger className="w-32 min-w-0 capitalize">
+            <SelectTrigger aria-label="Mes" className="min-w-0 flex-1 capitalize">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -104,7 +146,7 @@ export function DatePicker({ value, onChange }: DatePickerProps) {
             value={String(view.getFullYear())}
             onValueChange={(v) => selectMonth(Number(v), view.getMonth())}
           >
-            <SelectTrigger className="w-22 min-w-0">
+            <SelectTrigger aria-label="Año" className="w-24 min-w-0">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -122,16 +164,21 @@ export function DatePicker({ value, onChange }: DatePickerProps) {
             type="button"
             variant="ghost"
             size="icon-sm"
-            className="shrink-0"
+            className="shrink-0 border border-transparent hover:border-border"
             aria-label="Mes siguiente"
             onClick={() => goToMonth(1)}
           >
-            <ChevronRightIcon className="size-4" />
+            <ChevronRightIcon className="size-4" aria-hidden />
           </Button>
         </div>
 
-        <div className="mt-3 border-t pt-2">
-          <Button variant="ghost" className="w-full text-sm" onClick={handleClear}>
+        <div className="flex items-center justify-between gap-3 border-t bg-muted/30 px-4 py-3">
+          <p className="min-w-0 truncate text-xs text-muted-foreground">
+            {value ? (
+              <>Mostrando <span className="font-medium capitalize text-foreground">{format(value, "MMMM yyyy", { locale: es })}</span></>
+            ) : "Mostrando todos los períodos"}
+          </p>
+          <Button variant="ghost" size="sm" className="shrink-0" onClick={handleClear} disabled={!value}>
             Ver todos
           </Button>
         </div>

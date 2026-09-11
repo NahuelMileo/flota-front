@@ -214,11 +214,29 @@ export default function ExpensePage() {
   // ================= UI =================
   return (
     <div className="p-6 flex flex-col gap-4">
-      <div className="flex justify-between">
-        <h1 className="text-xl font-bold">Egresos</h1>
-
+      {/* FILTERS */}
+      <div className="flex flex-wrap items-center gap-1">
+        <FilterSelect
+          label="Camión"
+          icon={TruckIcon}
+          value={selectedTruckId}
+          onChange={setSelectedTruckId}
+          options={trucks.map((t) => ({ label: t.licensePlate, value: t.id }))}
+          allLabel="Todos"
+        />
+        <FilterSelect
+          label="Categoría"
+          icon={Tag}
+          value={selectedCategoryId}
+          onChange={setSelectedCategoryId}
+          options={[
+            { label: "Sin categoría", value: "none" },
+            ...categories.map((c) => ({ label: c.name, value: c.id })),
+          ]}
+          allLabel="Todas"
+        />
         <Sheet open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-          <SheetTrigger render={<Button>Añadir egreso</Button>} />
+          <SheetTrigger render={<Button className="ml-auto">Añadir egreso</Button>} />
 
           <SheetContent className="overflow-y-auto">
             <SheetHeader>
@@ -239,29 +257,6 @@ export default function ExpensePage() {
             </div>
           </SheetContent>
         </Sheet>
-      </div>
-
-      {/* FILTERS */}
-      <div className="flex flex-wrap gap-1">
-        <FilterSelect
-          label="Camión"
-          icon={TruckIcon}
-          value={selectedTruckId}
-          onChange={setSelectedTruckId}
-          options={trucks.map((t) => ({ label: t.licensePlate, value: t.id }))}
-          allLabel="Todos"
-        />
-        <FilterSelect
-          label="Categoría"
-          icon={Tag}
-          value={selectedCategoryId}
-          onChange={setSelectedCategoryId}
-          options={[
-            { label: "Sin categoría", value: "none" },
-            ...categories.map((c) => ({ label: c.name, value: c.id })),
-          ]}
-          allLabel="Todas"
-        />
       </div>
 
       {/* TOTAL */}

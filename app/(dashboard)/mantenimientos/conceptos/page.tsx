@@ -93,11 +93,10 @@ export default function ConceptsPage() {
       <div className="flex justify-between items-center">
         <div className="flex items-center gap-2">
           <Link href="/mantenimientos">
-            <Button variant="ghost" size="icon">
+            <Button variant="ghost" size="icon" aria-label="Eliminar concepto">
               <ChevronLeft className="h-4 w-4" />
             </Button>
           </Link>
-          <h1 className="text-xl font-bold">Conceptos de Mantenimiento</h1>
         </div>
 
         <Button onClick={() => setIsAddDialogOpen(true)}>

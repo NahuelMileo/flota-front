@@ -149,10 +149,25 @@ export default function MaintenancePage() {
   // ================= UI =================
   return (
     <div className="p-6 flex flex-col gap-4">
-      <div className="flex justify-between items-center">
-        <h1 className="text-xl font-bold">Mantenimientos</h1>
-
-        <div className="flex gap-2">
+      {/* FILTERS */}
+      <div className="flex flex-wrap items-center gap-1">
+        <FilterSelect
+          label="Camión"
+          icon={TruckIcon}
+          value={selectedTruckId}
+          onChange={setSelectedTruckId}
+          options={trucks.map((t) => ({ label: t.licensePlate, value: t.id }))}
+          allLabel="Todos"
+        />
+        <FilterSelect
+          label="Concepto"
+          icon={Wrench}
+          value={selectedConceptId}
+          onChange={setSelectedConceptId}
+          options={concepts.map((c) => ({ label: c.name, value: c.id }))}
+          allLabel="Todos"
+        />
+        <div className="ml-auto flex items-center gap-2">
           <Link href="/mantenimientos/conceptos">
             <Button variant="outline" className="gap-2">
               <Settings className="h-4 w-4" />
@@ -181,26 +196,6 @@ export default function MaintenancePage() {
             </SheetContent>
           </Sheet>
         </div>
-      </div>
-
-      {/* FILTERS */}
-      <div className="flex flex-wrap gap-1">
-        <FilterSelect
-          label="Camión"
-          icon={TruckIcon}
-          value={selectedTruckId}
-          onChange={setSelectedTruckId}
-          options={trucks.map((t) => ({ label: t.licensePlate, value: t.id }))}
-          allLabel="Todos"
-        />
-        <FilterSelect
-          label="Concepto"
-          icon={Wrench}
-          value={selectedConceptId}
-          onChange={setSelectedConceptId}
-          options={concepts.map((c) => ({ label: c.name, value: c.id }))}
-          allLabel="Todos"
-        />
       </div>
 
       {/* EDIT SHEET */}

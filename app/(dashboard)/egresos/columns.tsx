@@ -63,7 +63,7 @@ export function getColumns(
       accessorKey: "value",
       header: "Valor",
       cell: ({ row }) => (
-        <span className="font-medium tabular-nums text-red-600 dark:text-red-500">
+        <span className="font-medium tabular-nums text-danger">
           {formatCurrency(getDisplayValue(row.original, displayCurrency), displayCurrency)}
         </span>
       ),

@@ -47,8 +47,8 @@ export const RECEIVABLE_ITEM_LABELS: Record<ReceivableItemKind, string> = {
 // Un solo par de colores para toda la pantalla: los mismos de las celdas de monto
 // pintan la barra de cobranza, así el resumen y la grilla hablan el mismo idioma.
 export const RECEIVABLE_COLORS = {
-  collected: "#57E355",
-  pending: "#F0453F",
+  collected: "var(--success)",
+  pending: "var(--danger)",
 } as const
 
 export const RECEIVABLE_STATUS_LABELS: Record<ReceivableStatus, string> = {

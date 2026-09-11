@@ -264,7 +264,7 @@ export function getColumns(
         if (t.isActive && remaining <= 2) {
           return (
             <span
-              className="inline-flex items-center gap-1.5 text-amber-600 dark:text-amber-500"
+              className="inline-flex items-center gap-1.5 text-warning"
               title="La generación está por cortarse — expandí el costo para que siga generando cuotas"
             >
               <AlertTriangle className="size-3.5" />

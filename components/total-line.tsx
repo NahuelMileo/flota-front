@@ -27,9 +27,9 @@ export function TotalLine({ total, count, noun, variation, higherIsBetter, tone 
       <span
         className={`text-2xl font-semibold ${
           tone === "positive"
-            ? "text-emerald-600 dark:text-emerald-500"
+            ? "text-success"
             : tone === "negative"
-              ? "text-red-600 dark:text-red-500"
+              ? "text-danger"
               : "text-foreground"
         }`}
       >
@@ -41,7 +41,7 @@ export function TotalLine({ total, count, noun, variation, higherIsBetter, tone 
       {variation !== undefined && (
         <span
           className={
-            isGood ? "text-emerald-600 dark:text-emerald-500" : "text-red-600 dark:text-red-500"
+            isGood ? "text-success" : "text-danger"
           }
         >
           {variation >= 0 ? "+" : ""}

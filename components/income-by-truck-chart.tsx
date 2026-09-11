@@ -64,7 +64,7 @@ export function IncomeByTruckChart({ incomes, displayCurrency }: Props) {
                 "Total",
               ]}
             />
-            <Bar dataKey="total" fill="#22c55e" radius={[4, 4, 0, 0]} />
+            <Bar dataKey="total" fill="var(--success)" radius={[4, 4, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
         )}

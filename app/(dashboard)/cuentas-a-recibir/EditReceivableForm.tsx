@@ -76,7 +76,7 @@ export default function EditReceivableForm({
   return (
     <form onSubmit={handleSubmit(onSubmit)}>
       {receivable.collectedAmount > 0 && (
-        <p className="mb-4 rounded-md border border-amber-300 bg-amber-50 p-3 text-xs text-amber-800 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-300">
+        <p className="mb-4 rounded-md border border-warning-border bg-warning-surface p-3 text-xs text-warning">
           Esta cuenta ya tiene cobros registrados. Si cambiás los montos, los ingresos
           generados se actualizan para coincidir.
         </p>

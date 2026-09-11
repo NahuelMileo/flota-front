@@ -305,7 +305,7 @@ export default function EditMaintenanceForm({
         {errors.notes && <FieldError>{errors.notes.message}</FieldError>}
       </Field>
 
-      <Button type="submit" disabled={isLoading} className="w-full">
+      <Button type="submit" disabled={isLoading} className="w-full border-primary">
         {isLoading ? "Guardando..." : "Actualizar mantenimiento"}
       </Button>
     </form>

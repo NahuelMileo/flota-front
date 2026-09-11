@@ -27,10 +27,10 @@ export function MaintenanceAlertItem({
         className={cn(
           "mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-full",
           isResolved
-            ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-500"
+            ? "bg-success-surface text-success"
             : isOverdue
-              ? "bg-destructive/10 text-destructive"
-              : "bg-amber-500/10 text-amber-600 dark:text-amber-500"
+              ? "bg-danger-surface text-danger"
+              : "bg-warning-surface text-warning"
         )}
       >
         {isResolved ? (
@@ -59,7 +59,7 @@ export function MaintenanceAlertItem({
         <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
           <Badge
             variant={isOverdue ? "destructive" : "secondary"}
-            className={cn(isResolved && "bg-emerald-600 text-white dark:bg-emerald-600")}
+            className={cn(isResolved && "bg-success text-background")}
           >
             {isResolved ? "Resuelto" : isOverdue ? "Vencido" : "Próximo"}
           </Badge>

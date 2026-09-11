@@ -189,7 +189,7 @@ export function TruckForm({
           <FieldError errors={[errors.color]} />
         </Field>
       </FieldGroup>
-      <Button className="w-full" disabled={isSubmitting} type="submit">
+      <Button className="w-full border-primary" disabled={isSubmitting} type="submit">
         {submitLabel}
       </Button>
     </form>

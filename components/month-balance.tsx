@@ -18,7 +18,7 @@ function Variation({ value, higherIsBetter }: { value?: number; higherIsBetter: 
   if (value === undefined) return null
   const isGood = higherIsBetter ? value >= 0 : value <= 0
   return (
-    <span className={isGood ? "text-emerald-600 dark:text-emerald-500" : "text-red-600 dark:text-red-500"}>
+    <span className={isGood ? "text-success" : "text-danger"}>
       {value >= 0 ? "+" : ""}
       {value}%
     </span>
@@ -56,8 +56,8 @@ export function MonthBalance({
         <p
           className={`text-3xl font-semibold tabular-nums ${
             isProfit
-              ? "text-emerald-600 dark:text-emerald-500"
-              : "text-red-600 dark:text-red-500"
+              ? "text-success"
+              : "text-danger"
           }`}
         >
           {formatCurrency(balance, displayCurrency)}
@@ -71,25 +71,25 @@ export function MonthBalance({
       </div>
 
       <div
-        className="flex h-1.5 overflow-hidden rounded-full bg-emerald-500"
+        className="flex h-1.5 overflow-hidden rounded-full bg-success"
         role="img"
         aria-label={`${Math.round(expenseRatio * 100)}% de los ingresos se fue en egresos`}
       >
         <div
-          className="bg-red-500 transition-[width] duration-500 ease-out"
+          className="bg-danger transition-[width] duration-500 ease-out"
           style={{ width: `${expenseRatio * 100}%` }}
         />
       </div>
 
       <dl className="flex flex-wrap gap-x-8 gap-y-1 text-sm">
         <div className="flex items-center gap-1.5">
-          <ArrowUpRight aria-hidden className="size-4 text-emerald-600 dark:text-emerald-500" />
+          <ArrowUpRight aria-hidden className="size-4 text-success" />
           <dt className="text-muted-foreground">Ingresos</dt>
           <dd className="font-medium tabular-nums">{formatCurrency(income, displayCurrency)}</dd>
           <Variation value={incomeVariation} higherIsBetter />
         </div>
         <div className="flex items-center gap-1.5">
-          <ArrowDownRight aria-hidden className="size-4 text-red-600 dark:text-red-500" />
+          <ArrowDownRight aria-hidden className="size-4 text-danger" />
           <dt className="text-muted-foreground">Egresos</dt>
           <dd className="font-medium tabular-nums">{formatCurrency(expense, displayCurrency)}</dd>
           <Variation value={expenseVariation} higherIsBetter={false} />
