@@ -72,8 +72,8 @@ function CellPopover({
         render={
           <button
             className={cn(
-              "w-full h-full text-right px-2 py-1 text-xs tabular-nums hover:bg-black/5 transition-colors rounded",
-              isPaid && "line-through text-muted-foreground"
+              "h-full w-full rounded px-2 py-1 text-right text-xs tabular-nums transition-colors hover:bg-muted",
+              isPaid && "text-emerald-700 dark:text-emerald-400",
             )}
           >
             {formatCurrency(getEntryDisplayAmount(entry, displayCurrency), displayCurrency)}
@@ -155,24 +155,24 @@ export function CostTable({
 
   if (costRows.length === 0) {
     return (
-      <div className="rounded-lg border p-8 text-center text-sm text-muted-foreground">
+      <p className="text-sm text-muted-foreground">
         No hay costos registrados para este año.
-      </div>
+      </p>
     )
   }
 
   return (
-    <div className="overflow-x-auto rounded-lg border">
+    <div className="overflow-x-auto">
       <table className="w-full text-sm border-collapse min-w-[900px]">
         <thead>
-          <tr className="bg-muted/50 border-b">
-            <th className="sticky left-0 z-10 bg-muted/80 text-left px-3 py-2 font-medium text-muted-foreground w-44 min-w-44">
+          <tr className="border-b">
+            <th className="sticky left-0 z-10 w-44 min-w-44 bg-background px-3 py-2 text-left text-xs font-medium text-muted-foreground">
               Concepto
             </th>
             {MONTHS.map((m) => (
               <th
                 key={m}
-                className="px-2 py-2 text-right font-medium text-muted-foreground w-20 min-w-20"
+                className="w-20 min-w-20 px-2 py-2 text-right text-xs font-medium text-muted-foreground"
               >
                 {m}
               </th>
@@ -183,13 +183,13 @@ export function CostTable({
           {costRows.map((row) => (
             <tr
               key={`${row.name}__${row.type}`}
-              className="border-b last:border-b-0 bg-background hover:brightness-95 transition-colors"
+              className="border-b bg-background transition-colors last:border-b-0 hover:bg-muted/40"
             >
               <td className="sticky left-0 z-10 bg-background px-3 py-1 font-medium text-xs max-w-44">
                 <div className="flex items-center gap-1 min-w-0">
                   <span className="truncate flex-1">{row.name}</span>
                   {row.scope === "CompanyWide" && (
-                    <span className="shrink-0 rounded px-1 py-0.5 text-[10px] font-semibold bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">
+                    <span className="shrink-0 rounded bg-muted px-1 py-0.5 text-[10px] font-semibold text-muted-foreground">
                       Empresa
                     </span>
                   )}
@@ -353,9 +353,9 @@ export function CostTable({
           </tr>
 
           {/* Costo x KM real row */}
-          <tr className="bg-cyan-50 dark:bg-cyan-950/20">
-            <td className="sticky left-0 z-10 bg-cyan-50 dark:bg-cyan-950/20 px-3 py-2 text-xs font-medium text-cyan-700 dark:text-cyan-300">
-              Costo x KM real
+          <tr className="bg-muted/40">
+            <td className="sticky left-0 z-10 bg-muted/40 px-3 py-2 text-xs font-medium">
+              Costo/km real
             </td>
             {MONTHS.map((_, i) => {
               const m = i + 1
@@ -365,7 +365,7 @@ export function CostTable({
               const monthTotal = monthTotals[i]
               const cpkReal = realKm && realKm > 0 && monthTotal > 0 ? monthTotal / realKm : null
               return (
-                <td key={m} className="px-2 py-2 text-right text-xs tabular-nums text-cyan-700 dark:text-cyan-300">
+                <td key={m} className="px-2 py-2 text-right text-xs font-medium tabular-nums">
                   {cpkReal != null ? formatCurrency2(cpkReal, displayCurrency) : <span className="text-muted-foreground/40">—</span>}
                 </td>
               )
@@ -373,9 +373,9 @@ export function CostTable({
           </tr>
 
           {/* Costo x KM estimado row */}
-          <tr className="bg-cyan-50/60 dark:bg-cyan-950/10">
-            <td className="sticky left-0 z-10 bg-cyan-50/60 dark:bg-cyan-950/10 px-3 py-2 text-xs font-medium text-cyan-600 dark:text-cyan-400">
-              Costo x KM estimado
+          <tr className="bg-muted/20">
+            <td className="sticky left-0 z-10 bg-muted/20 px-3 py-2 text-xs text-muted-foreground">
+              Costo/km estimado
             </td>
             {MONTHS.map((_, i) => {
               const m = i + 1
@@ -385,7 +385,7 @@ export function CostTable({
               const estKm = s?.estimatedKm ?? estimatedMonthlyKm ?? null
               const cpkEst = estKm && estKm > 0 && monthTotal > 0 ? monthTotal / estKm : null
               return (
-                <td key={m} className="px-2 py-2 text-right text-xs tabular-nums text-cyan-600 dark:text-cyan-400">
+                <td key={m} className="px-2 py-2 text-right text-xs tabular-nums text-muted-foreground">
                   {cpkEst != null ? formatCurrency2(cpkEst, displayCurrency) : <span className="text-muted-foreground/40">—</span>}
                 </td>
               )

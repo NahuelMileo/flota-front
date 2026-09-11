@@ -1,6 +1,8 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import { X } from "lucide-react";
+import { SheetFormActions } from "@/components/sheet-form-actions";
 import { Field, FieldGroup, FieldError } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -331,19 +333,27 @@ export default function AddExpenseForm({
           const isItemFuel = itemCat ? FUEL_CATEGORY_NAMES.has(itemCat.name) : false;
 
           return (
-            <div key={field.id} className="rounded-md border p-4 space-y-3">
+            // Con un solo gasto la caja era marco por el marco; con varios, una regla
+            // y el rótulo separan igual sin encerrar cada bloque.
+            <div
+              key={field.id}
+              className={`space-y-3 ${index > 0 ? "border-t pt-4" : ""}`}
+            >
               {fields.length > 1 && (
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium text-muted-foreground">
                     Gasto {index + 1}
                   </span>
-                  <button
+                  <Button
                     type="button"
+                    variant="ghost"
+                    size="icon-sm"
+                    aria-label={`Quitar gasto ${index + 1}`}
                     onClick={() => remove(index)}
-                    className="text-muted-foreground hover:text-destructive text-sm leading-none"
+                    className="text-muted-foreground hover:text-destructive"
                   >
-                    ✕
-                  </button>
+                    <X className="size-4" />
+                  </Button>
                 </div>
               )}
 
@@ -481,13 +491,13 @@ export default function AddExpenseForm({
         </Button>
       )}
 
-      <Button className="mt-3 w-full" type="submit" disabled={isSubmitting}>
-        {isInstallmentPlan
-          ? "Crear plan de cuotas"
-          : fields.length > 1
-            ? `Guardar ${fields.length} egresos`
-            : "Agregar egreso"}
-      </Button>
+      <SheetFormActions submitLabel={
+          isInstallmentPlan
+            ? "Crear plan de cuotas"
+            : fields.length > 1
+              ? `Guardar ${fields.length} egresos`
+              : "Agregar egreso"
+        } isSubmitting={isSubmitting} />
     </form>
   );
 }

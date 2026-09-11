@@ -25,7 +25,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { PlusIcon } from "lucide-react"
 import type { ExpenseCategory } from "@/types/expense-category"
 
 type Truck = { id: string; licensePlate: string; model?: string }
@@ -144,10 +143,7 @@ export function AddFixedCostModal({ onSuccess }: AddFixedCostModalProps) {
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger
         render={
-          <Button size="sm">
-            <PlusIcon className="size-4 mr-1" />
-            Agregar costo fijo
-          </Button>
+          <Button>Agregar costo fijo</Button>
         }
       />
       <DialogContent className="sm:max-w-md overflow-y-auto max-h-[90vh]">

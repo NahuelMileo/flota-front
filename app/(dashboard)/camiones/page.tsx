@@ -118,11 +118,11 @@ export default function TruckPage() {
 
   return (
     <div className="p-6 flex flex-col gap-4">
-      <div className="mb-20">
+      <div>
         <div className="flex justify-between">
           <h1 className="text-xl font-bold">Camiones</h1>
           <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-            <DialogTrigger render={<Button variant="outline">Añadir un camión</Button>} />
+            <DialogTrigger render={<Button>Añadir camión</Button>} />
             <DialogContent className="sm:max-w-sm">
               <DialogHeader>
                 <DialogTitle>Agregar camión</DialogTitle>

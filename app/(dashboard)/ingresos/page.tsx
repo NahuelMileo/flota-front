@@ -1,6 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import { Tag, TruckIcon } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { DataTable } from "@/components/data-table";
 import {
@@ -15,7 +16,7 @@ import { toast } from "sonner";
 import { fetchWithAuth } from "@/lib/api";
 import { useTrucks } from "@/hooks/use-trucks";
 import { getColumns, Income, normalizeIncomeType } from "./columns";
-import { TotalIncomeCard } from "@/components/total-income-card";
+import { TotalLine } from "@/components/total-line";
 import { IncomeByTruckChart } from "@/components/income-by-truck-chart";
 import { useDateFilter } from "@/context/date-filter-context";
 import { useCurrency } from "@/context/currency-context";
@@ -23,18 +24,10 @@ import AddIncomeForm from "./AddIncomeForm";
 import EditIncomeForm from "./EditIncomeForm";
 import type { ExpenseCategory } from "@/types/expense-category";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { FilterSelect } from "@/components/filter-select";
 
 
-const incomeTypeItems = [
-  { label: "Todos los tipos", value: "all" },
+const incomeTypeOptions = [
   { label: "Flete", value: "1" },
   { label: "Otro", value: "2" },
 ];
@@ -195,18 +188,6 @@ export default function IncomePage() {
     [handleDeleteIncome, displayCurrency]
   );
 
-  // ================= FILTER OPTIONS =================
-  const truckItems = useMemo(
-    () => [
-      { label: "Todos los camiones", value: "all" },
-      ...trucks.map((t) => ({
-        label: t.licensePlate,
-        value: t.id,
-      })),
-    ],
-    [trucks]
-  );
-
   // ================= UI =================
   return (
     <div className="p-6 flex flex-col gap-4">
@@ -214,7 +195,7 @@ export default function IncomePage() {
         <h1 className="text-xl font-bold">Ingresos</h1>
 
         <Sheet open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-          <SheetTrigger render={<Button variant="outline">Añadir ingreso</Button>} />
+          <SheetTrigger render={<Button>Añadir ingreso</Button>} />
 
           <SheetContent className="overflow-y-auto">
             <SheetHeader>
@@ -236,52 +217,34 @@ export default function IncomePage() {
       </div>
 
       {/* FILTERS */}
-      <div className="flex gap-2">
-        <Select
-          items={truckItems}
-          value={selectedTruckId ?? "all"}
-          onValueChange={(value) =>
-            setSelectedTruckId(value === "all" ? null : value)
-          }
-        >
-          <SelectTrigger className="w-48">
-            <SelectValue placeholder="Todos los camiones" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectGroup>
-              {truckItems.map((item) => (
-                <SelectItem key={item.value} value={item.value}>
-                  {item.label}
-                </SelectItem>
-              ))}
-            </SelectGroup>
-          </SelectContent>
-        </Select>
-
-        <Select
-          items={incomeTypeItems}
-          value={selectedTypeFilter ?? "all"}
-          onValueChange={(value) =>
-            setSelectedTypeFilter(value === "all" ? null : value)
-          }
-        >
-          <SelectTrigger className="w-48">
-            <SelectValue placeholder="Todos los tipos" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectGroup>
-              {incomeTypeItems.map((item) => (
-                <SelectItem key={item.value} value={item.value}>
-                  {item.label}
-                </SelectItem>
-              ))}
-            </SelectGroup>
-          </SelectContent>
-        </Select>
+      <div className="flex flex-wrap gap-1">
+        <FilterSelect
+          label="Camión"
+          icon={TruckIcon}
+          value={selectedTruckId}
+          onChange={setSelectedTruckId}
+          options={trucks.map((t) => ({ label: t.licensePlate, value: t.id }))}
+          allLabel="Todos"
+        />
+        <FilterSelect
+          label="Tipo"
+          icon={Tag}
+          value={selectedTypeFilter}
+          onChange={setSelectedTypeFilter}
+          options={incomeTypeOptions}
+          allLabel="Todos"
+        />
       </div>
 
-      {/* CARD */}
-      <TotalIncomeCard total={total} variation={variation} />
+      {/* TOTAL */}
+      <TotalLine
+        total={total}
+        count={filteredIncomes.length}
+        noun={["ingreso", "ingresos"]}
+        variation={variation}
+        higherIsBetter
+        tone="positive"
+      />
 
       {/* CHART */}
       <IncomeByTruckChart incomes={filteredIncomes} displayCurrency={displayCurrency} />

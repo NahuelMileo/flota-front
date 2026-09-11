@@ -1,7 +1,6 @@
 "use client";
 
 import { useMemo } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowUp, ArrowDown } from "lucide-react";
 import { formatCurrency2, formatCurrency, type DisplayCurrency } from "@/lib/format";
 import { useCurrency } from "@/context/currency-context";
@@ -32,13 +31,13 @@ function getDisplayValue(
   return item.valueBRL ?? item.value;
 }
 
-type FuelEfficiencyCardProps = {
+type FuelEfficiencyProps = {
   expenses: Expense[];
   truckId?: string;
   tripKm?: number;
 };
 
-export function FuelEfficiencyCard({ expenses, truckId, tripKm }: FuelEfficiencyCardProps) {
+export function FuelEfficiency({ expenses, truckId, tripKm }: FuelEfficiencyProps) {
   const { displayCurrency } = useCurrency();
 
   const fuelExpenses = useMemo(() => {
@@ -90,72 +89,47 @@ export function FuelEfficiencyCard({ expenses, truckId, tripKm }: FuelEfficiency
   const variationIsPositive = variation >= 0;
 
   if (fuelExpenses.length === 0) {
-    return (
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Costo por km</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-muted-foreground">Sin datos de combustible.</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Precio por litro</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-muted-foreground">Sin datos de combustible.</p>
-          </CardContent>
-        </Card>
-      </div>
-    );
+    return <p className="text-sm text-muted-foreground">Sin datos de combustible en este viaje.</p>;
   }
 
+  // Dos cifras no necesitan dos cards: van como una línea de datos, igual que el resto
+  // de los resúmenes de la app.
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-      {/* $/km */}
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium text-muted-foreground">Costo por km</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-2xl font-bold">
+    <section className="space-y-3">
+      <h2 className="border-b pb-2 font-semibold">Combustible</h2>
+      <dl className="flex flex-wrap gap-x-8 gap-y-1 text-sm">
+        <div className="flex items-center gap-1.5">
+          <dt className="text-muted-foreground">Costo/km</dt>
+          <dd className="font-medium tabular-nums">
             {formatCurrency2(avgCostPerKm, displayCurrency)}
-          </p>
-          <p className="text-xs text-muted-foreground mt-1">
-            Total: {formatCurrency(totalCost, displayCurrency)}
-          </p>
-        </CardContent>
-      </Card>
-
-      {/* $/L */}
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium text-muted-foreground">Precio por litro</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center justify-between">
-            <p className="text-2xl font-bold">
-              {formatCurrency2(avgPricePerLiter, displayCurrency)}
-            </p>
-            {variationIsPositive ? (
-              <div className="flex items-center gap-1 text-red-600">
-                <ArrowUp className="h-4 w-4" />
-                <span className="text-sm">{Math.abs(variation)}%</span>
-              </div>
-            ) : (
-              <div className="flex items-center gap-1 text-green-600">
-                <ArrowDown className="h-4 w-4" />
-                <span className="text-sm">{Math.abs(variation)}%</span>
-              </div>
-            )}
-          </div>
-          <p className="text-xs text-muted-foreground mt-1">
-            vs período anterior
-          </p>
-        </CardContent>
-      </Card>
-    </div>
+          </dd>
+          <span className="text-muted-foreground tabular-nums">
+            ({formatCurrency(totalCost, displayCurrency)} en total)
+          </span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <dt className="text-muted-foreground">Precio/litro</dt>
+          <dd className="font-medium tabular-nums">
+            {formatCurrency2(avgPricePerLiter, displayCurrency)}
+          </dd>
+          {variation !== 0 && (
+            <span
+              className={`flex items-center gap-0.5 tabular-nums ${
+                variationIsPositive
+                  ? "text-red-600 dark:text-red-500"
+                  : "text-emerald-600 dark:text-emerald-500"
+              }`}
+            >
+              {variationIsPositive ? (
+                <ArrowUp className="h-3.5 w-3.5" aria-hidden />
+              ) : (
+                <ArrowDown className="h-3.5 w-3.5" aria-hidden />
+              )}
+              {Math.abs(variation)}% vs período anterior
+            </span>
+          )}
+        </div>
+      </dl>
+    </section>
   );
 }

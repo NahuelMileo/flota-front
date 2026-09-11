@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { formatCurrency, formatDate, DisplayCurrency } from "@/lib/format";
+import { RECEIVABLE_ITEM_LABELS, type ReceivableItemKind } from "@/types/receivable";
 
 const incomeTypeMap: Record<string, "1" | "2"> = {
   "1": "1", Freight: "1", Flete: "1",
@@ -38,6 +39,10 @@ export type Income = {
   type: string;
   currency: string; // "USD" | "BRL" | "UYU"
   tripId?: string | null;
+  // Presentes solo cuando el ingreso es el cobro de una cuenta a recibir.
+  receivableId?: string | null;
+  receivableKind?: ReceivableItemKind | null;
+  receivableClientName?: string | null;
 };
 
 function getDisplayValue(
@@ -62,10 +67,11 @@ export function getColumns(
     {
       accessorKey: "value",
       header: "Valor",
-      cell: ({ row }) => {
-        const displayVal = getDisplayValue(row.original, displayCurrency);
-        return formatCurrency(displayVal, displayCurrency);
-      },
+      cell: ({ row }) => (
+        <span className="font-medium tabular-nums text-emerald-600 dark:text-emerald-500">
+          {formatCurrency(getDisplayValue(row.original, displayCurrency), displayCurrency)}
+        </span>
+      ),
     },
     {
       accessorKey: "currency",
@@ -143,6 +149,21 @@ export function getColumns(
                       {formatCurrency(getDisplayValue(income, displayCurrency), displayCurrency)}
                     </span>{" "}
                     de tu registro.
+                    {income.receivableId && (
+                      <>
+                        {" "}
+                        Es el{" "}
+                        <span className="font-medium text-foreground">
+                          {income.receivableKind
+                            ? RECEIVABLE_ITEM_LABELS[income.receivableKind].toLowerCase()
+                            : "cobro"}
+                        </span>{" "}
+                        de la cuenta a recibir del {formatDate(income.dateUtc)}
+                        {income.truckLicensePlate ? ` · ${income.truckLicensePlate}` : ""}
+                        {income.receivableClientName ? ` · ${income.receivableClientName}` : ""}: si
+                        lo borrás, ese ítem vuelve a figurar como no cobrado.
+                      </>
+                    )}
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>

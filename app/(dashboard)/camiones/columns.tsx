@@ -27,9 +27,21 @@ export function getColumns(
       accessorKey: "licensePlate",
       header: "Matrícula",
       cell: ({ row }) => (
-        <Link href={`/camiones/${row.original.id}`} className="font-medium hover:underline">
-          {row.getValue("licensePlate")}
-        </Link>
+        <div className="flex items-center gap-2">
+          {/* Mismo color con el que el camión se identifica en cuentas a recibir. */}
+          <span
+            aria-hidden
+            className="h-4 w-1.5 shrink-0 rounded-full border"
+            style={
+              row.original.color
+                ? { backgroundColor: row.original.color, borderColor: row.original.color }
+                : undefined
+            }
+          />
+          <Link href={`/camiones/${row.original.id}`} className="font-medium hover:underline">
+            {row.getValue("licensePlate")}
+          </Link>
+        </div>
       ),
     },
     {

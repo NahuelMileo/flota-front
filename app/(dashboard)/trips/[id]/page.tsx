@@ -32,7 +32,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Trip } from "../columns";
 import EditTripForm from "../EditTripForm";
-import { FuelEfficiencyCard } from "@/components/fuel-efficiency-card";
+import { FuelEfficiency } from "@/components/fuel-efficiency";
+import { MonthBalance } from "@/components/month-balance";
 import AddIncomeForm from "@/app/(dashboard)/ingresos/AddIncomeForm";
 import EditIncomeForm from "@/app/(dashboard)/ingresos/EditIncomeForm";
 import { Income as IncomeFormType, normalizeIncomeType } from "@/app/(dashboard)/ingresos/columns";
@@ -304,7 +305,11 @@ export default function TripDetailPage() {
 
   const displayTotalIncome = trip ? trip.incomes.reduce((sum, i) => sum + getDisplayValue(i), 0) : 0;
   const displayTotalExpense = trip ? trip.expenses.reduce((sum, e) => sum + getDisplayValue(e), 0) : 0;
-  const displayProfit = displayTotalIncome - displayTotalExpense;
+  // Los km reales del viaje si el chofer reportó ambas lecturas; si no, los cargados a mano.
+  const tripKm =
+    trip && trip.initialKm != null && trip.finalKm != null
+      ? trip.finalKm - trip.initialKm
+      : trip?.kilometers ?? null;
 
   if (isLoading) {
     return (
@@ -342,8 +347,27 @@ export default function TripDetailPage() {
             <h1 className="text-2xl font-bold">
               {trip ? `${trip.origin} → ${trip.destination}` : 'Cargando...'}
             </h1>
-            <p className="text-sm text-muted-foreground">
-              {trip && formatDate(trip.departureDate)}
+            {/* Lo que era una card de ocho filas etiqueta/valor entra en una línea:
+                son metadatos del viaje, no contenido que merezca su propio bloque. */}
+            <p className="flex flex-wrap items-center gap-x-2 text-sm text-muted-foreground">
+              <span className="tabular-nums">{formatDate(trip.departureDate)}</span>
+              {trip.arrivalDate && (
+                <>
+                  <span aria-hidden>→</span>
+                  <span className="tabular-nums">{formatDate(trip.arrivalDate)}</span>
+                </>
+              )}
+              <span aria-hidden>·</span>
+              <span>{trip.truckLicensePlate}</span>
+              {trip.driverName && (
+                <>
+                  <span aria-hidden>·</span>
+                  <span>{trip.driverName}</span>
+                </>
+              )}
+              <Badge variant="outline" className={statusColors}>
+                {statusLabel}
+              </Badge>
             </p>
           </div>
         </div>
@@ -384,157 +408,91 @@ export default function TripDetailPage() {
         </div>
       </div>
 
-      {/* Info Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* Info Básica */}
-        <div className="rounded-lg border p-4 space-y-3">
-          <h3 className="font-semibold">Información del viaje</h3>
-          <div className="space-y-2 text-sm">
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Salida:</span>
-              <span className="font-medium">{formatDate(trip.departureDate)}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Llegada:</span>
-              <span className="font-medium">{trip.arrivalDate ? formatDate(trip.arrivalDate) : <span className="text-muted-foreground">—</span>}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Camión:</span>
-              <span className="font-medium">{trip.truckLicensePlate}</span>
-            </div>
-            {trip.driverName && (
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Chofer:</span>
-                <span className="font-medium">{trip.driverName}</span>
-              </div>
-            )}
-            {trip.initialKm != null && (
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Km inicial:</span>
-                <span className="font-medium">{trip.initialKm.toLocaleString("es-UY")} km</span>
-              </div>
-            )}
-            {trip.finalKm != null && (
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Km final:</span>
-                <span className="font-medium">{trip.finalKm.toLocaleString("es-UY")} km</span>
-              </div>
-            )}
-            {trip.initialKm != null && trip.finalKm != null && (
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Total km:</span>
-                <span className="font-medium">{(trip.finalKm - trip.initialKm).toLocaleString("es-UY")} km</span>
-              </div>
-            )}
-            {trip.kilometers && trip.initialKm == null && (
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Kilómetros:</span>
-                <span className="font-medium">{trip.kilometers} km</span>
-              </div>
-            )}
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Estado:</span>
-              <Badge variant="outline" className={statusColors}>
-                {statusLabel}
-              </Badge>
-            </div>
+      {/* El resumen financiero es la respuesta de esta pantalla: va suelto y arriba,
+          sin caja que lo encierre. */}
+      <MonthBalance
+        income={displayTotalIncome}
+        expense={displayTotalExpense}
+        period="en este viaje"
+      >
+        {tripKm && tripKm > 0 && displayTotalExpense > 0 ? (
+          <div className="flex items-center gap-1.5">
+            <dt className="text-muted-foreground">Costo/km</dt>
+            <dd className="font-medium tabular-nums">
+              {fmtMoney2(displayTotalExpense / tripKm)}
+            </dd>
           </div>
-        </div>
+        ) : null}
+        {tripKm && tripKm > 0 && displayTotalIncome > 0 ? (
+          <div className="flex items-center gap-1.5">
+            <dt className="text-muted-foreground">Ingreso/km</dt>
+            <dd className="font-medium tabular-nums">
+              {fmtMoney2(displayTotalIncome / tripKm)}
+            </dd>
+          </div>
+        ) : null}
+      </MonthBalance>
 
-        {/* Financiero */}
-        <div className="rounded-lg border p-4 space-y-3">
-          <h3 className="font-semibold">Resumen financiero</h3>
-          <div className="space-y-3 text-sm">
-            <div className="flex justify-between pb-2 border-b">
-              <span className="text-muted-foreground">Total ingresos:</span>
-              <span className="font-medium text-green-600">
-                {fmtMoney(displayTotalIncome)}
-              </span>
+      {/* Odómetro: solo si el chofer reportó algo. */}
+      {(trip.initialKm != null || trip.finalKm != null || trip.kilometers) && (
+        <dl className="flex flex-wrap gap-x-6 gap-y-1 text-sm">
+          {trip.initialKm != null && (
+            <div className="flex items-center gap-1.5">
+              <dt className="text-muted-foreground">Km inicial</dt>
+              <dd className="font-medium tabular-nums">{trip.initialKm.toLocaleString("es-UY")}</dd>
             </div>
-            <div className="flex justify-between pb-2 border-b">
-              <span className="text-muted-foreground">Total egresos:</span>
-              <span className="font-medium text-red-600">
-                {fmtMoney(displayTotalExpense)}
-              </span>
+          )}
+          {trip.finalKm != null && (
+            <div className="flex items-center gap-1.5">
+              <dt className="text-muted-foreground">Km final</dt>
+              <dd className="font-medium tabular-nums">{trip.finalKm.toLocaleString("es-UY")}</dd>
             </div>
-            <div className="flex justify-between pt-2">
-              <span className="font-semibold">Utilidad:</span>
-              <span className={`font-bold text-lg ${displayProfit >= 0 ? "text-green-600" : "text-red-600"}`}>
-                {fmtMoney(displayProfit)}
-              </span>
+          )}
+          {tripKm && tripKm > 0 ? (
+            <div className="flex items-center gap-1.5">
+              <dt className="text-muted-foreground">Recorrido</dt>
+              <dd className="font-medium tabular-nums">{tripKm.toLocaleString("es-UY")} km</dd>
             </div>
-            {displayTotalIncome > 0 && (
-              <div className="flex justify-between border-t pt-2">
-                <span className="text-muted-foreground">Margen:</span>
-                <span className={`font-medium ${(displayProfit / displayTotalIncome) >= 0 ? "text-green-600" : "text-red-600"}`}>
-                  {Math.round((displayProfit / displayTotalIncome) * 100)}%
-                </span>
-              </div>
-            )}
-            {(() => {
-              const tripKm = trip.initialKm != null && trip.finalKm != null
-                ? trip.finalKm - trip.initialKm
-                : trip.kilometers;
-              return tripKm && tripKm > 0 && displayTotalExpense > 0 ? (
-                <div className="flex justify-between border-t pt-2">
-                  <span className="text-muted-foreground">Costo/km:</span>
-                  <span className="font-medium">
-                    {fmtMoney2(displayTotalExpense / tripKm)}
-                  </span>
-                </div>
-              ) : null;
-            })()}
-            {(() => {
-              const tripKm = trip.initialKm != null && trip.finalKm != null
-                ? trip.finalKm - trip.initialKm
-                : trip.kilometers;
-              return tripKm && tripKm > 0 && displayTotalIncome > 0 ? (
-                <div className="flex justify-between border-t pt-2">
-                  <span className="text-muted-foreground">Ingreso/km:</span>
-                  <span className="font-medium text-green-600">
-                    {fmtMoney2(displayTotalIncome / tripKm)}
-                  </span>
-                </div>
-              ) : null;
-            })()}
-          </div>
-        </div>
-      </div>
+          ) : null}
+        </dl>
+      )}
 
       {/* Ingresos */}
-      <div className="rounded-lg border p-4 space-y-3">
-        <div className="flex justify-between items-center">
-          <h3 className="font-semibold">Ingresos asociados</h3>
+      <section className="space-y-3">
+        <div className="flex items-center justify-between border-b pb-2">
+          <h2 className="font-semibold">Ingresos</h2>
           <Button
             variant="outline"
             size="sm"
             onClick={() => setIsAddIncomeDialogOpen(true)}
           >
-            + Agregar ingreso
+            Agregar ingreso
           </Button>
         </div>
         {trip.incomes.length > 0 ? (
           <div className="space-y-2 text-sm">
             {trip.incomes.map((income) => (
-              <div key={income.id} className="flex justify-between items-center pb-2 border-b last:border-0">
-                <div>
-                  <p className="font-medium">{income.description}</p>
+              // Grilla y no justify-between: con dos bloques sueltos quedaba un hueco
+              // enorme en el medio y los montos no se alineaban entre filas.
+              <div
+                key={income.id}
+                className="group grid grid-cols-[1fr_auto_auto] items-center gap-x-3 border-b py-2 last:border-0"
+              >
+                <div className="min-w-0">
+                  <p className="truncate font-medium">{income.description}</p>
                   <p className="text-xs text-muted-foreground">
                     {formatDate(income.dateUtc)}
+                    <span className="mx-1.5">·</span>
+                    {normalizeIncomeType(String(income.type)) === "1" ? "Flete" : "Otro"}
                   </p>
                 </div>
-                <div className="flex items-center gap-2">
-                  {normalizeIncomeType(String(income.type)) === "1"
-                    ? <Badge variant="outline" className="text-green-400 border-green-400 bg-green-100">Flete</Badge>
-                    : <Badge variant="outline">Otro</Badge>
-                  }
-                  <p className="font-medium text-green-600">
-                    {fmtMoney(getDisplayValue(income))}
-                  </p>
+                <p className="font-medium tabular-nums">{fmtMoney(getDisplayValue(income))}</p>
+                <div className="flex opacity-60 transition-opacity group-hover:opacity-100">
                   <Button
                     variant="ghost"
                     size="icon"
                     className="h-7 w-7"
+                    aria-label="Editar ingreso"
                     onClick={() => setEditingIncome(income)}
                   >
                     <Pencil className="h-3.5 w-3.5" />
@@ -542,10 +500,11 @@ export default function TripDetailPage() {
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-7 w-7"
+                    className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                    aria-label="Eliminar ingreso"
                     onClick={() => setDeletingIncomeId(income.id)}
                   >
-                    <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                    <Trash2 className="h-3.5 w-3.5" />
                   </Button>
                 </div>
               </div>
@@ -554,18 +513,18 @@ export default function TripDetailPage() {
         ) : (
           <p className="text-sm text-muted-foreground">Sin ingresos registrados</p>
         )}
-      </div>
+      </section>
 
       {/* Egresos */}
-      <div className="rounded-lg border p-4 space-y-3">
-        <div className="flex justify-between items-center">
-          <h3 className="font-semibold">Egresos asociados</h3>
+      <section className="space-y-3">
+        <div className="flex items-center justify-between border-b pb-2">
+          <h2 className="font-semibold">Egresos</h2>
           <Button
             variant="outline"
             size="sm"
             onClick={() => setIsAddExpenseDialogOpen(true)}
           >
-            + Agregar egreso
+            Agregar egreso
           </Button>
         </div>
         {trip.expenses.length > 0 ? (
@@ -576,25 +535,35 @@ export default function TripDetailPage() {
               if (dateA !== dateB) return dateB - dateA;
               return new Date(b.createdAt ?? 0).getTime() - new Date(a.createdAt ?? 0).getTime();
             }).map((expense) => (
-              <div key={expense.id} className="flex justify-between items-center pb-2 border-b last:border-0">
-                <div>
-                  <p className="font-medium">{expense.name ?? expense.categoryName ?? "—"}</p>
+              <div
+                key={expense.id}
+                className="group grid grid-cols-[1fr_auto_auto] items-center gap-x-3 border-b py-2 last:border-0"
+              >
+                <div className="min-w-0">
+                  <p className="truncate font-medium">{expense.name ?? expense.categoryName ?? "—"}</p>
                   <p className="text-xs text-muted-foreground">
                     {formatDate(expense.date)}
+                    {expense.categoryName && (
+                      <>
+                        <span className="mx-1.5">·</span>
+                        {expense.categoryName}
+                      </>
+                    )}
                     {expense.liters != null && expense.liters > 0 && (
-                      <span className="ml-2">{expense.liters.toLocaleString("es-UY")} L</span>
+                      <>
+                        <span className="mx-1.5">·</span>
+                        {expense.liters.toLocaleString("es-UY")} L
+                      </>
                     )}
                   </p>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Badge variant="outline">{expense.categoryName ?? expense.name ?? "Sin categoría"}</Badge>
-                  <p className="font-medium text-red-600">
-                    {fmtMoney(getDisplayValue(expense))}
-                  </p>
+                <p className="font-medium tabular-nums">{fmtMoney(getDisplayValue(expense))}</p>
+                <div className="flex opacity-60 transition-opacity group-hover:opacity-100">
                   <Button
                     variant="ghost"
                     size="icon"
                     className="h-7 w-7"
+                    aria-label="Editar egreso"
                     onClick={() => setEditingExpense(expense)}
                   >
                     <Pencil className="h-3.5 w-3.5" />
@@ -602,10 +571,11 @@ export default function TripDetailPage() {
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-7 w-7"
+                    className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                    aria-label="Eliminar egreso"
                     onClick={() => setDeletingExpenseId(expense.id)}
                   >
-                    <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                    <Trash2 className="h-3.5 w-3.5" />
                   </Button>
                 </div>
               </div>
@@ -614,12 +584,12 @@ export default function TripDetailPage() {
         ) : (
           <p className="text-sm text-muted-foreground">Sin egresos registrados</p>
         )}
-      </div>
+      </section>
 
       {trip.incomes.length === 0 && trip.expenses.length === 0 && (
-        <div className="rounded-lg border p-4 text-center text-muted-foreground">
-          No hay ingresos ni egresos asociados a este viaje
-        </div>
+        <p className="text-sm text-muted-foreground">
+          Todavía no hay ingresos ni egresos cargados en este viaje.
+        </p>
       )}
 
       {/* Breakdown de egresos por categoría */}
@@ -631,30 +601,40 @@ export default function TripDetailPage() {
         }, {});
         const sorted = Object.entries(breakdown).sort(([, a], [, b]) => b - a);
         return (
-          <div className="rounded-lg border p-4 space-y-3">
-            <h3 className="font-semibold">Egresos por categoría</h3>
+          <section className="space-y-3">
+            <h2 className="border-b pb-2 font-semibold">Egresos por categoría</h2>
             <div className="space-y-2 text-sm">
-              {sorted.map(([categoryName, total]) => (
-                <div key={categoryName} className="flex justify-between items-center">
-                  <span className="text-muted-foreground">{categoryName}</span>
-                  <div className="flex items-center gap-3">
-                    <span className="text-xs text-muted-foreground">
-                      {displayTotalExpense > 0 ? Math.round((total / displayTotalExpense) * 100) : 0}%
+              {sorted.map(([categoryName, total]) => {
+                const share = displayTotalExpense > 0 ? total / displayTotalExpense : 0;
+                return (
+                  <div
+                    key={categoryName}
+                    className="grid grid-cols-[1fr_3rem_auto] items-center gap-x-3"
+                  >
+                    <div className="min-w-0">
+                      <p className="truncate">{categoryName}</p>
+                      <div className="mt-1 h-1 overflow-hidden rounded-full bg-muted">
+                        <div
+                          className="h-full bg-foreground/40"
+                          style={{ width: `${share * 100}%` }}
+                        />
+                      </div>
+                    </div>
+                    <span className="text-xs text-muted-foreground tabular-nums">
+                      {Math.round(share * 100)}%
                     </span>
-                    <span className="font-medium text-red-600 w-28 text-right">
-                      {fmtMoney(total)}
-                    </span>
+                    <span className="font-medium tabular-nums">{fmtMoney(total)}</span>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
-          </div>
+          </section>
         );
       })()}
 
       {/* FUEL EFFICIENCY - Solo mostrar si hay egresos con combustible */}
       {trip.expenses.length > 0 && (
-        <FuelEfficiencyCard
+        <FuelEfficiency
           expenses={trip.expenses as Expense[]}
           truckId={trip.truckId}
           tripKm={trip.initialKm != null && trip.finalKm != null ? trip.finalKm - trip.initialKm : trip.kilometers ?? undefined}

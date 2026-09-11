@@ -1,6 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import { CircleDot, TruckIcon } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { DataTable } from "@/components/data-table";
@@ -20,20 +21,12 @@ import { useDateFilter } from "@/context/date-filter-context";
 import AddTripForm from "./AddTripForm";
 import EditTripForm from "./EditTripForm";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { FilterSelect } from "@/components/filter-select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 
 
-const tripStatusItems = [
-  { label: "Todos los estados", value: "all" },
+const tripStatusOptions = [
   { label: "Programado", value: "Scheduled" },
   { label: "En progreso", value: "InProgress" },
   { label: "Completado", value: "Completed" },
@@ -148,16 +141,6 @@ export default function TripsPage() {
   );
 
   // ================= FILTER OPTIONS =================
-  const truckItems = useMemo(
-    () => [
-      { label: "Todos los camiones", value: "all" },
-      ...trucks.map((t) => ({
-        label: t.licensePlate,
-        value: t.id,
-      })),
-    ],
-    [trucks]
-  );
 
   // ================= UI =================
   return (
@@ -166,7 +149,7 @@ export default function TripsPage() {
         <h1 className="text-xl font-bold">Viajes</h1>
 
         <Sheet open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-          <SheetTrigger render={<Button variant="outline">Añadir viaje</Button>} />
+          <SheetTrigger render={<Button>Añadir viaje</Button>} />
 
           <SheetContent className="overflow-y-auto">
             <SheetHeader>
@@ -187,70 +170,41 @@ export default function TripsPage() {
       </div>
 
       {/* FILTERS */}
-      <div className="flex items-center gap-4">
-        <Select
-          items={truckItems}
-          value={selectedTruckId ?? "all"}
-          onValueChange={(value) =>
-            setSelectedTruckId(value === "all" ? null : value)
-          }
-        >
-          <SelectTrigger className="w-48">
-            <SelectValue placeholder="Todos los camiones" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectGroup>
-              {truckItems.map((item) => (
-                <SelectItem key={item.value} value={item.value}>
-                  {item.label}
-                </SelectItem>
-              ))}
-            </SelectGroup>
-          </SelectContent>
-        </Select>
-
-        <Select
-          items={tripStatusItems}
-          value={selectedStatus ?? "all"}
-          onValueChange={(value) =>
-            setSelectedStatus(value === "all" ? null : value)
-          }
-        >
-          <SelectTrigger className="w-48">
-            <SelectValue placeholder="Todos los estados" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectGroup>
-              {tripStatusItems.map((item) => (
-                <SelectItem key={item.value} value={item.value}>
-                  {item.label}
-                </SelectItem>
-              ))}
-            </SelectGroup>
-          </SelectContent>
-        </Select>
-
-        <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center gap-1">
+        <FilterSelect
+          label="Camión"
+          icon={TruckIcon}
+          value={selectedTruckId}
+          onChange={setSelectedTruckId}
+          options={trucks.map((t) => ({ label: t.licensePlate, value: t.id }))}
+          allLabel="Todos"
+        />
+        <FilterSelect
+          label="Estado"
+          icon={CircleDot}
+          value={selectedStatus}
+          onChange={setSelectedStatus}
+          options={tripStatusOptions}
+          allLabel="Todos"
+        />
+        <div className="ml-1 flex items-center gap-2">
           <Checkbox
             id="open-trips"
             checked={showOpenOnly}
             onCheckedChange={(checked) => setShowOpenOnly(!!checked)}
           />
-          <Label htmlFor="open-trips" className="text-sm cursor-pointer">Solo viajes abiertos</Label>
+          <Label htmlFor="open-trips" className="cursor-pointer text-sm text-muted-foreground">
+            Solo viajes abiertos
+          </Label>
         </div>
       </div>
 
-      {/* STATS CARDS */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div className="rounded-lg border p-4">
-          <p className="text-sm text-muted-foreground">Total de viajes</p>
-          <p className="text-2xl font-bold">{totalTrips}</p>
-        </div>
-        <div className="rounded-lg border p-4">
-          <p className="text-sm text-muted-foreground">Kilómetros totales</p>
-          <p className="text-2xl font-bold">{totalKm.toLocaleString("es-UY")} km</p>
-        </div>
-      </div>
+      {/* Cantidad y kilómetros son metadatos de la tabla de abajo, no métricas que
+          merezcan una caja cada una: van como una línea de contexto sobre la grilla. */}
+      <p className="text-sm text-muted-foreground tabular-nums">
+        {totalTrips} {totalTrips === 1 ? "viaje" : "viajes"}
+        {totalKm > 0 && <> · {totalKm.toLocaleString("es-UY")} km recorridos</>}
+      </p>
 
       {/* EDIT SHEET */}
       <Sheet

@@ -54,12 +54,17 @@ export function DatePicker({ value, onChange }: DatePickerProps) {
         <Button
           variant="outline"
           className={cn(
-            "w-40 justify-start text-left font-normal",
-            !value && "text-muted-foreground"
+            "justify-start gap-1.5 text-left font-normal",
+            value
+              ? "border-border bg-muted hover:bg-muted/70"
+              : "border-dashed border-border/70 bg-transparent text-muted-foreground hover:border-border hover:bg-muted/50 hover:text-foreground"
           )}
         >
-          <CalendarIcon className="mr-2 h-4 w-4" />
-          {value ? format(value, "MMMM yyyy", { locale: es }) : "Todos"}
+          <CalendarIcon className="size-3.5 opacity-70" />
+          <span className="text-muted-foreground">Mes</span>
+          <span className={value ? "font-medium text-foreground capitalize" : ""}>
+            {value ? format(value, "MMMM yyyy", { locale: es }) : "Todos"}
+          </span>
         </Button>
       } />
       <PopoverContent className="w-80 p-3">

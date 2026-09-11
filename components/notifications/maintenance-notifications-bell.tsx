@@ -38,7 +38,7 @@ export function MaintenanceNotificationsBell() {
       aria-label="Notificaciones de mantenimiento"
       className="relative"
     >
-      <BellIcon className="size-4.5" />
+      <BellIcon className="size-4" />
       {unreadCount > 0 && (
         <span
           aria-hidden="true"
