@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { formatCurrency, formatDate, DisplayCurrency } from "@/lib/format";
+import { RECEIVABLE_ITEM_LABELS, type ReceivableItemKind } from "@/types/receivable";
 
 const incomeTypeMap: Record<string, "1" | "2"> = {
   "1": "1", Freight: "1", Flete: "1",
@@ -38,6 +39,10 @@ export type Income = {
   type: string;
   currency: string; // "USD" | "BRL" | "UYU"
   tripId?: string | null;
+  // Presentes solo cuando el ingreso es el cobro de una cuenta a recibir.
+  receivableId?: string | null;
+  receivableKind?: ReceivableItemKind | null;
+  receivableClientName?: string | null;
 };
 
 function getDisplayValue(
@@ -62,10 +67,11 @@ export function getColumns(
     {
       accessorKey: "value",
       header: "Valor",
-      cell: ({ row }) => {
-        const displayVal = getDisplayValue(row.original, displayCurrency);
-        return formatCurrency(displayVal, displayCurrency);
-      },
+      cell: ({ row }) => (
+        <span className="font-medium tabular-nums text-success">
+          {formatCurrency(getDisplayValue(row.original, displayCurrency), displayCurrency)}
+        </span>
+      ),
     },
     {
       accessorKey: "currency",
@@ -73,9 +79,9 @@ export function getColumns(
       cell: ({ row }) => {
         const currency = row.original.currency;
         const colorMap: Record<string, string> = {
-          USD: "text-blue-600 border-blue-300 bg-blue-50",
-          BRL: "text-green-600 border-green-300 bg-green-50",
-          UYU: "text-purple-600 border-purple-300 bg-purple-50",
+          USD: "text-blue-600 border-blue-300 bg-blue-50 dark:border-blue-900 dark:bg-blue-950/40 dark:text-blue-400",
+          BRL: "border-success-border bg-success-surface text-success",
+          UYU: "text-purple-600 border-purple-300 bg-purple-50 dark:border-purple-900 dark:bg-purple-950/40 dark:text-purple-400",
         };
         return (
           <Badge variant="outline" className={colorMap[currency] ?? ""}>
@@ -107,7 +113,7 @@ export function getColumns(
       cell: ({ row }) => {
         const type = row.getValue("type") as string;
         const normalized = normalizeIncomeType(type);
-        if (normalized === "1") return <Badge variant="outline" className="text-green-400 border-green-400 bg-green-100">Flete</Badge>;
+        if (normalized === "1") return <Badge variant="outline" className="border-success-border bg-success-surface text-success">Flete</Badge>;
         return <Badge variant="outline">Otro</Badge>;
       },
     },
@@ -143,6 +149,21 @@ export function getColumns(
                       {formatCurrency(getDisplayValue(income, displayCurrency), displayCurrency)}
                     </span>{" "}
                     de tu registro.
+                    {income.receivableId && (
+                      <>
+                        {" "}
+                        Es el{" "}
+                        <span className="font-medium text-foreground">
+                          {income.receivableKind
+                            ? RECEIVABLE_ITEM_LABELS[income.receivableKind].toLowerCase()
+                            : "cobro"}
+                        </span>{" "}
+                        de la cuenta a recibir del {formatDate(income.dateUtc)}
+                        {income.truckLicensePlate ? ` · ${income.truckLicensePlate}` : ""}
+                        {income.receivableClientName ? ` · ${income.receivableClientName}` : ""}: si
+                        lo borrás, ese ítem vuelve a figurar como no cobrado.
+                      </>
+                    )}
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>

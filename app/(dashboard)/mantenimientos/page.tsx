@@ -1,6 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import { TruckIcon, Wrench } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { DataTable } from "@/components/data-table";
 import {
@@ -22,14 +23,7 @@ import { useDateFilter } from "@/context/date-filter-context";
 import { useCurrency } from "@/context/currency-context";
 import type { Maintenance, MaintenanceConcept } from "@/types/maintenance";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { FilterSelect } from "@/components/filter-select";
 import { Settings } from "lucide-react";
 import Link from "next/link";
 
@@ -151,32 +145,29 @@ export default function MaintenancePage() {
   );
 
   // ================= FILTER OPTIONS =================
-  const truckItems = useMemo(
-    () => [
-      { label: "Todos los camiones", value: "all" },
-      ...trucks.map((t) => ({
-        label: t.licensePlate,
-        value: t.id,
-      })),
-    ],
-    [trucks]
-  );
-
-  const conceptItems = useMemo(
-    () => [
-      { label: "Todos los conceptos", value: "all" },
-      ...concepts.map((c) => ({ label: c.name, value: c.id })),
-    ],
-    [concepts]
-  );
 
   // ================= UI =================
   return (
     <div className="p-6 flex flex-col gap-4">
-      <div className="flex justify-between items-center">
-        <h1 className="text-xl font-bold">Mantenimientos</h1>
-
-        <div className="flex gap-2">
+      {/* FILTERS */}
+      <div className="flex flex-wrap items-center gap-1">
+        <FilterSelect
+          label="Camión"
+          icon={TruckIcon}
+          value={selectedTruckId}
+          onChange={setSelectedTruckId}
+          options={trucks.map((t) => ({ label: t.licensePlate, value: t.id }))}
+          allLabel="Todos"
+        />
+        <FilterSelect
+          label="Concepto"
+          icon={Wrench}
+          value={selectedConceptId}
+          onChange={setSelectedConceptId}
+          options={concepts.map((c) => ({ label: c.name, value: c.id }))}
+          allLabel="Todos"
+        />
+        <div className="ml-auto flex items-center gap-2">
           <Link href="/mantenimientos/conceptos">
             <Button variant="outline" className="gap-2">
               <Settings className="h-4 w-4" />
@@ -205,51 +196,6 @@ export default function MaintenancePage() {
             </SheetContent>
           </Sheet>
         </div>
-      </div>
-
-      {/* FILTERS */}
-      <div className="flex gap-2">
-        <Select
-          items={truckItems}
-          value={selectedTruckId ?? "all"}
-          onValueChange={(value) =>
-            setSelectedTruckId(value === "all" ? null : value)
-          }
-        >
-          <SelectTrigger className="w-48">
-            <SelectValue placeholder="Todos los camiones" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectGroup>
-              {truckItems.map((item) => (
-                <SelectItem key={item.value} value={item.value}>
-                  {item.label}
-                </SelectItem>
-              ))}
-            </SelectGroup>
-          </SelectContent>
-        </Select>
-
-        <Select
-          items={conceptItems}
-          value={selectedConceptId ?? "all"}
-          onValueChange={(value) =>
-            setSelectedConceptId(value === "all" ? null : value)
-          }
-        >
-          <SelectTrigger className="w-48">
-            <SelectValue placeholder="Todos los conceptos" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectGroup>
-              {conceptItems.map((item) => (
-                <SelectItem key={item.value} value={item.value}>
-                  {item.label}
-                </SelectItem>
-              ))}
-            </SelectGroup>
-          </SelectContent>
-        </Select>
       </div>
 
       {/* EDIT SHEET */}

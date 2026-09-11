@@ -5,9 +5,7 @@ import { fetchWithAuth } from "@/lib/api"
 import { toast } from "sonner"
 import { useDateFilter } from "@/context/date-filter-context"
 import { useCurrency } from "@/context/currency-context"
-import { TotalIncomeCard } from "@/components/total-income-card"
-import { TotalExpenseCard } from "@/components/total-expense-card"
-import { NetBalanceCard } from "@/components/net-balance-card"
+import { MonthBalance } from "@/components/month-balance"
 import { MonthlyComparisonChart } from "@/components/monthly-comparison-chart"
 import { Skeleton } from "@/components/ui/skeleton"
 
@@ -26,10 +24,6 @@ type DashboardSummary = {
   currentMonth: MonthlyTotal
   previousMonth: MonthlyTotal
   last6Months: MonthlyTotal[]
-}
-
-function CardSkeleton() {
-  return <Skeleton className="h-24 w-full rounded-xl" />
 }
 
 export default function DashboardPage() {
@@ -98,22 +92,20 @@ export default function DashboardPage() {
 
   return (
     <div className="p-6 flex flex-col gap-4">
-      <h1 className="text-xl font-bold">Dashboard</h1>
-
-      {/* CARDS */}
+      {/* BALANCE */}
       {isLoading ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <CardSkeleton />
-          <CardSkeleton />
-          <CardSkeleton />
-          <CardSkeleton />
+        <div className="flex flex-col gap-3">
+          <Skeleton className="h-9 w-80" />
+          <Skeleton className="h-1.5 w-full rounded-full" />
+          <Skeleton className="h-5 w-96" />
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <TotalIncomeCard total={totalIncome} variation={incomeVariation} />
-          <TotalExpenseCard total={totalExpense} variation={expenseVariation} />
-          <NetBalanceCard income={totalIncome} expense={totalExpense} />
-        </div>
+        <MonthBalance
+          income={totalIncome}
+          expense={totalExpense}
+          incomeVariation={incomeVariation}
+          expenseVariation={expenseVariation}
+        />
       )}
 
       {/* CHART */}

@@ -9,13 +9,10 @@ import { useCurrency } from "@/context/currency-context"
 import { toast } from "sonner"
 import { AlertTriangle, ArrowLeft, Eye, Pencil, Trash2 } from "lucide-react"
 import { useDateFilter } from "@/context/date-filter-context"
-import { TotalIncomeCard } from "@/components/total-income-card"
-import { TotalExpenseCard } from "@/components/total-expense-card"
-import { NetBalanceCard } from "@/components/net-balance-card"
+import { MonthBalance } from "@/components/month-balance"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { DataTable } from "@/components/data-table"
 import { ColumnDef } from "@tanstack/react-table"
 import type { ExpenseCategory } from "@/types/expense-category"
@@ -67,24 +64,10 @@ const tripStatusLabels: Record<string, string> = {
 const tripStatusColorMap: Record<string, string> = {
   Scheduled: "bg-yellow-100 text-yellow-800 border-yellow-300",
   InProgress: "bg-blue-100 text-blue-800 border-blue-300",
-  Completed: "bg-green-100 text-green-800 border-green-300",
-  Cancelled: "bg-red-100 text-red-800 border-red-300",
+  Completed: "border-success-border bg-success-surface text-success",
+  Cancelled: "border-danger-border bg-danger-surface text-danger",
 }
 
-
-function MetricCard({ title, value, subtitle, valueColor }: { title: string; value: string; subtitle?: string; valueColor?: string }) {
-  return (
-    <Card>
-      <CardHeader className="pb-2">
-        <CardTitle className="text-sm font-medium text-muted-foreground">{title}</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className={`text-2xl font-bold ${valueColor || ""}`}>{value}</div>
-        {subtitle && <p className="text-xs text-muted-foreground mt-1">{subtitle}</p>}
-      </CardContent>
-    </Card>
-  )
-}
 
 function buildTripColumns(): ColumnDef<Trip>[] {
   return [
@@ -158,7 +141,7 @@ function buildIncomeColumns(
       cell: ({ row }) => {
         const type = row.getValue("type") as string
         return type === "1"
-          ? <Badge variant="outline" className="text-green-400 border-green-400 bg-green-100">Flete</Badge>
+          ? <Badge variant="outline" className="border-success-border bg-success-surface text-success">Flete</Badge>
           : <Badge variant="outline">Otro</Badge>
       },
     },
@@ -174,12 +157,12 @@ function buildIncomeColumns(
         const income = row.original
         return (
           <div className="flex gap-1 justify-end">
-            <Button variant="ghost" size="icon" onClick={() => onEdit(income)}>
+            <Button variant="ghost" size="icon" aria-label="Editar ingreso" onClick={() => onEdit(income)}>
               <Pencil className="h-4 w-4" />
             </Button>
             <AlertDialog>
               <AlertDialogTrigger render={
-                <Button variant="ghost" size="icon">
+                <Button variant="ghost" size="icon" aria-label="Eliminar ingreso">
                   <Trash2 className="h-4 w-4 text-destructive" />
                 </Button>
               } />
@@ -250,12 +233,12 @@ function buildExpenseColumns(
         const expense = row.original
         return (
           <div className="flex gap-1 justify-end">
-            <Button variant="ghost" size="icon" onClick={() => onEdit(expense)}>
+            <Button variant="ghost" size="icon" aria-label="Editar egreso" onClick={() => onEdit(expense)}>
               <Pencil className="h-4 w-4" />
             </Button>
             <AlertDialog>
               <AlertDialogTrigger render={
-                <Button variant="ghost" size="icon">
+                <Button variant="ghost" size="icon" aria-label="Eliminar egreso">
                   <Trash2 className="h-4 w-4 text-destructive" />
                 </Button>
               } />
@@ -284,9 +267,6 @@ function buildExpenseColumns(
   ]
 }
 
-function CardSkeleton() {
-  return <Skeleton className="h-24 w-full rounded-xl" />
-}
 
 export default function TruckDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -442,7 +422,7 @@ export default function TruckDetailPage() {
         {truck && !truck.estimatedMonthlyKm && (
           <Badge
             variant="outline"
-            className="text-orange-700 border-orange-300 bg-orange-50 dark:bg-orange-950/30 gap-1"
+            className="border-warning-border bg-warning-surface text-warning gap-1"
           >
             <AlertTriangle className="size-3" />
             Falta configurar km estimados
@@ -459,69 +439,104 @@ export default function TruckDetailPage() {
       </div>
 
       {isLoading ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          <CardSkeleton /><CardSkeleton /><CardSkeleton />
-          <CardSkeleton /><CardSkeleton /><CardSkeleton />
+        <div className="flex flex-col gap-3">
+          <Skeleton className="h-9 w-80" />
+          <Skeleton className="h-1.5 w-full rounded-full" />
+          <Skeleton className="h-5 w-full max-w-xl" />
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <TotalIncomeCard total={totalIncome} />
-            <TotalExpenseCard total={totalExpense} />
-            <NetBalanceCard income={totalIncome} expense={totalExpense} />
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <MetricCard
-              title="Ingreso/km"
-              value={revenuePerKm !== null ? `${formatCurrency2(revenuePerKm, displayCurrency)}/km` : "—"}
-              subtitle={kmForMetrics == null ? "Sin km registrados" : "Ingresos totales / km"}
-              valueColor="text-green-600"
-            />
-            <MetricCard
-              title="Costo/km total"
-              value={totalCostPerKm !== null ? `${formatCurrency2(totalCostPerKm, displayCurrency)}/km` : "—"}
-              subtitle={kmForMetrics == null ? "Sin km registrados" : "Egresos totales / km"}
-              valueColor="text-red-600"
-            />
-            <MetricCard
-              title="Utilidad/km"
-              value={profitPerKm !== null ? `${formatCurrency2(profitPerKm, displayCurrency)}/km` : "—"}
-              subtitle={kmForMetrics == null ? "Sin km registrados" : "Ingresos − egresos / km"}
-              valueColor={profitPerKm !== null ? (profitPerKm >= 0 ? "text-green-600" : "text-red-600") : undefined}
-            />
-          </div>
-          {(truck?.currentKm != null || truck?.estimatedMonthlyKm != null) && (
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <MetricCard
-                title="Km recorridos (odómetro)"
-                value={odometerResult !== null ? `${odometerResult.km.toLocaleString("es-UY")} km` : "—"}
-                subtitle={
-                  odometerResult !== null
-                    ? `${odometerResult.baseline.km.toLocaleString("es-UY")} → ${odometerResult.final.km.toLocaleString("es-UY")} km`
-                    : `${trips.length} viaje${trips.length !== 1 ? "s" : ""} registrado${trips.length !== 1 ? "s" : ""}`
-                }
-              />
-              {truck?.currentKm != null && (
-                <MetricCard
-                  title="Km actual"
-                  value={`${truck.currentKm.toLocaleString("es-UY")} km`}
-                  subtitle={truck?.lastKmUpdatedAt ? formatDate(truck.lastKmUpdatedAt) : undefined}
-                />
-              )}
-              {truck?.estimatedMonthlyKm != null && (
-                <MetricCard
-                  title="Km mensuales estimados"
-                  value={`${truck.estimatedMonthlyKm.toLocaleString("es-UY")} km`}
-                  subtitle="Usado para calcular costo/km"
-                />
-              )}
-            </div>
+          {/* Los ratios por km son la composición del balance, no métricas aparte:
+              van en la misma línea de datos que ingresos y egresos. */}
+          <MonthBalance income={totalIncome} expense={totalExpense}>
+            {revenuePerKm !== null && (
+              <div className="flex items-center gap-1.5">
+                <dt className="text-muted-foreground">Ingreso/km</dt>
+                <dd className="font-medium tabular-nums">
+                  {formatCurrency2(revenuePerKm, displayCurrency)}
+                </dd>
+              </div>
+            )}
+            {totalCostPerKm !== null && (
+              <div className="flex items-center gap-1.5">
+                <dt className="text-muted-foreground">Costo/km</dt>
+                <dd className="font-medium tabular-nums">
+                  {formatCurrency2(totalCostPerKm, displayCurrency)}
+                </dd>
+              </div>
+            )}
+            {profitPerKm !== null && (
+              <div className="flex items-center gap-1.5">
+                <dt className="text-muted-foreground">Utilidad/km</dt>
+                <dd
+                  className={`font-medium tabular-nums ${
+                    profitPerKm >= 0
+                      ? "text-success"
+                      : "text-danger"
+                  }`}
+                >
+                  {formatCurrency2(profitPerKm, displayCurrency)}
+                </dd>
+              </div>
+            )}
+          </MonthBalance>
+
+          {kmForMetrics == null && (
+            <p className="text-sm text-muted-foreground">
+              Sin kilómetros registrados: no se pueden calcular los ratios por km.
+            </p>
+          )}
+
+          {(truck?.currentKm != null || truck?.estimatedMonthlyKm != null || odometerResult !== null) && (
+            <section className="space-y-3">
+              <h2 className="border-b pb-2 font-semibold">Odómetro</h2>
+              <dl className="flex flex-wrap gap-x-8 gap-y-1 text-sm">
+                {odometerResult !== null ? (
+                  <div className="flex items-center gap-1.5">
+                    <dt className="text-muted-foreground">Recorridos</dt>
+                    <dd className="font-medium tabular-nums">
+                      {odometerResult.km.toLocaleString("es-UY")} km
+                    </dd>
+                    <span className="text-muted-foreground tabular-nums">
+                      ({odometerResult.baseline.km.toLocaleString("es-UY")} →{" "}
+                      {odometerResult.final.km.toLocaleString("es-UY")})
+                    </span>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-1.5">
+                    <dt className="text-muted-foreground">Viajes registrados</dt>
+                    <dd className="font-medium tabular-nums">{trips.length}</dd>
+                  </div>
+                )}
+                {truck?.currentKm != null && (
+                  <div className="flex items-center gap-1.5">
+                    <dt className="text-muted-foreground">Km actual</dt>
+                    <dd className="font-medium tabular-nums">
+                      {truck.currentKm.toLocaleString("es-UY")} km
+                    </dd>
+                    {truck.lastKmUpdatedAt && (
+                      <span className="text-muted-foreground tabular-nums">
+                        ({formatDate(truck.lastKmUpdatedAt)})
+                      </span>
+                    )}
+                  </div>
+                )}
+                {truck?.estimatedMonthlyKm != null && (
+                  <div className="flex items-center gap-1.5">
+                    <dt className="text-muted-foreground">Estimado por mes</dt>
+                    <dd className="font-medium tabular-nums">
+                      {truck.estimatedMonthlyKm.toLocaleString("es-UY")} km
+                    </dd>
+                  </div>
+                )}
+              </dl>
+            </section>
           )}
         </>
       )}
 
-      <div className="flex flex-col gap-2">
-        <h2 className="text-base font-semibold">Viajes</h2>
+      <section className="flex flex-col gap-3">
+        <h2 className="border-b pb-2 font-semibold">Viajes</h2>
         {isLoading ? (
           <Skeleton className="h-40 w-full" />
         ) : (
@@ -532,10 +547,10 @@ export default function TruckDetailPage() {
             searchPlaceholder="Buscar viaje..."
           />
         )}
-      </div>
+      </section>
 
-      <div className="flex flex-col gap-2">
-        <h2 className="text-base font-semibold">Ingresos</h2>
+      <section className="flex flex-col gap-3">
+        <h2 className="border-b pb-2 font-semibold">Ingresos</h2>
         {isLoading ? (
           <Skeleton className="h-40 w-full" />
         ) : (
@@ -546,10 +561,10 @@ export default function TruckDetailPage() {
             searchPlaceholder="Buscar ingreso..."
           />
         )}
-      </div>
+      </section>
 
-      <div className="flex flex-col gap-2">
-        <h2 className="text-base font-semibold">Egresos</h2>
+      <section className="flex flex-col gap-3">
+        <h2 className="border-b pb-2 font-semibold">Egresos</h2>
         {isLoading ? (
           <Skeleton className="h-40 w-full" />
         ) : (
@@ -560,7 +575,7 @@ export default function TruckDetailPage() {
             searchPlaceholder="Buscar egreso..."
           />
         )}
-      </div>
+      </section>
 
       <Dialog open={!!editingIncome} onOpenChange={(open) => { if (!open) setEditingIncome(null) }}>
         <DialogContent className="sm:max-w-md">

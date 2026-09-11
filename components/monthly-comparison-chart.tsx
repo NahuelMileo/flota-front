@@ -10,7 +10,6 @@ import {
   XAxis,
   YAxis,
 } from "recharts"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { formatCurrency } from "@/lib/format"
 import { useCurrency } from "@/context/currency-context"
 
@@ -30,13 +29,8 @@ export function MonthlyComparisonChart({ data }: Props) {
   const isEmpty = data.every(d => d.ingresos === 0 && d.egresos === 0)
 
   return (
-    <Card>
-      <CardHeader className="pb-2">
-        <CardTitle className="text-sm font-medium text-muted-foreground">
-          Ingresos vs Egresos — últimos 6 meses
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
+    <section className="space-y-3">
+      <h2 className="border-b pb-2 font-semibold">Ingresos vs Egresos — últimos 6 meses</h2>
         {isEmpty ? (
           <div className="flex h-65 items-center justify-center text-sm text-muted-foreground">
             Todavía no hay datos de ingresos o egresos para mostrar.
@@ -49,12 +43,11 @@ export function MonthlyComparisonChart({ data }: Props) {
               <YAxis tickFormatter={(v) => formatCurrency(v, displayCurrency)} tick={{ fontSize: 11 }} width={90} />
               <Tooltip formatter={(value) => [typeof value === "number" ? formatCurrency(value, displayCurrency) : value]} />
               <Legend />
-              <Bar dataKey="ingresos" fill="#22c55e" radius={[4, 4, 0, 0]} />
-              <Bar dataKey="egresos" fill="#ef4444" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="ingresos" fill="var(--success)" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="egresos" fill="var(--danger)" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         )}
-      </CardContent>
-    </Card>
+    </section>
   )
 }

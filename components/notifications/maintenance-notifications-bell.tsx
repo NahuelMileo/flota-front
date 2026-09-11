@@ -38,11 +38,11 @@ export function MaintenanceNotificationsBell() {
       aria-label="Notificaciones de mantenimiento"
       className="relative"
     >
-      <BellIcon className="size-4.5" />
+      <BellIcon className="size-4" />
       {unreadCount > 0 && (
         <span
           aria-hidden="true"
-          className="absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-medium leading-none text-white"
+          className="absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-danger px-1 text-[10px] font-medium leading-none text-background"
         >
           {unreadCount > 9 ? "9+" : unreadCount}
         </span>

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { ThemeProvider } from "@/components/theme-provider";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/sonner"
@@ -28,20 +29,8 @@ export default function RootLayout({
       <body
         className={`${geistSans.className} ${geistMono.variable} antialiased`}
       >
-        {children}
-        <Toaster
-  richColors
-  position="bottom-right"
-  toastOptions={{
-    classNames: {
-      error: "!text-gray-900 !bg-red-50 !border-red-200",
-      success: "!text-gray-900 !bg-green-50 !border-green-200",
-      warning: "!text-gray-900 !bg-yellow-50 !border-yellow-200",
-      info: "!text-gray-900 !bg-blue-50 !border-blue-200",
-      description: "!text-gray-500",
-    },
-  }}
-/>
+        <ThemeProvider>{children}</ThemeProvider>
+        <Toaster richColors position="bottom-right" />
       </body>
     </html>
   );

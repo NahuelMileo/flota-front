@@ -1,6 +1,6 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
+import { SheetFormActions } from "@/components/sheet-form-actions";
 import { Field, FieldGroup, FieldError } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -262,9 +262,7 @@ export default function EditIncomeForm({
         </Field>
       </FieldGroup>
 
-      <Button className="mt-4 w-full" type="submit" disabled={isSubmitting}>
-        Guardar cambios
-      </Button>
+      <SheetFormActions submitLabel="Guardar cambios" isSubmitting={isSubmitting} />
     </form>
   );
 }

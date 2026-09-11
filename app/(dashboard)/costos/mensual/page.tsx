@@ -23,6 +23,11 @@ import { cn } from "@/lib/utils"
 import type { CostEntry } from "@/types/costs"
 import type { Truck } from "@/types/truck"
 import type { DisplayCurrency } from "@/lib/format"
+import { ProportionSummary } from "@/components/proportion-summary"
+
+// Verde para lo pagado, naranja para lo que falta: los mismos que ya usaban los KPIs
+// y los badges de estado de esta pantalla.
+const COST_COLORS = { paid: "var(--success)", pending: "var(--warning)" }
 
 function getEntryDisplayAmount(entry: CostEntry, currency: DisplayCurrency): number {
   if (currency === "USD") return entry.valueUSD ?? entry.amount
@@ -249,37 +254,23 @@ function MonthlyCostsContent() {
         </div>
       </div>
 
-      {/* KPIs */}
+      {/* RESUMEN */}
       {isLoading ? (
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          {[0, 1, 2].map((i) => <Skeleton key={i} className="h-20 rounded-xl" />)}
+        <div className="flex flex-col gap-2.5">
+          <Skeleton className="h-8 w-72" />
+          <Skeleton className="h-1.5 w-full rounded-full" />
         </div>
+      ) : entries.length === 0 ? (
+        <p className="text-sm text-muted-foreground">Sin costos registrados en este mes.</p>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div className="rounded-xl border p-4">
-            <p className="text-xs text-muted-foreground">Total del mes</p>
-            <p className="text-2xl font-bold mt-1 tabular-nums">{formatCurrency(total, displayCurrency)}</p>
-            <p className="text-xs text-muted-foreground mt-0.5">{entries.length} entradas</p>
-          </div>
-          <div className="rounded-xl border p-4">
-            <p className="text-xs text-muted-foreground">Pagado</p>
-            <p className="text-2xl font-bold mt-1 tabular-nums text-green-600">
-              {formatCurrency(paid, displayCurrency)}
-            </p>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              {entries.filter((e) => e.isPaid).length} de {entries.length} entradas
-            </p>
-          </div>
-          <div className="rounded-xl border p-4">
-            <p className="text-xs text-muted-foreground">Pendiente</p>
-            <p className="text-2xl font-bold mt-1 tabular-nums text-orange-600">
-              {formatCurrency(pending, displayCurrency)}
-            </p>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              {entries.filter((e) => !e.isPaid).length} entradas sin pagar
-            </p>
-          </div>
-        </div>
+        <ProportionSummary
+          headline={formatCurrency(pending, displayCurrency)}
+          headlineLabel={`pendiente en ${entries.filter((e) => !e.isPaid).length} de ${entries.length} entradas`}
+          context={`${formatCurrency(paid, displayCurrency)} pagados de ${formatCurrency(total, displayCurrency)}`}
+          ratio={total > 0 ? paid / total : 0}
+          colors={{ done: COST_COLORS.paid, rest: COST_COLORS.pending }}
+          ariaLabel="Resumen de costos del mes"
+        />
       )}
 
       {/* Grouped tables */}
@@ -334,7 +325,7 @@ function MonthlyCostsContent() {
                     {truckData && !truckData.estimatedMonthlyKm && (
                       <Badge
                         variant="outline"
-                        className="text-xs text-orange-700 border-orange-300 bg-orange-50 dark:bg-orange-950/30 py-0 h-4"
+                        className="text-xs border-warning-border bg-warning-surface text-warning py-0 h-4"
                       >
                         Falta configurar
                       </Badge>
@@ -347,7 +338,7 @@ function MonthlyCostsContent() {
                       </span>
                     )}
                     <div className="flex items-center gap-1">
-                      <span className="text-green-600 font-medium">{formatCurrency(groupPaid, displayCurrency)}</span>
+                      <span className="text-success font-medium">{formatCurrency(groupPaid, displayCurrency)}</span>
                       <span className="text-muted-foreground">/</span>
                       <span className="font-medium">{formatCurrency(groupTotal, displayCurrency)}</span>
                     </div>
@@ -355,10 +346,10 @@ function MonthlyCostsContent() {
                 </div>
 
                 {/* Table */}
-                <div className="rounded-lg border overflow-hidden">
+                <div className="overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead>
-                      <tr className="bg-muted/50 border-b">
+                      <tr className="border-b">
                         <th className="px-3 py-2 w-8">
                           <span className="sr-only">Pagado</span>
                         </th>
@@ -380,7 +371,7 @@ function MonthlyCostsContent() {
                           className={cn(
                             "border-b last:border-b-0 transition-colors",
                             e.type === "Fixed"
-                              ? "bg-green-50/50 dark:bg-green-950/20"
+                              ? "bg-success-surface/50"
                               : "hover:bg-muted/30",
                             e.isPaid && "opacity-60"
                           )}

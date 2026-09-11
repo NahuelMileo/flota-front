@@ -80,12 +80,12 @@ function InviteCodeSection() {
   const isExpiringSoon = secondsLeft <= 60 && secondsLeft > 0
 
   return (
-    <div className="rounded-lg border">
-      <div className="px-4 py-3 border-b flex items-center gap-2">
+    <section className="flex flex-col gap-3">
+      <h2 className="flex items-center gap-2 border-b pb-2 font-semibold">
         <Users className="size-4 text-muted-foreground" />
-        <h2 className="font-semibold text-sm">Equipo</h2>
-      </div>
-      <div className="px-4 py-4 flex flex-col gap-3">
+        Equipo
+      </h2>
+      <div className="flex flex-col gap-3">
         <p className="text-sm text-muted-foreground">
           Generá un código de invitación temporal para que un nuevo usuario se una a tu empresa. El código es válido por 5 minutos y de un solo uso.
         </p>
@@ -133,7 +133,7 @@ function InviteCodeSection() {
           </Button>
         )}
       </div>
-    </div>
+    </section>
   )
 }
 
@@ -205,39 +205,35 @@ function CategoriesSection() {
   }
 
   return (
-    <div className="rounded-lg border">
-      <div className="px-4 py-3 border-b">
-        <h2 className="font-semibold text-sm">Categorías de egresos</h2>
-      </div>
+    <section className="flex flex-col gap-3">
+      <h2 className="border-b pb-2 font-semibold">Categorías de egresos</h2>
 
       {/* Add form */}
-      <form onSubmit={handleAdd} className="px-4 py-3 border-b flex gap-2">
+      <form onSubmit={handleAdd} className="flex gap-2">
         <Input
           value={newName}
           onChange={(e) => setNewName(e.target.value)}
           placeholder="Nombre de la nueva categoría"
           className="flex-1"
         />
-        <Button type="submit" disabled={isAdding || !newName.trim()} size="sm">
+        <Button type="submit" disabled={isAdding || !newName.trim()} size="sm" className="border-primary">
           Agregar
         </Button>
       </form>
 
       {/* List */}
       {isLoading ? (
-        <div className="p-4 space-y-2">
+        <div className="space-y-2">
           {Array.from({ length: 6 }).map((_, i) => (
             <Skeleton key={i} className="h-9 w-full" />
           ))}
         </div>
       ) : categories.length === 0 ? (
-        <div className="p-8 text-center text-sm text-muted-foreground">
-          No hay categorías registradas.
-        </div>
+        <p className="text-sm text-muted-foreground">No hay categorías registradas.</p>
       ) : (
         <ul className="divide-y">
           {categories.map((cat) => (
-            <li key={cat.id} className="flex items-center justify-between px-4 py-2.5">
+            <li key={cat.id} className="flex items-center justify-between py-2">
               <div className="flex items-center gap-2">
                 <span className="text-sm">{cat.name}</span>
                 {cat.isDefault && (
@@ -249,9 +245,14 @@ function CategoriesSection() {
               <AlertDialog>
                 <AlertDialogTrigger
                   render={
-                    <button className="p-1.5 rounded text-muted-foreground/40 hover:text-destructive hover:bg-destructive/10 transition-colors">
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      aria-label="Eliminar categoría"
+                      className="text-muted-foreground hover:text-destructive"
+                    >
                       <Trash2 className="size-4" />
-                    </button>
+                    </Button>
                   }
                 />
                 <AlertDialogContent size="sm">
@@ -276,7 +277,7 @@ function CategoriesSection() {
           ))}
         </ul>
       )}
-    </div>
+    </section>
   )
 }
 
@@ -376,11 +377,9 @@ function ChangePasswordSection() {
   }
 
   return (
-    <div className="rounded-lg border">
-      <div className="px-4 py-3 border-b">
-        <h2 className="font-semibold text-sm">Cambiar contraseña</h2>
-      </div>
-      <form onSubmit={handleSubmit} className="px-4 py-4 space-y-4">
+    <section className="flex flex-col gap-3">
+      <h2 className="border-b pb-2 font-semibold">Cambiar contraseña</h2>
+      <form onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-2">
           <label htmlFor="current-password" className="text-sm font-medium">
             Contraseña actual
@@ -459,11 +458,11 @@ function ChangePasswordSection() {
           )}
         </div>
 
-        <Button type="submit" disabled={isLoading} className="w-full sm:w-auto">
+        <Button type="submit" disabled={isLoading} className="w-full border-primary sm:w-auto">
           {isLoading ? "Cambiando..." : "Cambiar contraseña"}
         </Button>
       </form>
-    </div>
+    </section>
   )
 }
 
@@ -478,14 +477,11 @@ export default function ConfiguracionPage() {
 
   return (
     <div className="p-6 flex flex-col gap-4">
-      <div>
-        <h1 className="text-xl font-bold">Configuración</h1>
-        <p className="text-sm text-muted-foreground mt-0.5">Administrá la configuración de tu empresa</p>
-      </div>
+      <p className="text-sm text-muted-foreground">Administrá la configuración de tu empresa</p>
 
       <div className="flex gap-6 max-w-5xl">
         {/* Sidebar */}
-        <div className="w-48 flex flex-col gap-1 pt-2">
+        <nav className="flex w-48 shrink-0 flex-col gap-1">
           {sections.map((section) => {
             const Icon = section.icon
             return (
@@ -493,10 +489,10 @@ export default function ConfiguracionPage() {
                 key={section.id}
                 onClick={() => setActiveSection(section.id)}
                 className={cn(
-                  "flex items-center gap-3 px-4 py-2.5 rounded-md text-sm font-medium transition-colors",
+                  "flex cursor-pointer items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
                   activeSection === section.id
-                    ? "bg-primary text-primary-foreground"
-                    : "text-muted-foreground hover:bg-muted"
+                    ? "bg-muted text-foreground"
+                    : "text-muted-foreground hover:bg-muted/60 hover:text-foreground"
                 )}
               >
                 <Icon className="size-4" />
@@ -504,7 +500,7 @@ export default function ConfiguracionPage() {
               </button>
             )
           })}
-        </div>
+        </nav>
 
         {/* Content */}
         <div className="flex-1 space-y-4 min-w-0">

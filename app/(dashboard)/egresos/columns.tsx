@@ -62,10 +62,11 @@ export function getColumns(
     {
       accessorKey: "value",
       header: "Valor",
-      cell: ({ row }) => {
-        const displayVal = getDisplayValue(row.original, displayCurrency);
-        return formatCurrency(displayVal, displayCurrency);
-      },
+      cell: ({ row }) => (
+        <span className="font-medium tabular-nums text-danger">
+          {formatCurrency(getDisplayValue(row.original, displayCurrency), displayCurrency)}
+        </span>
+      ),
     },
     {
       accessorKey: "categoryName",

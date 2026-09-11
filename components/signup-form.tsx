@@ -167,9 +167,9 @@ return (
             <div className="flex items-center gap-2">
               <div className="text-sm font-medium">Seguridad:
                 <span className={cn("ml-1", {
-                  "text-red-500": passwordValidation.strength === 'weak',
+                  "text-danger": passwordValidation.strength === 'weak',
                   "text-yellow-500": passwordValidation.strength === 'medium',
-                  "text-green-500": passwordValidation.strength === 'strong',
+                  "text-success": passwordValidation.strength === 'strong',
                 })}>
                   {passwordValidation.strength === 'weak' && 'Débil'}
                   {passwordValidation.strength === 'medium' && 'Media'}
@@ -178,7 +178,7 @@ return (
               </div>
             </div>
             {passwordValidation.errors.length > 0 && (
-              <ul className="text-sm text-red-500 space-y-1">
+              <ul className="text-sm text-danger space-y-1">
                 {passwordValidation.errors.map((err) => (
                   <li key={err}>• {err}</li>
                 ))}
@@ -198,7 +198,7 @@ return (
           onChange={(e) => setConfirmPassword(e.target.value)}
         />
         {password && confirmPassword && password !== confirmPassword && (
-          <FieldDescription className="text-red-500">
+          <FieldDescription className="text-danger">
             Las contraseñas no coinciden
           </FieldDescription>
         )}

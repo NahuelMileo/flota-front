@@ -7,8 +7,23 @@ import { usePathname } from "next/navigation";
 import { DatePicker } from "./ui/date-picker";
 import type { DisplayCurrency } from "@/lib/format";
 import { MaintenanceNotificationsBell } from "@/components/notifications/maintenance-notifications-bell";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 const CURRENCIES: DisplayCurrency[] = ["USD", "BRL", "UYU"];
+
+const PAGE_TITLES: Record<string, string> = {
+  "/dashboard": "Dashboard",
+  "/trips": "Viajes",
+  "/camiones": "Camiones",
+  "/mantenimientos": "Mantenimientos",
+  "/mantenimientos/conceptos": "Conceptos de mantenimiento",
+  "/cuentas-a-recibir": "Cuentas a recibir",
+  "/ingresos": "Ingresos",
+  "/egresos": "Egresos",
+  "/costos": "Costos fijos",
+  "/clientes": "Clientes",
+  "/configuracion": "Configuración",
+};
 
 export function SiteHeader() {
   const pathname = usePathname();
@@ -18,6 +33,10 @@ export function SiteHeader() {
   // Detectar si es una ruta de detalle y mostrar título apropiado
   const getTitleFromPathname = (path: string): string => {
     const segments = path.split("/").filter(Boolean);
+
+    if (PAGE_TITLES[path]) {
+      return PAGE_TITLES[path];
+    }
 
     // Si es /trips/[id], mostrar "Ver viaje"
     if (segments[0] === "trips" && segments[1]) {
@@ -44,25 +63,30 @@ export function SiteHeader() {
   const title = getTitleFromPathname(pathname);
 
   return (
-    <header className="flex h-(--header-height) shrink-0 items-center gap-2 border-b transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-(--header-height)">
+    <header className="flex h-(--header-height) shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-(--header-height)">
       <div className="flex w-full items-center gap-1 px-4 lg:gap-2 lg:px-6">
         <SidebarTrigger className="-ml-1" />
         <Separator
           orientation="vertical"
           className="mx-2 h-4 data-vertical:self-auto"
         />
-        <h1 className="text-base font-medium">{title}</h1>
+        <h1 className="text-lg font-semibold tracking-tight">{title}</h1>
         <div className="ml-auto flex items-center gap-2">
-          <div className="flex rounded-md border overflow-hidden">
+          <div
+            role="group"
+            aria-label="Moneda de visualización"
+            className="flex h-8 items-center gap-0.5 rounded-lg bg-muted p-0.5"
+          >
             {CURRENCIES.map((cur) => (
               <button
                 key={cur}
                 type="button"
+                aria-pressed={displayCurrency === cur}
                 onClick={() => setDisplayCurrency(cur)}
-                className={`px-2 py-1 text-xs font-medium transition-colors ${
+                className={`flex h-full cursor-pointer items-center rounded-md px-2 text-xs font-medium transition-colors ${
                   displayCurrency === cur
-                    ? "bg-foreground text-background"
-                    : "bg-background text-muted-foreground hover:text-foreground"
+                    ? "bg-background text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
                 }`}
               >
                 {cur}
@@ -73,6 +97,7 @@ export function SiteHeader() {
             value={selectedDate}
             onChange={(d) => setSelectedDate(d ?? null)}
           />
+          <ThemeToggle />
           <MaintenanceNotificationsBell />
         </div>
       </div>

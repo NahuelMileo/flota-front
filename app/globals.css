@@ -9,6 +9,15 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-sans);
   --font-mono: var(--font-geist-mono);
+  --color-success: var(--success);
+  --color-success-surface: var(--success-surface);
+  --color-success-border: var(--success-border);
+  --color-danger: var(--danger);
+  --color-danger-surface: var(--danger-surface);
+  --color-danger-border: var(--danger-border);
+  --color-warning: var(--warning);
+  --color-warning-surface: var(--warning-surface);
+  --color-warning-border: var(--warning-border);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -48,48 +57,59 @@
 }
 
 :root {
-  --background: oklch(1 0 0);
+  --background: oklch(0.975 0.004 155);
   --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
+  --card: oklch(0.998 0.001 155);
   --card-foreground: oklch(0.145 0 0);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
+  --primary: oklch(0.32 0 0);
   --primary-foreground: oklch(0.985 0 0);
   --secondary: oklch(0.97 0 0);
   --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
+  --muted: oklch(0.955 0.004 155);
   --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
+  --accent: oklch(0.95 0.006 155);
   --accent-foreground: oklch(0.205 0 0);
   --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
+  --border: oklch(0.9 0.006 155);
+  --input: oklch(0.89 0.007 155);
+  --ring: oklch(0.627 0.194 149.214);
   --chart-1: oklch(0.809 0.105 251.813);
   --chart-2: oklch(0.623 0.214 259.815);
   --chart-3: oklch(0.546 0.245 262.881);
   --chart-4: oklch(0.488 0.243 264.376);
   --chart-5: oklch(0.424 0.199 265.638);
   --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
+  --sidebar: oklch(0.955 0.006 155);
   --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
+  --sidebar-primary: oklch(0.32 0 0);
   --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  --sidebar-accent: oklch(0.925 0.008 155);
+  --sidebar-accent-foreground: oklch(0.145 0 0);
+  --sidebar-border: oklch(0.885 0.008 155);
+  --sidebar-ring: oklch(0.627 0.194 149.214);
+
+  /* Cobrado, pendiente y parcial, con los valores de siempre. */
+  --success: oklch(0.627 0.194 149.214);
+  --success-surface: oklch(0.982 0.018 155.826);
+  --success-border: oklch(0.871 0.15 154.449);
+  --danger: oklch(0.577 0.245 27.325);
+  --danger-surface: oklch(0.971 0.013 17.38);
+  --danger-border: oklch(0.808 0.114 19.571);
+  --warning: oklch(0.666 0.179 58.318);
+  --warning-surface: oklch(0.987 0.022 95.277);
+  --warning-border: oklch(0.879 0.169 91.605);
 }
 
 .dark {
   --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(25.944% 0.00451 17.089);
-  --primary: oklch(0.922 0 0);
+  --foreground: oklch(0.96 0 0);
+  --card: oklch(0.19 0 0);
+  --card-foreground: oklch(0.96 0 0);
+  --popover: oklch(0.195 0 0);
+  --popover-foreground: oklch(0.96 0 0);
+  --primary: oklch(0.87 0 0);
   --primary-foreground: oklch(0.205 0 0);
   --secondary: oklch(0.269 0 0);
   --secondary-foreground: oklch(0.985 0 0);
@@ -106,14 +126,26 @@
   --chart-3: oklch(0.546 0.245 262.881);
   --chart-4: oklch(0.488 0.243 264.376);
   --chart-5: oklch(0.424 0.199 265.638);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
+  --sidebar: oklch(0.105 0 0);
+  --sidebar-foreground: oklch(0.93 0 0);
   --sidebar-primary: oklch(0.488 0.243 264.376);
   --sidebar-primary-foreground: oklch(0.985 0 0);
   --sidebar-accent: oklch(0.269 0 0);
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.556 0 0);
+
+  /* En oscuro suben en luminosidad y bajan un punto de croma: sobre negro, el color
+     saturado vibra. */
+  --success: oklch(0.76 0.13 150);
+  --success-surface: oklch(0.29 0.055 150);
+  --success-border: oklch(0.4 0.07 150);
+  --danger: oklch(0.68 0.15 27);
+  --danger-surface: oklch(0.3 0.06 27);
+  --danger-border: oklch(0.42 0.08 27);
+  --warning: oklch(0.78 0.11 70);
+  --warning-surface: oklch(0.3 0.05 70);
+  --warning-border: oklch(0.42 0.07 70);
 }
 
 @layer base {
@@ -142,4 +174,325 @@
 
 [data-rich-colors='true'][data-sonner-toast][data-type='info'] svg {
   color: hsl(210, 92%, 45%) !important;
+}
+
+/* ==========================================================================
+   Tema oscuro: iluminación ambiental y superficies estratificadas.
+   Todo lo de acá vive sólo en .dark — sobre blanco un gradiente sutil se lee
+   como suciedad y las veladuras de luz no se perciben.
+   ========================================================================== */
+
+/*
+  1. Fondo general. La base casi negra con luces difusas que se sienten como
+  iluminación de ambiente: la más marcada arriba a la derecha, una segunda más
+  tenue detrás del contenido, y una caída oscura hacia los bordes.
+*/
+.dark [data-slot="sidebar-wrapper"] {
+  background-color: #090909;
+  background-attachment: fixed;
+}
+
+/*
+  2. El contenido se apoya sobre esa luz: gris carbón translúcido, con un filo
+  claro arriba que simula el canto iluminado y una sombra difusa que lo despega.
+*/
+.dark [data-slot="sidebar-inset"] {
+  /* Las luces y el grano de este panel se definen junto al resto del grano, más abajo. */
+  background-color: var(--background);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.05),
+    0 20px 60px rgba(0, 0, 0, 0.35);
+}
+
+/*
+  3. Luz ambiental del encabezado. Va en el contenido y no en cada componente:
+  la iluminación tiene que guiar la atención hacia arriba, no repartirse por
+  todos lados.
+*/
+.dark [data-slot="sidebar-inset"]::before {
+  content: "";
+  position: absolute;
+  top: -3rem;
+  right: 6%;
+  width: 46rem;
+  height: 18rem;
+  background: rgba(255, 255, 255, 0.085);
+  filter: blur(100px);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Segunda fuente, más abajo y a la izquierda: da volumen sin competir con la de arriba. */
+.dark [data-slot="sidebar-inset"]::after {
+  content: "";
+  position: absolute;
+  bottom: -6rem;
+  left: -3rem;
+  width: 38rem;
+  height: 22rem;
+  background: rgba(255, 255, 255, 0.05);
+  filter: blur(110px);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.dark [data-slot="sidebar-inset"] > * {
+  position: relative;
+  z-index: 1;
+}
+
+/*
+  4. Sidebar: degradado vertical, divisor apenas visible y una luz tenue cerca
+  del logo, que es donde arranca la lectura.
+*/
+.dark [data-slot="sidebar-inner"] {
+  position: relative;
+  background-image: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.045),
+    rgba(255, 255, 255, 0.012) 30%,
+    rgba(0, 0, 0, 0.3)
+  );
+}
+
+.dark [data-slot="sidebar-inner"]::before {
+  content: "";
+  position: absolute;
+  top: -2rem;
+  left: -20%;
+  width: 140%;
+  height: 12rem;
+  background: rgba(255, 255, 255, 0.09);
+  filter: blur(70px);
+  pointer-events: none;
+}
+
+/* Luz a media altura y un reflejo en el pie, donde está el usuario. */
+.dark [data-slot="sidebar-inner"]::after {
+  content: "";
+  position: absolute;
+  bottom: -4rem;
+  left: -30%;
+  width: 160%;
+  height: 16rem;
+  background: rgba(255, 255, 255, 0.05);
+  filter: blur(80px);
+  pointer-events: none;
+}
+
+.dark [data-slot="sidebar-inner"] {
+}
+
+/* El ítem activo: translúcido, con borde suave y un filo de luz interior. */
+.dark [data-sidebar="menu-button"][data-active="true"] {
+  background-image: linear-gradient(
+    145deg,
+    rgba(255, 255, 255, 0.1),
+    rgba(255, 255, 255, 0.035)
+  );
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.07);
+}
+
+/*
+  5. Superficies flotantes (menús, popovers, hojas laterales): el mismo canto
+  iluminado y una sombra larga que las separa del fondo.
+*/
+.dark [data-slot="popover-content"],
+.dark [data-slot="select-content"],
+.dark [data-slot="dropdown-menu-content"],
+.dark [data-slot="sheet-content"],
+.dark [data-slot="alert-dialog-content"],
+.dark [data-slot="dialog-content"] {
+  background-image: linear-gradient(
+    145deg,
+    rgba(255, 255, 255, 0.06),
+    rgba(255, 255, 255, 0.02) 45%,
+    rgba(0, 0, 0, 0.25)
+  );
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.05),
+    0 20px 50px rgba(0, 0, 0, 0.45);
+}
+
+/*
+  6. Botones con volumen: un degradado mínimo y el canto superior iluminado, de
+  modo que se lean como una pieza física y no como un rectángulo pintado.
+*/
+.dark [data-slot="button"] {
+  transition-duration: 180ms;
+}
+
+.dark [data-slot="button"]:not(:disabled) {
+  background-image: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.07),
+    rgba(255, 255, 255, 0) 60%
+  );
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 1px 2px rgba(0, 0, 0, 0.4);
+}
+
+.dark [data-slot="button"]:not(:disabled):hover {
+  background-image: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.11),
+    rgba(255, 255, 255, 0.01) 60%
+  );
+}
+
+/* Las filas de tabla no son superficies: sin volumen, sólo el hover. */
+.dark [data-slot="table"] [data-slot="button"] {
+  background-image: none;
+  box-shadow: none;
+}
+
+/*
+  7. Gráficos: tienen que sentirse dentro del fondo, no pegados encima. La grilla
+  casi no existe, los ejes se apagan y las barras llevan un halo apenas
+  perceptible en lugar de color plano saturado.
+*/
+.dark .recharts-cartesian-grid line {
+  stroke: rgba(255, 255, 255, 0.05);
+}
+
+.dark .recharts-cartesian-axis-line,
+.dark .recharts-cartesian-axis-tick-line {
+  stroke: rgba(255, 255, 255, 0.08);
+}
+
+.dark .recharts-text {
+  fill: rgba(255, 255, 255, 0.45);
+}
+
+.dark .recharts-rectangle.recharts-bar-rectangle {
+  filter: drop-shadow(0 0 6px rgba(255, 255, 255, 0.06));
+}
+
+.dark .recharts-curve.recharts-line-curve {
+  filter: drop-shadow(0 0 6px rgba(34, 197, 94, 0.35));
+}
+
+/* El tooltip sigue el lenguaje de las superficies flotantes. */
+.dark .recharts-default-tooltip,
+.dark .recharts-tooltip-wrapper .recharts-default-tooltip {
+  background-color: rgba(20, 20, 20, 0.92) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  border-radius: 0.5rem;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+}
+
+.dark .recharts-default-tooltip .recharts-tooltip-label,
+.dark .recharts-default-tooltip .recharts-tooltip-item {
+  color: rgba(255, 255, 255, 0.85) !important;
+}
+
+/*
+  8. Grano. Una textura muy fina que le saca el aspecto de degradado digital perfecto
+  a las zonas iluminadas, donde el banding se nota. Se genera con un SVG en línea, así
+  que no suma ninguna dependencia ni pedido de red.
+*/
+.dark [data-slot="sidebar-wrapper"],
+.dark [data-slot="sidebar-inset"],
+.dark [data-slot="sidebar-inner"] {
+  --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23g)' opacity='0.1'/%3E%3C/svg%3E");
+  --grain-dark: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23g)' opacity='0.07'/%3E%3C/svg%3E");
+}
+
+.dark [data-slot="sidebar-wrapper"] {
+  background-image:
+    var(--grain),
+    radial-gradient(circle at 80% 0%, rgba(255, 255, 255, 0.14), transparent 32%),
+    radial-gradient(circle at 35% 20%, rgba(255, 255, 255, 0.06), transparent 28%),
+    radial-gradient(140% 120% at 50% 50%, transparent 50%, rgba(0, 0, 0, 0.6));
+  background-size: 160px 160px, auto, auto, auto;
+  background-blend-mode: overlay, normal, normal, normal;
+}
+
+.dark [data-slot="sidebar-inset"] {
+  background-image:
+    var(--grain),
+    radial-gradient(circle at 78% 2%, rgba(255, 255, 255, 0.13), transparent 38%),
+    radial-gradient(circle at 22% 12%, rgba(255, 255, 255, 0.06), transparent 32%),
+    radial-gradient(circle at 58% 98%, rgba(255, 255, 255, 0.05), transparent 40%),
+    linear-gradient(
+      145deg,
+      rgba(255, 255, 255, 0.05),
+      rgba(255, 255, 255, 0.015) 45%,
+      rgba(0, 0, 0, 0.18)
+    );
+  background-size: 160px 160px, auto, auto, auto, auto;
+  background-blend-mode: overlay, normal, normal, normal, normal;
+}
+
+.dark [data-slot="sidebar-inner"] {
+  background-image:
+    var(--grain-dark),
+    radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 0.1), transparent 45%),
+    radial-gradient(circle at 20% 45%, rgba(255, 255, 255, 0.045), transparent 40%),
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.03),
+      rgba(255, 255, 255, 0.01) 40%,
+      rgba(0, 0, 0, 0.08)
+    );
+  background-size: 160px 160px, auto, auto, auto;
+  background-blend-mode: screen, normal, normal, normal;
+}
+
+/* ==========================================================================
+   Tema claro: superficies precisas, sin imitar la iluminación del tema oscuro.
+   ========================================================================== */
+
+html:not(.dark) [data-slot="sidebar-wrapper"] {
+  background: var(--background);
+}
+
+html:not(.dark) [data-slot="sidebar-inset"] {
+  background: var(--background);
+}
+
+html:not(.dark) [data-slot="sidebar-inner"] {
+  background: var(--sidebar);
+}
+
+/* La ruta activa es la superficie más clara del sidebar; el verde indica ubicación. */
+html:not(.dark) [data-sidebar="menu-button"][data-active="true"] {
+  background: var(--card);
+  border: 1px solid var(--sidebar-border);
+  color: oklch(0.43 0.14 149.214);
+  box-shadow:
+    0 1px 2px rgba(15, 23, 18, 0.05),
+    0 5px 14px rgba(15, 23, 18, 0.045);
+}
+
+html:not(.dark) [data-sidebar="menu-button"][data-active="true"] svg {
+  color: var(--success);
+}
+
+/* Superficies flotantes: la profundidad la da la sombra, no el borde. */
+html:not(.dark) [data-slot="popover-content"],
+html:not(.dark) [data-slot="select-content"],
+html:not(.dark) [data-slot="dropdown-menu-content"],
+html:not(.dark) [data-slot="sheet-content"],
+html:not(.dark) [data-slot="alert-dialog-content"],
+html:not(.dark) [data-slot="dialog-content"] {
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.04),
+    0 12px 32px rgba(0, 0, 0, 0.1);
+}
+
+/* Botones con el mismo volumen que en oscuro, pero con la luz viniendo de arriba. */
+html:not(.dark) [data-slot="button"]:not(:disabled) {
+  background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.14), rgba(0, 0, 0, 0.04));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.22),
+    0 1px 2px rgba(0, 0, 0, 0.08);
+}
+
+html:not(.dark) [data-slot="table"] [data-slot="button"] {
+  background-image: none;
+  box-shadow: none;
 }

@@ -42,8 +42,8 @@ const tripStatusLabels: Record<string, string> = {
 const tripStatusColorMap: Record<string, string> = {
   Scheduled: "bg-yellow-100 text-yellow-800 border-yellow-300",
   InProgress: "bg-blue-100 text-blue-800 border-blue-300",
-  Completed: "bg-green-100 text-green-800 border-green-300",
-  Cancelled: "bg-red-100 text-red-800 border-red-300",
+  Completed: "border-success-border bg-success-surface text-success",
+  Cancelled: "border-danger-border bg-danger-surface text-danger",
 };
 
 export function getColumns(

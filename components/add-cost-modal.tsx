@@ -25,7 +25,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { PlusIcon } from "lucide-react"
 import type { Truck } from "@/types/truck"
 import type { ExpenseCategory } from "@/types/expense-category"
 
@@ -258,7 +257,7 @@ function FixedCostForm({
           </Field>
         )}
       </FieldGroup>
-      <Button className="w-full" type="submit" disabled={isSubmitting}>
+      <Button className="w-full border-primary" type="submit" disabled={isSubmitting}>
         Crear costo fijo
       </Button>
     </form>
@@ -301,7 +300,7 @@ export function AddCostModal({ truckId, onSuccess }: AddCostModalProps) {
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
-      <SheetTrigger render={<Button size="sm"><PlusIcon className="size-4 mr-1" />Agregar costo</Button>} />
+      <SheetTrigger render={<Button>Agregar costo</Button>} />
       <SheetContent className="overflow-y-auto">
         <SheetHeader>
           <SheetTitle>Agregar costo fijo</SheetTitle>

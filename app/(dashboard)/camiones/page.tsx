@@ -9,8 +9,15 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog"
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet"
 import { toast } from "sonner"
 import { fetchWithAuth } from "@/lib/api"
 import { getColumns } from "./columns"
@@ -36,7 +43,7 @@ export default function TruckPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isUpdating, setIsUpdating] = useState(false)
   const [editingTruck, setEditingTruck] = useState<Truck | null>(null)
-  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
+  const [isAddSheetOpen, setIsAddSheetOpen] = useState(false)
 
   useEffect(() => {
     fetchTrucks()
@@ -49,7 +56,6 @@ export default function TruckPage() {
       const data = await res.json()
       if (!res.ok) throw new Error()
       setTrucks(data)
-      console.log(data)
     } catch {
       toast.error("Error al cargar camiones")
     } finally {
@@ -66,7 +72,7 @@ export default function TruckPage() {
       })
       if (!res.ok) throw new Error()
       const created = await res.json()
-      setIsAddDialogOpen(false)
+      setIsAddSheetOpen(false)
       setTrucks((prev) => [...prev, created])
       toast.success("Camión agregado exitosamente")
     } catch {
@@ -77,7 +83,6 @@ export default function TruckPage() {
   }
 
   async function handleEditTruck(data: TruckFormValues) {
-    console.log(data);
     if (!editingTruck) return
     setIsUpdating(true)
     try {
@@ -118,27 +123,6 @@ export default function TruckPage() {
 
   return (
     <div className="p-6 flex flex-col gap-4">
-      <div className="mb-20">
-        <div className="flex justify-between">
-          <h1 className="text-xl font-bold">Camiones</h1>
-          <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-            <DialogTrigger render={<Button variant="outline">Añadir un camión</Button>} />
-            <DialogContent className="sm:max-w-sm">
-              <DialogHeader>
-                <DialogTitle>Agregar camión</DialogTitle>
-                <DialogDescription>Agrega un camión a tu flota.</DialogDescription>
-              </DialogHeader>
-              <TruckForm
-                onSubmit={handleAddTruck}
-                isSubmitting={isSubmitting}
-                submitLabel="Agregar camión"
-              />
-            </DialogContent>
-          </Dialog>
-        </div>
-        <p className="text-muted-foreground">Gestiona tu flota de camiones</p>
-      </div>
-
       {/* Edit dialog */}
       <Dialog open={!!editingTruck} onOpenChange={(open) => !open && setEditingTruck(null)}>
         <DialogContent className="sm:max-w-sm">
@@ -166,6 +150,24 @@ export default function TruckPage() {
           data={trucks}
           emptyMessage="No hay camiones registrados."
           searchPlaceholder="Buscar camión..."
+          toolbarAction={
+            <Sheet open={isAddSheetOpen} onOpenChange={setIsAddSheetOpen}>
+              <SheetTrigger render={<Button>Añadir camión</Button>} />
+              <SheetContent className="overflow-y-auto">
+                <SheetHeader>
+                  <SheetTitle>Agregar camión</SheetTitle>
+                  <SheetDescription>Registrá un camión en tu flota.</SheetDescription>
+                </SheetHeader>
+                <div className="px-4 pb-6">
+                  <TruckForm
+                    onSubmit={handleAddTruck}
+                    isSubmitting={isSubmitting}
+                    submitLabel="Agregar camión"
+                  />
+                </div>
+              </SheetContent>
+            </Sheet>
+          }
         />
       )}
     </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -9,6 +9,9 @@ import { ChevronLeft } from "lucide-react";
 import { fetchWithAuth } from "@/lib/api";
 import { formatDate } from "@/lib/format";
 import { useConceptStatusByTruck } from "@/hooks/use-concept-status-by-truck";
+import { DataTable } from "@/components/data-table";
+import type { ColumnDef } from "@tanstack/react-table";
+import type { TruckConceptStatus } from "@/types/maintenance";
 import type { MaintenanceConcept } from "@/types/maintenance";
 
 export default function ConceptDetailPage() {
@@ -17,6 +20,44 @@ export default function ConceptDetailPage() {
   const [concept, setConcept] = useState<MaintenanceConcept | null>(null);
   const [isLoadingConcept, setIsLoadingConcept] = useState(true);
   const { status, isLoading: isLoadingStatus } = useConceptStatusByTruck(conceptId);
+
+  const columns = useMemo<ColumnDef<TruckConceptStatus>[]>(
+    () => [
+      {
+        accessorKey: "truckLicensePlate",
+        header: "Camión",
+        cell: ({ row }) => <span className="font-medium">{row.original.truckLicensePlate}</span>,
+      },
+      {
+        accessorKey: "lastMaintenanceDate",
+        header: "Último cambio",
+        cell: ({ row }) => (
+          <span className="tabular-nums">
+            {formatDate(row.original.lastMaintenanceDate)} —{" "}
+            {row.original.lastKilometers.toLocaleString("es-UY")} km
+          </span>
+        ),
+      },
+      {
+        id: "nextDue",
+        header: "Próximo vencimiento",
+        cell: ({ row }) => {
+          const s = row.original;
+          if (!s.nextDueKilometers && !s.nextDueDate) {
+            return <span className="text-muted-foreground">—</span>;
+          }
+          return (
+            <span className="tabular-nums text-muted-foreground">
+              {s.nextDueKilometers ? `${s.nextDueKilometers.toLocaleString("es-UY")} km` : ""}
+              {s.nextDueKilometers && s.nextDueDate ? " / " : ""}
+              {s.nextDueDate ? formatDate(s.nextDueDate) : ""}
+            </span>
+          );
+        },
+      },
+    ],
+    [],
+  );
 
   useEffect(() => {
     fetchWithAuth(`/api/maintenances/concepts/${conceptId}`)
@@ -29,7 +70,7 @@ export default function ConceptDetailPage() {
     <div className="p-6 flex flex-col gap-4">
       <div className="flex items-center gap-2">
         <Link href="/mantenimientos/conceptos">
-          <Button variant="ghost" size="icon">
+          <Button variant="ghost" size="icon" aria-label="Volver a conceptos">
             <ChevronLeft className="h-4 w-4" />
           </Button>
         </Link>
@@ -50,48 +91,20 @@ export default function ConceptDetailPage() {
         </p>
       )}
 
-      <div className="rounded-md border">
-        {isLoadingStatus ? (
-          <div className="p-4 space-y-3">
-            {Array.from({ length: 3 }).map((_, i) => (
-              <Skeleton key={i} className="h-10 w-full" />
-            ))}
-          </div>
-        ) : status.length === 0 ? (
-          <p className="p-4 text-sm text-muted-foreground">
-            Ningún camión tiene mantenimientos de este concepto todavía.
-          </p>
-        ) : (
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b bg-muted/50 text-left">
-                <th className="p-3 font-medium">Camión</th>
-                <th className="p-3 font-medium">Último cambio</th>
-                <th className="p-3 font-medium">Próximo vencimiento</th>
-              </tr>
-            </thead>
-            <tbody>
-              {status.map((s) => (
-                <tr key={s.truckId} className="border-b last:border-0">
-                  <td className="p-3 font-medium">{s.truckLicensePlate}</td>
-                  <td className="p-3">
-                    {formatDate(s.lastMaintenanceDate)} —{" "}
-                    {s.lastKilometers.toLocaleString("es-UY")} km
-                  </td>
-                  <td className="p-3 text-muted-foreground">
-                    {s.nextDueKilometers
-                      ? `${s.nextDueKilometers.toLocaleString("es-UY")} km`
-                      : ""}
-                    {s.nextDueKilometers && s.nextDueDate ? " / " : ""}
-                    {s.nextDueDate ? formatDate(s.nextDueDate) : ""}
-                    {!s.nextDueKilometers && !s.nextDueDate ? "—" : ""}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </div>
+      {isLoadingStatus ? (
+        <div className="space-y-3 py-2">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <Skeleton key={i} className="h-10 w-full" />
+          ))}
+        </div>
+      ) : (
+        <DataTable
+          columns={columns}
+          data={status}
+          emptyMessage="Ningún camión tiene mantenimientos de este concepto todavía."
+          searchPlaceholder="Buscar camión..."
+        />
+      )}
     </div>
   );
 }

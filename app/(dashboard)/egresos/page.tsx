@@ -1,6 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import { Tag, TruckIcon } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { DataTable } from "@/components/data-table";
 import {
@@ -16,21 +17,14 @@ import { fetchWithAuth } from "@/lib/api";
 import { useTrucks } from "@/hooks/use-trucks";
 import type { ExpenseCategory } from "@/types/expense-category";
 import { getColumns, Expense } from "./columns";
-import { TotalExpenseCard } from "@/components/total-expense-card";
+import { TotalLine } from "@/components/total-line";
 import { ExpenseBreakdownChart } from "@/components/expense-breakdown-chart";
 import { useDateFilter } from "@/context/date-filter-context";
 import { useCurrency } from "@/context/currency-context";
 import AddExpenseForm from "./AddExpenseForm";
 import EditExpenseForm from "./EditExpenseForm";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { FilterSelect } from "@/components/filter-select";
 
 
 function TableSkeleton() {
@@ -217,35 +211,32 @@ export default function ExpensePage() {
   );
 
   // ================= FILTER OPTIONS =================
-  const truckItems = useMemo(
-    () => [
-      { label: "Todos los camiones", value: "all" },
-      { label: "Empresa", value: "none" },
-      ...trucks.map((t) => ({
-        label: t.licensePlate,
-        value: t.id,
-      })),
-    ],
-    [trucks]
-  );
-
-  const categoryItems = useMemo(
-    () => [
-      { label: "Todas las categorías", value: "all" },
-      { label: "Sin categoría", value: "none" },
-      ...categories.map((c) => ({ label: c.name, value: c.id })),
-    ],
-    [categories]
-  );
-
   // ================= UI =================
   return (
     <div className="p-6 flex flex-col gap-4">
-      <div className="flex justify-between">
-        <h1 className="text-xl font-bold">Egresos</h1>
-
+      {/* FILTERS */}
+      <div className="flex flex-wrap items-center gap-1">
+        <FilterSelect
+          label="Camión"
+          icon={TruckIcon}
+          value={selectedTruckId}
+          onChange={setSelectedTruckId}
+          options={trucks.map((t) => ({ label: t.licensePlate, value: t.id }))}
+          allLabel="Todos"
+        />
+        <FilterSelect
+          label="Categoría"
+          icon={Tag}
+          value={selectedCategoryId}
+          onChange={setSelectedCategoryId}
+          options={[
+            { label: "Sin categoría", value: "none" },
+            ...categories.map((c) => ({ label: c.name, value: c.id })),
+          ]}
+          allLabel="Todas"
+        />
         <Sheet open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-          <SheetTrigger render={<Button variant="outline">Añadir egreso</Button>} />
+          <SheetTrigger render={<Button className="ml-auto">Añadir egreso</Button>} />
 
           <SheetContent className="overflow-y-auto">
             <SheetHeader>
@@ -268,54 +259,16 @@ export default function ExpensePage() {
         </Sheet>
       </div>
 
-      {/* FILTERS */}
-      <div className="flex gap-2">
-        <Select
-          items={truckItems}
-          value={selectedTruckId ?? "all"}
-          onValueChange={(value) =>
-            setSelectedTruckId(value === "all" ? null : value)
-          }
-        >
-          <SelectTrigger className="w-48">
-            <SelectValue placeholder="Todos los camiones" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectGroup>
-              {truckItems.map((item) => (
-                <SelectItem key={item.value} value={item.value}>
-                  {item.label}
-                </SelectItem>
-              ))}
-            </SelectGroup>
-          </SelectContent>
-        </Select>
-
-        <Select
-          items={categoryItems}
-          value={selectedCategoryId ?? "all"}
-          onValueChange={(value) =>
-            setSelectedCategoryId(value === "all" || !value ? null : value)
-          }
-        >
-          <SelectTrigger className="w-48">
-            <SelectValue placeholder="Todas las categorías" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectGroup>
-              {categoryItems.map((item) => (
-                <SelectItem key={item.value} value={item.value}>
-                  {item.label}
-                </SelectItem>
-              ))}
-            </SelectGroup>
-          </SelectContent>
-        </Select>
-      </div>
-
-      {/* CARDS */}
+      {/* TOTAL */}
       <div className="grid grid-cols-1 gap-4">
-        <TotalExpenseCard total={total} variation={variation} />
+        <TotalLine
+          total={total}
+          count={filteredExpenses.length}
+          noun={["egreso", "egresos"]}
+          variation={variation}
+          higherIsBetter={false}
+          tone="negative"
+        />
       </div>
 
       {/* CHART */}

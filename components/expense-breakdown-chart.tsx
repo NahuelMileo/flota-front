@@ -9,7 +9,6 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Expense } from "@/app/(dashboard)/egresos/columns";
 import { formatCurrency, DisplayCurrency } from "@/lib/format";
 
@@ -39,13 +38,8 @@ export function ExpenseBreakdownChart({ expenses, displayCurrency }: Props) {
     .sort((a, b) => b.total - a.total);
 
   return (
-    <Card>
-      <CardHeader className="pb-2">
-        <CardTitle className="text-sm font-medium text-muted-foreground">
-          Egresos por categoría
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
+    <section className="space-y-3">
+      <h2 className="border-b pb-2 font-semibold">Egresos por categoría</h2>
         {data.length === 0 ? (
           <div className="flex h-60 items-center justify-center text-sm text-muted-foreground">
             Todavía no hay egresos para mostrar.
@@ -72,11 +66,10 @@ export function ExpenseBreakdownChart({ expenses, displayCurrency }: Props) {
                 "Total",
               ]}
             />
-            <Bar dataKey="total" fill="#ef4444" radius={[4, 4, 0, 0]} />
+            <Bar dataKey="total" fill="var(--danger)" radius={[4, 4, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
         )}
-      </CardContent>
-    </Card>
+    </section>
   );
 }

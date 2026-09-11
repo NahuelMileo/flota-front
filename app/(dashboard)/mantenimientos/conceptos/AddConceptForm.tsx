@@ -178,7 +178,7 @@ export default function AddConceptForm({
         <FieldError>{errors.root.message}</FieldError>
       )}
 
-      <Button type="submit" disabled={isLoading} className="w-full">
+      <Button type="submit" disabled={isLoading} className="w-full border-primary">
         {isLoading ? "Guardando..." : "Crear concepto"}
       </Button>
     </form>

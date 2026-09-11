@@ -1,5 +1,6 @@
 "use client";
 import * as React from "react";
+import Link from "next/link";
 import { NavMain } from "@/components/nav-main";
 import { NavUser } from "@/components/nav-user";
 import {
@@ -17,6 +18,7 @@ import {
   CommandIcon,
   DollarSign,
   BanknoteArrowDown,
+  HandCoins,
   MapPin,
   ReceiptIcon,
   Settings2Icon,
@@ -46,51 +48,34 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       name: userInfo.username,
       email: userInfo.email,
     },
-    navMain: [
+    // Diez ítems planos obligan a leer la lista entera para encontrar uno. Agrupados por
+    // lo que hace el usuario —mover camiones, seguir la plata, mantener los datos— se
+    // busca por sección y no por nombre.
+    navGroups: [
       {
-        title: "Dashboard",
-        url: "/dashboard",
-        icon: <LayoutDashboardIcon />,
+        label: "Operación",
+        items: [
+          { title: "Dashboard", url: "/dashboard", icon: <LayoutDashboardIcon /> },
+          { title: "Viajes", url: "/trips", icon: <MapPin /> },
+          { title: "Camiones", url: "/camiones", icon: <TruckIcon /> },
+          { title: "Mantenimientos", url: "/mantenimientos", icon: <Wrench /> },
+        ],
       },
       {
-        title: "Camiones",
-        url: "/camiones",
-        icon: <TruckIcon />,
+        label: "Dinero",
+        items: [
+          { title: "Cuentas a Recibir", url: "/cuentas-a-recibir", icon: <HandCoins /> },
+          { title: "Ingresos", url: "/ingresos", icon: <DollarSign /> },
+          { title: "Egresos", url: "/egresos", icon: <BanknoteArrowDown /> },
+          { title: "Costos fijos", url: "/costos", icon: <ReceiptIcon /> },
+        ],
       },
       {
-        title: "Viajes",
-        url: "/trips",
-        icon: <MapPin />,
-      },
-      {
-        title: "Ingresos",
-        url: "/ingresos",
-        icon: <DollarSign />,
-      },
-      {
-        title: "Egresos",
-        url: "/egresos",
-        icon: <BanknoteArrowDown />,
-      },
-      {
-        title: "Clientes",
-        url: "/clientes",
-        icon: <Users />,
-      },
-      {
-        title: "Costos fijos",
-        url: "/costos",
-        icon: <ReceiptIcon />,
-      },
-      {
-        title: "Mantenimientos",
-        url: "/mantenimientos",
-        icon: <Wrench />,
-      },
-      {
-        title: "Configuración",
-        url: "/configuracion",
-        icon: <Settings2Icon />,
+        label: "Administración",
+        items: [
+          { title: "Clientes", url: "/clientes", icon: <Users /> },
+          { title: "Configuración", url: "/configuracion", icon: <Settings2Icon /> },
+        ],
       },
     ],
   };
@@ -101,7 +86,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           <SidebarMenuItem>
             <SidebarMenuButton
               className="data-[slot=sidebar-menu-button]:p-1.5!"
-              render={<a href="#" />}
+              render={<Link href="/dashboard" />}
             >
               <CommandIcon className="size-5!" />
               <span className="text-base font-semibold">{userInfo.tenantName}</span>
@@ -110,7 +95,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         </SidebarMenu>
       </SidebarHeader>
       <SidebarContent>
-        <NavMain items={data.navMain} />
+        <NavMain groups={data.navGroups} />
         {/* <NavDocuments items={data.documents} /> */}
         {/* <NavSecondary items={data.navSecondary} className="mt-auto" /> */}
       </SidebarContent>

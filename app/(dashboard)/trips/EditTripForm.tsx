@@ -264,7 +264,7 @@ export default function EditTripForm({
         </Field>
       </FieldGroup>
 
-      <Button className="mt-4 w-full" type="submit" disabled={isSubmitting}>
+      <Button className="mt-4 w-full border-primary" type="submit" disabled={isSubmitting}>
         Guardar cambios
       </Button>
     </form>

@@ -41,3 +41,21 @@ export type CostRow = {
   installmentPlanId?: string | null
   months: { [m: number]: CostEntry | null }
 }
+
+export type FixedCost = {
+  id: string
+  name: string
+  amount: number
+  valueUSD: number | null
+  valueBRL: number | null
+  valueUYU: number | null
+  type: string
+  scope: "PerTruck" | "CompanyWide"
+  truckId: string | null
+  isActive: boolean
+  expenseCategoryId: string | null
+  categoryName: string | null
+  truckLicensePlate: string | null
+  generatedUntilYear: number | null
+  generatedUntilMonth: number | null
+}

@@ -132,6 +132,54 @@ Sistema de gestión de flotas de transporte. Next.js 16 + React 19, shadcn/ui, T
 
 ---
 
+## Cuentas a Recibir (`/cuentas-a-recibir`)
+
+- Reemplaza el Excel de cobranza: cada fila es un flete a cobrar, con **adelanto** (70% del flete, al cargar), **saldo** (30%, al descargar) y **peaje** (aparte del split)
+- Filtros: por cliente, por camión, por estado (Pendiente / Parcial / Cobrado)
+- Resumen (`components/receivables-summary.tsx`): la cifra a recibir, cuántos fletes la componen, cuánto se cobró del total, y una barra de proporción con los mismos verde/rojo de la grilla. Los totales se calculan con `useMemo`, no vienen del backend. Deliberadamente **no** son cards: la pantalla responde una sola pregunta (cuánto falta cobrar)
+- Tabla: Fecha, Camión, Cliente, Adelanto, Saldo, Peaje, Total, Estado, Acciones
+- **Colores replicando la planilla original:** las celdas de identidad (fecha, camión, cliente, total, estado) van pintadas a color pleno con el `color` del camión; las de monto, verde si está cobrado y rojo si está pendiente (vacías si el ítem es 0). El color del texto se calcula por luminancia con `readableTextColor()` de `lib/color-contrast.ts`, porque el color lo elige el usuario y un gris oscuro necesita texto blanco
+- **Cada celda de monto es clickeable:** roja → POST `/api/receivables/{id}/collect`; verde → confirmación → DELETE `/api/receivables/{id}/collect/{kind}`. Ambos endpoints devuelven la cuenta actualizada, así que se reemplaza la fila sin refetchear
+- El pintado se aplica con la prop `getCellStyle` de `DataTable` (opcional, la usa solo esta pantalla), alimentada por `getReceivableCellStyle()` de `columns.tsx`
+- **El estado de cobro es derivado:** no hay flag; un ítem está cobrado si existe un `Income` de esa cuenta con ese `receivableKind`. Cobrar crea el ingreso, deshacer lo borra
+- Alta/Edición: cliente y camión (requeridos), fecha, moneda, valor del flete, peaje → el 70/30 se precarga al tipear el flete y queda editable (al tocar el adelanto, el saldo se recalcula); zod valida que sumen el flete
+- Si el camión tiene un viaje activo, el form lo sugiere y lo vincula (`GET /api/trips/active?truckId=`) — nunca obligatorio: los choferes no siempre reportan los km
+- Eliminación: AlertDialog que avisa cuántos cobros se borran junto con la cuenta → DELETE `/api/receivables/{id}`
+- Exportar CSV: `cuentas-a-recibir.csv`
+- Los montos por ítem se muestran en la moneda del registro; los totales, en la moneda de visualización
+
+### Receivable
+```
+{ id, clientId, clientName, truckId, truckLicensePlate, truckColor, tripId?,
+  dateUtc, currency, freightValue, advanceAmount, balanceAmount, tollAmount,
+  totalAmount, collectedAmount, pendingAmount, status, items[], notes,
+  valueUSD, valueBRL, valueUYU }
+```
+- `items[]`: `{ kind, amount, status, incomeId, collectedAt }` — `kind` (API string): `"Advance"` | `"Balance"` | `"Toll"`; `status`: `"NotApplicable"` | `"Pending"` | `"Collected"`
+- `status` de la cuenta (API string): `"Pending"` | `"Partial"` | `"Collected"`
+- `Income` suma `receivableId`, `receivableKind` y `receivableClientName` cuando es el cobro de una cuenta — el diálogo de borrado en `/ingresos` lo usa para avisar
+- Tipos y helpers en `types/receivable.ts`; clientes vía `hooks/use-clients.ts`
+
+### Truck.color
+
+Hex `#RRGGBB` opcional, editable en el ABM de camiones con una paleta predefinida. Es cómo se reconoce el camión de un vistazo en cuentas a recibir (en el Excel era el color de fondo de la fila).
+
+---
+
+## Resúmenes de pantalla (patrón compartido)
+
+Las pantallas **no** usan cards de KPI. Total, hecho y pendiente suelen ser el mismo dato visto de tres ángulos, así que se muestran como una cifra prominente, una línea de contexto y una barra de proporción:
+
+- `components/proportion-summary.tsx` — "cuánto falta de X": headline + contexto + barra. Lo usan `/cuentas-a-recibir` (vía `receivables-summary.tsx`), `/costos/mensual` y `/costos`. Los colores de la barra son los mismos que usa la tabla de esa pantalla.
+- `components/month-balance.tsx` — balance de un período: utilidad, margen, barra de egresos sobre ingresos y la composición con variación %. Lo usan `/dashboard`, `/camiones/[id]` y `/trips/[id]` (este último le pasa costo/km e ingreso/km como children y `period="en este viaje"`).
+- `components/total-line.tsx` — una sola cifra con su conteo y variación, para `/ingresos` y `/egresos`.
+
+Cifras siempre con `tabular-nums`, si no las columnas de números bailan al cambiar de ancho los dígitos.
+
+**Ninguna pantalla del dashboard usa `Card`.** Las secciones se separan con un `<h2 className="border-b pb-2 font-semibold">` y espaciado — incluidos los charts y las listas de movimientos. Los datos que acompañan a una cifra (km, ratios por km, fechas) van como `<dl>` en línea, no como una caja por dato. En `month-balance.tsx` la utilidad va en verde y la pérdida en rojo, con el texto ("de utilidad" / "de pérdida") diciendo lo mismo para no depender solo del color.
+
+---
+
 ## Métricas / Cálculos clave
 
 | Métrica | Fórmula |
@@ -153,7 +201,7 @@ Sistema de gestión de flotas de transporte. Next.js 16 + React 19, shadcn/ui, T
 
 ### Truck
 ```
-{ id, licensePlate, model?, year?, currentKm?, estimatedMonthlyKm?, lastKmUpdatedAt? }
+{ id, licensePlate, model?, year?, currentKm?, estimatedMonthlyKm?, lastKmUpdatedAt?, color? }
 ```
 - `currentKm`: solo lectura desde frontend (no editable en formulario, se preserva en PUT)
 - `estimatedMonthlyKm`: usado para calcular costo/km — nunca hardcodear un valor fijo
@@ -166,7 +214,7 @@ Status API (string): `"Scheduled"`, `"InProgress"`, `"Completed"`, `"Cancelled"`
 
 ### Income
 ```
-{ id, description, value, valueUSD, valueBRL, valueUYU, currency, truckId, truckLicensePlate, dateUtc, type, tripId? }
+{ id, description, value, valueUSD, valueBRL, valueUYU, currency, truckId, truckLicensePlate, dateUtc, type, tripId?, receivableId?, receivableKind?, receivableClientName? }
 ```
 - `type` (API string): `"Freight"` = Flete, `"Other"` = Otro — usar `normalizeIncomeType()` para mapear a `"1"`/`"2"`
 - `currency` (API string): `"USD"` | `"BRL"` | `"UYU"`
@@ -240,7 +288,10 @@ Status API (string): `"Scheduled"`, `"InProgress"`, `"Completed"`, `"Cancelled"`
 - **Autenticación:** `fetchWithAuth()` en `lib/api.ts` — envía `credentials: "include"` (cookies httpOnly), refresca en 401 vía `POST /api/auth/refresh`. Acepta rutas relativas (`fetchWithAuth("/api/trucks")`) y las resuelve contra `NEXT_PUBLIC_API_URL`; usar siempre rutas relativas, no repetir el env var en los call sites. Para fetch sin auth (login/signup) usar `apiUrl(path)` del mismo módulo
 - **Filtro global de fecha:** `DateFilterContext` en `context/date-filter-context.tsx`, provisto en el layout del dashboard
 - **Moneda de visualización:** `CurrencyProvider` en `context/currency-context.tsx`, provisto en el layout del dashboard (wrappea a DateFilterProvider)
-- **Tablas:** componente genérico compartido `components/data-table.tsx` (TanStack Table) con búsqueda, ordenamiento, paginación y export CSV opcional — usado por camiones, trips, ingresos y egresos; no crear data-tables locales por ruta
+- **Filtros de listado:** `components/filter-select.tsx` — `<FilterSelect label value onChange options allLabel />`. Un filtro no es un campo de formulario (no se completa, describe el estado de la vista), así que va sin marco, con el label adentro del control ("Camión · Todos") y el valor resaltado cuando el filtro está activo. `null` significa sin filtrar; el componente se encarga de la opción "todos". No repetir bloques de `<Select>` sueltos por página: dentro de un formulario sí va el `<Select>` con borde
+- **Tablas:** componente genérico compartido `components/data-table.tsx` (TanStack Table) con búsqueda, ordenamiento, paginación y export CSV opcional — lo usan **todas** las rutas con listados; no crear data-tables locales por ruta. Para listados que la API pagina y filtra (como `/clientes`), pasar la prop `serverSide={{ page, pageCount, onPageChange, search, onSearchChange }}`: la tabla muestra las filas tal como llegan y delega paginado y búsqueda, en vez de filtrar en memoria solo la página visible.
+
+  Las únicas dos tablas que **no** pasan por `DataTable` son las que no son un listado plano: `components/cost-table.tsx` (matriz concepto × 12 meses con primera columna fija) y la tabla agrupada por camión de `/costos/mensual`. Mantienen a mano el mismo encabezado (`text-xs font-medium text-muted-foreground`), sin marco exterior y con divisorias horizontales.
 - **Camiones:** hook `useTrucks()` en `hooks/use-trucks.ts` para cargar la lista de camiones (solo lectura) — no duplicar el fetch en cada página
 - **Formularios:** React Hook Form + Zod en todos los CRUD; campos numéricos opcionales usan `setValueAs` (no `valueAsNumber`) para evitar conflictos con el resolver
 - **Enum normalización en formularios de edición:** la API devuelve strings (`"Freight"`, `"InProgress"`) — siempre normalizar antes de usar como defaultValue en selects numéricos (`normalizeIncomeType`, mapeo de status en EditTripForm)

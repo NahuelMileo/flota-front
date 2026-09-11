@@ -95,20 +95,12 @@ export default function TruckCostsPage() {
         <AddCostModal truckId={id} year={year} onSuccess={refetch} />
       </div>
 
-      {/* Legend */}
-      <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
-        <span className="flex items-center gap-1.5">
-          <span className="inline-block size-3 rounded-sm bg-cyan-200 dark:bg-cyan-800" />
-          Costo x km real
-        </span>
-        <span className="flex items-center gap-1.5">
-          <span className="inline-block size-3 rounded-sm bg-cyan-100 dark:bg-cyan-900" />
-          Costo x km estimado
-        </span>
-        <span className="text-muted-foreground/60">
-          · Costo/km real usa lecturas de odómetro; si no hay suficientes, se usa el estimado mensual.
-        </span>
-      </div>
+      {/* Las filas de la tabla ya están etiquetadas: la leyenda solo tiene que explicar
+          de dónde sale cada número, no qué significa cada color. */}
+      <p className="text-xs text-muted-foreground">
+        El costo/km real usa lecturas de odómetro; si no hay suficientes, se calcula con el
+        estimado mensual del camión.
+      </p>
 
       {/* Annual cost table */}
       <CostTable

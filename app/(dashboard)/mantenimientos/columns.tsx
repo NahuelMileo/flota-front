@@ -45,12 +45,12 @@ export function getColumns(
         const type = row.getValue("type") as string;
         if (type === "Preventive")
           return (
-            <Badge variant="outline" className="text-blue-600 border-blue-300 bg-blue-50">
+            <Badge variant="outline" className="text-blue-600 border-blue-300 bg-blue-50 dark:border-blue-900 dark:bg-blue-950/40 dark:text-blue-400">
               Preventivo
             </Badge>
           );
         return (
-          <Badge variant="outline" className="text-red-600 border-red-300 bg-red-50">
+          <Badge variant="outline" className="border-danger-border bg-danger-surface text-danger">
             Correctivo
           </Badge>
         );

@@ -9,7 +9,6 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Income } from "@/app/(dashboard)/ingresos/columns";
 import { formatCurrency, DisplayCurrency } from "@/lib/format";
 
@@ -39,13 +38,8 @@ export function IncomeByTruckChart({ incomes, displayCurrency }: Props) {
     .sort((a, b) => b.total - a.total);
 
   return (
-    <Card>
-      <CardHeader className="pb-2">
-        <CardTitle className="text-sm font-medium text-muted-foreground">
-          Ingresos por camión
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
+    <section className="space-y-3">
+      <h2 className="border-b pb-2 font-semibold">Ingresos por camión</h2>
         {data.length === 0 ? (
           <div className="flex h-60 items-center justify-center text-sm text-muted-foreground">
             Todavía no hay ingresos para mostrar.
@@ -70,11 +64,10 @@ export function IncomeByTruckChart({ incomes, displayCurrency }: Props) {
                 "Total",
               ]}
             />
-            <Bar dataKey="total" fill="#22c55e" radius={[4, 4, 0, 0]} />
+            <Bar dataKey="total" fill="var(--success)" radius={[4, 4, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
         )}
-      </CardContent>
-    </Card>
+    </section>
   );
 }
