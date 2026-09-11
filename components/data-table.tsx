@@ -15,6 +15,7 @@ import type { ReactNode } from "react"
 import { ChevronUp, ChevronDown, ChevronsUpDown, Download, Search } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
+import { Skeleton } from "@/components/ui/skeleton"
 
 import {
   Table,
@@ -46,6 +47,53 @@ interface DataTableProps<TData, TValue> {
     search: string
     onSearchChange: (search: string) => void
   }
+}
+
+interface DataTableSkeletonProps {
+  columns?: number
+  rows?: number
+  showToolbarAction?: boolean
+}
+
+export function DataTableSkeleton({
+  columns = 5,
+  rows = 6,
+  showToolbarAction = false,
+}: DataTableSkeletonProps) {
+  return (
+    <div className="flex flex-col gap-3" aria-label="Cargando tabla" aria-busy="true">
+      <div className="flex items-center gap-2">
+        <Skeleton className="h-8 w-full max-w-xs" />
+        {showToolbarAction && <Skeleton className="ml-auto h-8 w-28" />}
+      </div>
+      <div className="overflow-x-hidden">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              {Array.from({ length: columns }).map((_, index) => (
+                <TableHead key={index}>
+                  <Skeleton className="h-3.5 w-16 max-w-full" />
+                </TableHead>
+              ))}
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {Array.from({ length: rows }).map((_, rowIndex) => (
+              <TableRow key={rowIndex}>
+                {Array.from({ length: columns }).map((_, columnIndex) => (
+                  <TableCell key={columnIndex}>
+                    <Skeleton
+                      className={columnIndex === 0 ? "h-4 w-28 max-w-full" : "h-4 w-20 max-w-full"}
+                    />
+                  </TableCell>
+                ))}
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+    </div>
+  )
 }
 
 export function DataTable<TData, TValue>({

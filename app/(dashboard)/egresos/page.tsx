@@ -3,7 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { Tag, TruckIcon } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { DataTable } from "@/components/data-table";
+import { DataTable, DataTableSkeleton } from "@/components/data-table";
 import {
   Sheet,
   SheetContent,
@@ -23,21 +23,8 @@ import { useDateFilter } from "@/context/date-filter-context";
 import { useCurrency } from "@/context/currency-context";
 import AddExpenseForm from "./AddExpenseForm";
 import EditExpenseForm from "./EditExpenseForm";
-import { Skeleton } from "@/components/ui/skeleton";
 import { FilterSelect } from "@/components/filter-select";
 
-
-function TableSkeleton() {
-  return (
-    <div className="overflow-hidden rounded-md border">
-      <div className="p-4 space-y-3">
-        {Array.from({ length: 6 }).map((_, i) => (
-          <Skeleton key={i} className="h-10 w-full" />
-        ))}
-      </div>
-    </div>
-  );
-}
 
 export default function ExpensePage() {
   const [expenses, setExpenses] = useState<Expense[]>([]);
@@ -299,7 +286,7 @@ export default function ExpensePage() {
       </Sheet>
 
       {isLoading ? (
-        <TableSkeleton />
+        <DataTableSkeleton columns={7} showToolbarAction />
       ) : (
         <DataTable
           columns={columns}

@@ -10,27 +10,14 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet"
-import { DataTable } from "@/components/data-table"
+import { DataTable, DataTableSkeleton } from "@/components/data-table"
 import { getColumns } from "./columns"
-import { Skeleton } from "@/components/ui/skeleton"
 import { toast } from "sonner"
 import { fetchWithAuth } from "@/lib/api"
 import { ClientForm, type ClientFormValues } from "@/components/client-form"
 import type { Client, ClientListResponse } from "@/types/client"
 
 const PAGE_SIZE = 20
-
-function TableSkeleton() {
-  return (
-    <div className="overflow-hidden">
-      <div className="space-y-3 py-2">
-        {Array.from({ length: 6 }).map((_, i) => (
-          <Skeleton key={i} className="h-10 w-full" />
-        ))}
-      </div>
-    </div>
-  )
-}
 
 export default function ClientsPage() {
   const [clients, setClients] = useState<Client[]>([])
@@ -171,7 +158,7 @@ export default function ClientsPage() {
       </Sheet>
 
       {isLoading ? (
-        <TableSkeleton />
+        <DataTableSkeleton columns={3} showToolbarAction />
       ) : isError ? (
         <p className="text-sm text-muted-foreground">No se pudieron cargar los clientes.</p>
       ) : (

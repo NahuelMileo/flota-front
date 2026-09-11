@@ -9,7 +9,7 @@ import { ChevronLeft } from "lucide-react";
 import { fetchWithAuth } from "@/lib/api";
 import { formatDate } from "@/lib/format";
 import { useConceptStatusByTruck } from "@/hooks/use-concept-status-by-truck";
-import { DataTable } from "@/components/data-table";
+import { DataTable, DataTableSkeleton } from "@/components/data-table";
 import type { ColumnDef } from "@tanstack/react-table";
 import type { TruckConceptStatus } from "@/types/maintenance";
 import type { MaintenanceConcept } from "@/types/maintenance";
@@ -92,11 +92,7 @@ export default function ConceptDetailPage() {
       )}
 
       {isLoadingStatus ? (
-        <div className="space-y-3 py-2">
-          {Array.from({ length: 3 }).map((_, i) => (
-            <Skeleton key={i} className="h-10 w-full" />
-          ))}
-        </div>
+        <DataTableSkeleton columns={5} rows={3} />
       ) : (
         <DataTable
           columns={columns}

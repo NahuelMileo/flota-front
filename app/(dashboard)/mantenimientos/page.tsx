@@ -3,7 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { TruckIcon, Wrench } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { DataTable } from "@/components/data-table";
+import { DataTable, DataTableSkeleton } from "@/components/data-table";
 import {
   Sheet,
   SheetContent,
@@ -22,22 +22,9 @@ import EditMaintenanceForm from "./EditMaintenanceForm";
 import { useDateFilter } from "@/context/date-filter-context";
 import { useCurrency } from "@/context/currency-context";
 import type { Maintenance, MaintenanceConcept } from "@/types/maintenance";
-import { Skeleton } from "@/components/ui/skeleton";
 import { FilterSelect } from "@/components/filter-select";
 import { Settings } from "lucide-react";
 import Link from "next/link";
-
-function TableSkeleton() {
-  return (
-    <div className="overflow-hidden rounded-md border">
-      <div className="p-4 space-y-3">
-        {Array.from({ length: 6 }).map((_, i) => (
-          <Skeleton key={i} className="h-10 w-full" />
-        ))}
-      </div>
-    </div>
-  );
-}
 
 export default function MaintenancePage() {
   const [maintenances, setMaintenances] = useState<Maintenance[]>([]);
@@ -223,7 +210,7 @@ export default function MaintenancePage() {
       </Sheet>
 
       {isLoading ? (
-        <TableSkeleton />
+        <DataTableSkeleton columns={7} />
       ) : (
         <DataTable
           columns={columns}

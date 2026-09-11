@@ -145,10 +145,33 @@ export function CostTable({
 
   if (isLoading) {
     return (
-      <div className="space-y-2">
-        {Array.from({ length: 6 }).map((_, i) => (
-          <Skeleton key={i} className="h-9 w-full" />
-        ))}
+      <div className="overflow-x-hidden" aria-label="Cargando tabla de costos" aria-busy="true">
+        <table className="w-full min-w-[900px] border-collapse text-sm">
+          <thead>
+            <tr className="border-b">
+              <th className="w-44 min-w-44 px-3 py-2 text-left">
+                <Skeleton className="h-3.5 w-16" />
+              </th>
+              {MONTHS.map((month) => (
+                <th key={month} className="w-20 min-w-20 px-2 py-2">
+                  <Skeleton className="ml-auto h-3.5 w-8" />
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {Array.from({ length: 6 }).map((_, rowIndex) => (
+              <tr key={rowIndex} className="border-b">
+                <td className="px-3 py-2"><Skeleton className="h-4 w-28" /></td>
+                {MONTHS.map((month) => (
+                  <td key={month} className="px-2 py-2">
+                    <Skeleton className="ml-auto h-4 w-12" />
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
     )
   }

@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { DataTable } from "@/components/data-table";
+import { DataTable, DataTableSkeleton } from "@/components/data-table";
 import {
   Sheet,
   SheetContent,
@@ -18,21 +18,8 @@ import AddConceptForm from "./AddConceptForm";
 import EditConceptForm from "./EditConceptForm";
 import type { MaintenanceConcept } from "@/types/maintenance";
 import type { ExpenseCategory } from "@/types/expense-category";
-import { Skeleton } from "@/components/ui/skeleton";
 import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
-
-function TableSkeleton() {
-  return (
-    <div className="overflow-hidden rounded-md border">
-      <div className="p-4 space-y-3">
-        {Array.from({ length: 6 }).map((_, i) => (
-          <Skeleton key={i} className="h-10 w-full" />
-        ))}
-      </div>
-    </div>
-  );
-}
 
 export default function ConceptsPage() {
   const { concepts, isLoading, refresh } = useMaintenanceConcepts();
@@ -143,7 +130,7 @@ export default function ConceptsPage() {
       </Sheet>
 
       {isLoading ? (
-        <TableSkeleton />
+        <DataTableSkeleton columns={5} />
       ) : (
         <DataTable
           columns={columns}

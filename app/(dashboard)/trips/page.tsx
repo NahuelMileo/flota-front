@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { CircleDot, TruckIcon } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { DataTable } from "@/components/data-table";
+import { DataTable, DataTableSkeleton } from "@/components/data-table";
 import {
   Sheet,
   SheetContent,
@@ -20,7 +20,6 @@ import { getColumns, Trip } from "./columns";
 import { useDateFilter } from "@/context/date-filter-context";
 import AddTripForm from "./AddTripForm";
 import EditTripForm from "./EditTripForm";
-import { Skeleton } from "@/components/ui/skeleton";
 import { FilterSelect } from "@/components/filter-select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
@@ -32,18 +31,6 @@ const tripStatusOptions = [
   { label: "Completado", value: "Completed" },
   { label: "Cancelado", value: "Cancelled" },
 ];
-
-function TableSkeleton() {
-  return (
-    <div className="overflow-hidden rounded-md border">
-      <div className="p-4 space-y-3">
-        {Array.from({ length: 6 }).map((_, i) => (
-          <Skeleton key={i} className="h-10 w-full" />
-        ))}
-      </div>
-    </div>
-  );
-}
 
 export default function TripsPage() {
   const router = useRouter();
@@ -225,7 +212,7 @@ export default function TripsPage() {
       </Sheet>
 
       {isLoading ? (
-        <TableSkeleton />
+        <DataTableSkeleton columns={7} />
       ) : (
         <DataTable
           columns={columns}

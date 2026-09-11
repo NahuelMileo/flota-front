@@ -3,7 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { Tag, TruckIcon } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { DataTable } from "@/components/data-table";
+import { DataTable, DataTableSkeleton } from "@/components/data-table";
 import {
   Sheet,
   SheetContent,
@@ -23,7 +23,6 @@ import { useCurrency } from "@/context/currency-context";
 import AddIncomeForm from "./AddIncomeForm";
 import EditIncomeForm from "./EditIncomeForm";
 import type { ExpenseCategory } from "@/types/expense-category";
-import { Skeleton } from "@/components/ui/skeleton";
 import { FilterSelect } from "@/components/filter-select";
 
 
@@ -31,18 +30,6 @@ const incomeTypeOptions = [
   { label: "Flete", value: "1" },
   { label: "Otro", value: "2" },
 ];
-
-function TableSkeleton() {
-  return (
-    <div className="overflow-hidden rounded-md border">
-      <div className="p-4 space-y-3">
-        {Array.from({ length: 6 }).map((_, i) => (
-          <Skeleton key={i} className="h-10 w-full" />
-        ))}
-      </div>
-    </div>
-  );
-}
 
 export default function IncomePage() {
   const [incomes, setIncomes] = useState<Income[]>([]);
@@ -268,7 +255,7 @@ export default function IncomePage() {
       </Sheet>
 
       {isLoading ? (
-        <TableSkeleton />
+        <DataTableSkeleton columns={7} showToolbarAction />
       ) : (
         <DataTable
           columns={columns}

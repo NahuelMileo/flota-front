@@ -13,7 +13,7 @@ import { MonthBalance } from "@/components/month-balance"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { DataTable } from "@/components/data-table"
+import { DataTable, DataTableSkeleton } from "@/components/data-table"
 import { ColumnDef } from "@tanstack/react-table"
 import type { ExpenseCategory } from "@/types/expense-category"
 import {
@@ -538,7 +538,7 @@ export default function TruckDetailPage() {
       <section className="flex flex-col gap-3">
         <h2 className="border-b pb-2 font-semibold">Viajes</h2>
         {isLoading ? (
-          <Skeleton className="h-40 w-full" />
+          <DataTableSkeleton columns={6} rows={4} />
         ) : (
           <DataTable
             columns={tripCols}
@@ -552,7 +552,7 @@ export default function TruckDetailPage() {
       <section className="flex flex-col gap-3">
         <h2 className="border-b pb-2 font-semibold">Ingresos</h2>
         {isLoading ? (
-          <Skeleton className="h-40 w-full" />
+          <DataTableSkeleton columns={6} rows={4} />
         ) : (
           <DataTable
             columns={incomeCols}
@@ -566,7 +566,7 @@ export default function TruckDetailPage() {
       <section className="flex flex-col gap-3">
         <h2 className="border-b pb-2 font-semibold">Egresos</h2>
         {isLoading ? (
-          <Skeleton className="h-40 w-full" />
+          <DataTableSkeleton columns={6} rows={4} />
         ) : (
           <DataTable
             columns={expenseCols}

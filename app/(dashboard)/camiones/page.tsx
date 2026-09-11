@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
-import { DataTable } from "@/components/data-table"
+import { DataTable, DataTableSkeleton } from "@/components/data-table"
 import {
   Dialog,
   DialogContent,
@@ -21,21 +21,8 @@ import {
 import { toast } from "sonner"
 import { fetchWithAuth } from "@/lib/api"
 import { getColumns } from "./columns"
-import { Skeleton } from "@/components/ui/skeleton"
 import { TruckForm, type TruckFormValues } from "@/components/truck-form"
 import type { Truck } from "@/types/truck"
-
-function TableSkeleton() {
-  return (
-    <div className="overflow-hidden rounded-md border">
-      <div className="p-4 space-y-3">
-        {Array.from({ length: 6 }).map((_, i) => (
-          <Skeleton key={i} className="h-10 w-full" />
-        ))}
-      </div>
-    </div>
-  )
-}
 
 export default function TruckPage() {
   const [trucks, setTrucks] = useState<Truck[]>([])
@@ -143,7 +130,7 @@ export default function TruckPage() {
       </Dialog>
 
       {isLoading ? (
-        <TableSkeleton />
+        <DataTableSkeleton columns={6} showToolbarAction />
       ) : (
         <DataTable
           columns={columns}

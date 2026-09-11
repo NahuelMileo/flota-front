@@ -3,7 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { CircleDot, TruckIcon, Users } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { DataTable } from "@/components/data-table";
+import { DataTable, DataTableSkeleton } from "@/components/data-table";
 import {
   Sheet,
   SheetContent,
@@ -36,18 +36,6 @@ const statusOptions = [
   { label: "Parcial", value: "Partial" },
   { label: "Cobrado", value: "Collected" },
 ];
-
-function TableSkeleton() {
-  return (
-    <div className="overflow-hidden rounded-md border">
-      <div className="p-4 space-y-3">
-        {Array.from({ length: 6 }).map((_, i) => (
-          <Skeleton key={i} className="h-10 w-full" />
-        ))}
-      </div>
-    </div>
-  );
-}
 
 export default function ReceivablesPage() {
   const [receivables, setReceivables] = useState<Receivable[]>([]);
@@ -292,7 +280,7 @@ export default function ReceivablesPage() {
       </Sheet>
 
       {isLoading ? (
-        <TableSkeleton />
+        <DataTableSkeleton columns={8} showToolbarAction />
       ) : (
         <DataTable
           columns={columns}

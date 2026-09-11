@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react"
 import Link from "next/link"
 import { fetchWithAuth } from "@/lib/api"
 import { ProportionSummary } from "@/components/proportion-summary"
-import { DataTable } from "@/components/data-table"
+import { DataTable, DataTableSkeleton } from "@/components/data-table"
 import { getColumns } from "./columns"
 import { getTemplateDisplayAmount, monthsUntilGenerated } from "@/lib/costs"
 import type { FixedCost } from "@/types/costs"
@@ -276,12 +276,12 @@ export default function CostosPage() {
         </div>
       </div>
 
-      {/* KPI cards */}
+      {/* Resumen */}
       {isLoading ? (
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <Skeleton className="h-20 rounded-xl" />
-          <Skeleton className="h-20 rounded-xl" />
-          <Skeleton className="h-20 rounded-xl" />
+        <div className="flex flex-col gap-2.5">
+          <Skeleton className="h-8 w-72 max-w-full" />
+          <Skeleton className="h-1.5 w-full rounded-full" />
+          <Skeleton className="h-4 w-96 max-w-full" />
         </div>
       ) : (
         // Por camión y toda la empresa son las dos mitades del total mensual: la barra
@@ -298,11 +298,7 @@ export default function CostosPage() {
 
       {/* Table */}
       {isLoading ? (
-        <div className="space-y-2">
-          {Array.from({ length: 5 }).map((_, i) => (
-            <Skeleton key={i} className="h-12 w-full" />
-          ))}
-        </div>
+        <DataTableSkeleton columns={6} rows={5} />
       ) : (
         <DataTable
           columns={columns}
