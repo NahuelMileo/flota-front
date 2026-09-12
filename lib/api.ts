@@ -30,6 +30,28 @@ async function refreshSession(): Promise<void> {
   }
 }
 
+/*
+  Un solo refresh a la vez, compartido por todos los pedidos que se encuentren con un 401.
+
+  El backend rota el refresh token y revoca el anterior en cada uso
+  (AuthService.RefreshTokenAsync), que es lo correcto por seguridad. Pero cualquier pantalla
+  del dashboard dispara media docena de pedidos al montar: cuando el access token vence, los
+  seis reciben 401 y cada uno pedía su propio refresh con la misma cookie vieja. El primero
+  ganaba y revocaba el token; los otros cinco llegaban con un token ya revocado, fallaban, y
+  cerraban de prepo una sesión que estaba perfectamente bien — el usuario terminaba en el
+  login sin motivo. Peor en desarrollo, donde StrictMode duplica los pedidos.
+
+  Compartiendo la promesa, se refresca una vez y todos reintentan con la cookie nueva.
+*/
+let refreshInFlight: Promise<void> | null = null;
+
+function refreshSessionOnce(): Promise<void> {
+  refreshInFlight ??= refreshSession().finally(() => {
+    refreshInFlight = null;
+  });
+  return refreshInFlight;
+}
+
 export async function fetchWithAuth(url: string, options: RequestInit = {}): Promise<Response> {
   // Acepta rutas relativas ("/api/trucks") y las resuelve contra la API
   if (url.startsWith('/')) url = apiUrl(url);
@@ -44,7 +66,7 @@ export async function fetchWithAuth(url: string, options: RequestInit = {}): Pro
   });
 
   if (res.status === 401) {
-    await refreshSession();
+    await refreshSessionOnce();
 
     res = await fetch(url, {
       ...options,
