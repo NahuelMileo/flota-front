@@ -1,8 +1,15 @@
 "use client"
 
+import type { ReactNode } from "react"
+
 type Props = {
-  /** La cifra que la pantalla existe para responder. */
-  headline: string
+  /**
+   * La cifra que la pantalla existe para responder. Acepta un nodo y no un string para
+   * que la pantalla pueda pasar `<AnimatedCurrency>` y la cifra transicione al cambiar
+   * el mes o la moneda: el formato ya se decide en el call site, que es el que sabe de
+   * moneda de visualización.
+   */
+  headline: ReactNode
   /** Qué es esa cifra, en las palabras del negocio. */
   headlineLabel: string
   /** Contexto al costado: de cuánto sale, cuánto se completó. */
@@ -31,7 +38,7 @@ export function ProportionSummary({
   const percent = Math.round(ratio * 100)
 
   return (
-    <section className="flex flex-col gap-2.5" aria-label={ariaLabel}>
+    <section className="fv-rise flex flex-col gap-2.5" aria-label={ariaLabel}>
       <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
         <p className="text-2xl font-semibold tabular-nums">
           {headline}
@@ -46,8 +53,9 @@ export function ProportionSummary({
         role="img"
         aria-label={`${percent}% completado`}
       >
+        {/* La barra crece: es el cue de que la proporción se acaba de recalcular. */}
         <div
-          className="transition-[width] duration-500 ease-out"
+          className="transition-[width] duration-(--dur-figure) ease-emphasis motion-reduce:transition-none"
           style={{ width: `${percent}%`, backgroundColor: colors.done }}
         />
       </div>

@@ -1,6 +1,5 @@
 "use client"
-import { formatCurrency } from "@/lib/format"
-import { useCurrency } from "@/context/currency-context"
+import { AnimatedCurrency } from "@/components/animated-figure"
 
 type Props = {
   total: number
@@ -19,7 +18,6 @@ type Props = {
  * contexto sobre ella, con la variación contra el mes anterior al costado.
  */
 export function TotalLine({ total, count, noun, variation, higherIsBetter, tone }: Props) {
-  const { displayCurrency } = useCurrency()
   const isGood = variation === undefined || (higherIsBetter ? variation >= 0 : variation <= 0)
 
   return (
@@ -33,7 +31,7 @@ export function TotalLine({ total, count, noun, variation, higherIsBetter, tone 
               : "text-foreground"
         }`}
       >
-        {formatCurrency(total, displayCurrency)}
+        <AnimatedCurrency value={total} />
       </span>
       <span>
         en {count} {count === 1 ? noun[0] : noun[1]}

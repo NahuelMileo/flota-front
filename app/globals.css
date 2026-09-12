@@ -54,6 +54,9 @@
   --radius-2xl: calc(var(--radius) * 1.8);
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
+
+  /* Una sola curva para todo el producto: sale rápido y frena largo. */
+  --ease-emphasis: cubic-bezier(0.2, 0, 0, 1);
 }
 
 :root {
@@ -100,6 +103,15 @@
   --warning: oklch(0.666 0.179 58.318);
   --warning-surface: oklch(0.987 0.022 95.277);
   --warning-border: oklch(0.879 0.169 91.605);
+
+  /*
+    Movimiento. Tres duraciones y nada más: si algo necesita una cuarta, casi
+    siempre es que está animando lo que no debería. La app es una herramienta de
+    trabajo — 'vivo' acá significa que responde, no que hace un show.
+  */
+  --dur-fast: 120ms;   /* hover, press, foco: tiene que sentirse instantáneo */
+  --dur-base: 200ms;   /* entradas, salidas, cambios de color y de layout */
+  --dur-figure: 420ms; /* sólo cifras contando y barras creciendo */
 }
 
 .dark {
@@ -495,4 +507,89 @@ html:not(.dark) [data-slot="button"]:not(:disabled) {
 html:not(.dark) [data-slot="table"] [data-slot="button"] {
   background-image: none;
   box-shadow: none;
+}
+
+/* ==========================================================================
+   Movimiento del producto (no de la landing).
+   La landing tiene que impresionar; esto lo abre alguien a las 6am para saber
+   cuánto tiene que cobrar. Acá el movimiento sólo cumple dos funciones: avisar
+   que algo cambió y decir qué elemento respondió al click.
+   ========================================================================== */
+
+/*
+  Entrada de contenido que reemplaza un skeleton. El skeleton y el contenido
+  ocupan el mismo alto, así que esto tapa el corte seco sin mover el layout.
+*/
+@keyframes fv-rise {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+
+.fv-rise {
+  animation: fv-rise var(--dur-base) var(--ease-emphasis) both;
+}
+
+/*
+  Fila recién creada: un destello que se apaga. Después de un POST el usuario no
+  sabe dónde quedó lo que cargó — la tabla se lo señala en vez de que lo busque.
+*/
+@keyframes fv-flash {
+  from {
+    background-color: color-mix(in oklch, var(--ring) 16%, transparent);
+  }
+  to {
+    background-color: transparent;
+  }
+}
+
+.fv-flash {
+  animation: fv-flash 1.4s var(--ease-emphasis) both;
+}
+
+/*
+  El cursor de hover de los gráficos: Recharts lo pinta gris claro fijo, que sobre el
+  fondo casi negro del tema oscuro aparece como un bloque blanquecino. Va apenas
+  insinuado, como el resto de la grilla.
+*/
+.dark .recharts-rectangle.recharts-tooltip-cursor,
+.dark .recharts-tooltip-cursor {
+  fill: rgba(255, 255, 255, 0.06);
+}
+
+/* En los de línea el cursor es una raya, no un bloque: apenas más marcada. */
+.dark .recharts-curve.recharts-tooltip-cursor {
+  stroke: rgba(255, 255, 255, 0.18);
+}
+
+/*
+  El ítem activo del sidebar cambia de fondo con el mismo tiempo que tarda el
+  riel en deslizarse hasta él, si no el color salta y el riel llega después.
+*/
+[data-sidebar="menu-button"] {
+  transition-property: background-color, color, border-color, box-shadow;
+  transition-duration: var(--dur-base);
+  transition-timing-function: var(--ease-emphasis);
+}
+
+/* Los controles que son acciones ceden al presionarlos. */
+[data-slot="button"]:not(:disabled):active {
+  transform: scale(0.98);
+}
+
+/*
+  Nada de esto es información: si el sistema pide menos movimiento, se apaga
+  todo de una vez. Va al final del archivo a propósito, para ganarle a
+  cualquier transición declarada más arriba.
+*/
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

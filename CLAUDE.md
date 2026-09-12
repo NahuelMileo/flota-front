@@ -180,6 +180,27 @@ Cifras siempre con `tabular-nums`, si no las columnas de números bailan al camb
 
 ---
 
+## Movimiento
+
+La landing tiene que impresionar; el dashboard lo abre alguien a las 6am para saber cuánto tiene que cobrar. Acá el movimiento sólo avisa que algo cambió y acusa el click — nada de scroll reveals ni lenis dentro del dashboard (eso vive sólo en `components/home/*`).
+
+- **Tokens en `globals.css`:** `--dur-fast` (120ms, hover/press), `--dur-base` (200ms, entradas/salidas/color/layout), `--dur-figure` (420ms, cifras y barras) y una sola curva, `--ease-emphasis`, disponible como utilidad `ease-emphasis`. Si algo necesita una cuarta duración, casi siempre está animando lo que no debería.
+- **Guard global de reduced motion** al final de `globals.css`: apaga todo de una. Nada de lo que se anima es información, así que no hace falta una variante por componente.
+- **Clases compartidas:** `.fv-rise` (entrada de contenido que reemplaza un skeleton, ya aplicada en `DataTable`, `MonthBalance` y `ProportionSummary`) y `.fv-flash` (destello de fila recién creada).
+- **Cifras:** `components/animated-figure.tsx` — `<AnimatedCurrency>` y `<AnimatedPercent>` transicionan cuando cambia el dato (mes, moneda, un cobro). Lo usan `total-line`, `month-balance` y los headlines de `ProportionSummary`, que por eso recibe `headline` como `ReactNode` y no como string. El hook es `hooks/use-animated-value.ts`; **no** usar el contador de la landing (`components/home/cinema/animated-number.tsx`), que cuenta desde cero al entrar en viewport.
+- **Recargas:** `components/refreshing.tsx` — con datos ya en pantalla, un refetch los apaga al 60% en vez de volver a los skeletons. Los skeletons son para la primera carga (`isLoading && !data`), si no cambiar de mes parpadea. Aplicado en `/dashboard` y `/cuentas-a-recibir`; replicarlo en el resto de las pantallas con filtro de mes.
+- **Tablas:** cuando las filas tienen `id`, `DataTable` lo usa como `getRowId` — de ahí salen la salida en fade de la fila borrada, el destello de la recién creada y que el rojo→verde de cuentas a recibir transicione en vez de saltar (la celda es el mismo nodo, sólo cambia la clase).
+- **Sidebar:** el riel del ítem activo viaja con `layoutId` por grupo.
+- **Charts:** Recharts por defecto tarda 1.5s y rebota; las series van con `animationDuration={450}` y `ease-out`. El cursor de hover viene con `fill: #ccc` fijo, que en tema oscuro es un bloque blanquecino: se apaga en `globals.css` (`.dark .recharts-tooltip-cursor`). Las utilidades que trae shadcn para esto sólo aplican dentro de su `ChartContainer`, que estos gráficos no usan.
+- **Las columnas de `DataTable` tienen que ser estables (`useMemo`), y el estado que cambia seguido no puede entrar en `getColumns`.** Cada llamada a `getColumns` crea funciones `cell` nuevas, y `flexRender` las usa como *tipo* de componente: con una identidad nueva React desmonta y vuelve a montar **todas** las celdas. Eso mata cualquier animación dentro de una celda y hace trabajo de más en cada render. En `/cuentas-a-recibir` el `busyId` del cobro en curso viaja por `CollectingReceivableContext` justo por esto: estaba en las deps del memo y cambiaba dos veces por cobro, así que el botón se recreaba en el medio y no había transición posible. Medido: con las columnas estables el nodo sobrevive y el color interpola rojo→verde en ~200ms; sin eso, salta.
+- **Cuentas a recibir:** la celda de monto es **un solo** botón para cobrado y pendiente, y el diálogo decide adentro qué pregunta (deshacer contra elegir fecha). Eran dos ramas distintas, y por eso cada cobro montaba un botón nuevo: el rojo→verde no tenía desde dónde transicionar y la fecha de cobro aparecía de golpe empujando la fila. Con el nodo compartido el color transiciona solo y la fecha se abre y se cierra animando su altura (`AnimatePresence` + `height: auto`, con `initial={false}` para que al cargar la grilla no se abran todas). Si alguna vez se vuelven a separar las dos ramas, se pierden las dos cosas.
+
+  Dos consecuencias de que el nodo ahora sobreviva, que antes quedaban tapadas porque el árbol se reemplazaba entero:
+  - **El diálogo se cierra a mano** (`isDialogOpen` en la celda). `AlertDialogAction` es un `Button` común, no un `Close` — sólo `AlertDialogCancel` cierra. Antes el diálogo desaparecía porque cobrar destruía el árbol que lo contenía. El resto de la app usa `AlertDialogAction` para borrar, donde la fila se va y el diálogo se va con ella.
+  - **La celda no se apaga mientras viaja el pedido** (queda `disabled` con `cursor-wait`, sin `opacity`). Un `opacity-60` sobre el rojo pleno se lee como un flash blanco justo antes de la transición de color, y salta de golpe porque `opacity` no está entre las propiedades que transicionan.
+
+---
+
 ## Métricas / Cálculos clave
 
 | Métrica | Fórmula |

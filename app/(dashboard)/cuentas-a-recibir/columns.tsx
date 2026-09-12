@@ -1,6 +1,7 @@
 "use client";
 import { ColumnDef } from "@tanstack/react-table";
-import { useState } from "react";
+import { createContext, useContext, useState } from "react";
+import { AnimatePresence, motion } from "motion/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -27,6 +28,15 @@ import {
   type ReceivableItemStatus,
 } from "@/types/receivable";
 
+/**
+ * La cuenta cuyo cobro está en curso, para deshabilitar sus celdas mientras viaja el
+ * pedido. Va por contexto y no por parámetro de `getColumns`: cada llamada a `getColumns`
+ * crea funciones `cell` nuevas, y como flexRender las usa como tipo de componente, React
+ * desmonta y vuelve a montar cada celda. Con el botón recreado en medio del cobro no hay
+ * transición de color ni de altura posible.
+ */
+export const CollectingReceivableContext = createContext<string | null>(null);
+
 /** Clases de la pastilla según el estado del ítem. */
 function itemClasses(status: ReceivableItemStatus) {
   return status === "Collected"
@@ -45,110 +55,137 @@ function AmountCell({
   kind,
   onCollect,
   onUndoCollect,
-  isBusy,
 }: {
   receivable: Receivable;
   kind: ReceivableItemKind;
   onCollect: (receivable: Receivable, kind: ReceivableItemKind, dateUtc: string) => void;
   onUndoCollect: (receivable: Receivable, kind: ReceivableItemKind) => void;
-  isBusy: boolean;
 }) {
   const [collectDate, setCollectDate] = useState(todayIso);
+  /*
+    El diálogo se controla desde acá porque AlertDialogAction es un botón común, no un
+    Close: antes se cerraba de casualidad, porque cobrar reemplazaba el árbol entero de la
+    celda y se llevaba el diálogo puesto. Ahora el nodo sobrevive (que es lo que permite
+    animar), así que hay que cerrarlo a mano.
+  */
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const isBusy = useContext(CollectingReceivableContext) === receivable.id;
 
   const item = receivable.items.find((i) => i.kind === kind);
   if (!item || item.status === "NotApplicable") return null;
 
+  const isCollected = item.status === "Collected";
   const amount = formatCurrency2(item.amount, receivable.currency as DisplayCurrency);
   const label = RECEIVABLE_ITEM_LABELS[kind];
-  const className =
-    "block w-full cursor-pointer rounded-md px-2.5 py-1.5 text-left font-semibold tabular-nums transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 disabled:cursor-wait disabled:opacity-60";
   const colors = itemClasses(item.status);
 
-  if (item.status === "Collected") {
-    return (
-      <AlertDialog>
-        <AlertDialogTrigger
-          render={
-            <button
-              type="button"
-              disabled={isBusy}
-              aria-label={`${label} cobrado, deshacer cobro`}
-              className={`${className} ${colors}`}
-            >
-              {amount}
-              {item.collectedAt && (
-                <span className="block text-xs font-normal tabular-nums opacity-70">
-                  {formatDate(item.collectedAt)}
-                </span>
-              )}
-            </button>
-          }
-        />
-        <AlertDialogContent size="sm">
-          <AlertDialogHeader>
-            <AlertDialogTitle>¿Deshacer el cobro?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Se eliminará el ingreso de{" "}
-              <span className="font-medium text-foreground">{amount}</span> generado por el{" "}
-              {label.toLowerCase()} de {receivable.clientName}, y el ítem volverá a figurar como no
-              cobrado.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction
-              variant="destructive"
-              onClick={() => onUndoCollect(receivable, kind)}
-            >
-              Deshacer cobro
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    );
-  }
+  /*
+    Mientras viaja el pedido la celda queda deshabilitada pero **no** se apaga: un
+    `opacity-60` sobre el rojo pleno se lee como un flash blanco justo antes de que arranque
+    la transición de color, y encima salta de golpe porque opacity no transiciona acá. El
+    acuse de recibo ya lo dan el diálogo cerrándose y el color cambiando.
 
-  // La fecha se pregunta al cobrar en vez de asumir hoy: los cobros suelen cargarse
-  // unos días después de que entró la plata.
+    Un solo botón para los dos estados, y adentro del diálogo se decide qué se pregunta.
+    Antes eran dos árboles distintos y cada cobro montaba un botón nuevo: el rojo→verde no
+    tenía desde dónde transicionar y la fecha aparecía de golpe, empujando la fila. Siendo
+    el mismo nodo, el color transiciona solo y la fecha puede abrirse y cerrarse.
+  */
   return (
-    <AlertDialog>
+    <AlertDialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
       <AlertDialogTrigger
         render={
           <button
             type="button"
             disabled={isBusy}
-            aria-label={`Cobrar ${label.toLowerCase()}`}
-            className={`${className} ${colors}`}
+            aria-label={
+              isCollected ? `${label} cobrado, deshacer cobro` : `Cobrar ${label.toLowerCase()}`
+            }
+            className={`block w-full cursor-pointer rounded-md px-2.5 py-1.5 text-left font-semibold tabular-nums transition-[background-color,color,transform] duration-(--dur-base) ease-emphasis active:scale-[0.97] motion-reduce:transition-none motion-reduce:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 disabled:cursor-wait ${colors}`}
           >
             {amount}
+            {/*
+              La fecha de cobro se desliza hacia abajo en lugar de aparecer: lo que crece
+              es la altura real, así que la fila y la tabla acompañan el movimiento en vez
+              de pegar el salto. `initial={false}` para que al cargar la grilla las celdas
+              ya cobradas no se abran todas de una.
+            */}
+            <AnimatePresence initial={false}>
+              {isCollected && item.collectedAt && (
+                <motion.span
+                  key="collected-at"
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: "auto", opacity: 0.7 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.2, ease: [0.2, 0, 0, 1] }}
+                  className="block overflow-hidden text-xs font-normal tabular-nums"
+                >
+                  {formatDate(item.collectedAt)}
+                </motion.span>
+              )}
+            </AnimatePresence>
           </button>
         }
       />
       <AlertDialogContent size="sm">
-        <AlertDialogHeader>
-          <AlertDialogTitle>Cobrar {label.toLowerCase()}</AlertDialogTitle>
-          <AlertDialogDescription>
-            Se registrará un ingreso de{" "}
-            <span className="font-medium text-foreground">{amount}</span> de {receivable.clientName}{" "}
-            ({receivable.truckLicensePlate}).
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        <div className="px-4">
-          <Label htmlFor={`collect-date-${receivable.id}-${kind}`}>Fecha de cobro</Label>
-          <Input
-            id={`collect-date-${receivable.id}-${kind}`}
-            type="date"
-            value={collectDate}
-            onChange={(e) => setCollectDate(e.target.value)}
-            className="mt-1"
-          />
-        </div>
-        <AlertDialogFooter>
-          <AlertDialogCancel>Cancelar</AlertDialogCancel>
-          <AlertDialogAction onClick={() => onCollect(receivable, kind, collectDate)}>
-            Cobrar
-          </AlertDialogAction>
-        </AlertDialogFooter>
+        {isCollected ? (
+          <>
+            <AlertDialogHeader>
+              <AlertDialogTitle>¿Deshacer el cobro?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Se eliminará el ingreso de{" "}
+                <span className="font-medium text-foreground">{amount}</span> generado por el{" "}
+                {label.toLowerCase()} de {receivable.clientName}, y el ítem volverá a figurar como
+                no cobrado.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <AlertDialogAction
+                variant="destructive"
+                onClick={() => {
+                  setIsDialogOpen(false);
+                  onUndoCollect(receivable, kind);
+                }}
+              >
+                Deshacer cobro
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </>
+        ) : (
+          <>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Cobrar {label.toLowerCase()}</AlertDialogTitle>
+              <AlertDialogDescription>
+                Se registrará un ingreso de{" "}
+                <span className="font-medium text-foreground">{amount}</span> de{" "}
+                {receivable.clientName} ({receivable.truckLicensePlate}).
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            {/* La fecha se pregunta al cobrar en vez de asumir hoy: los cobros suelen
+                cargarse unos días después de que entró la plata. */}
+            <div className="px-4">
+              <Label htmlFor={`collect-date-${receivable.id}-${kind}`}>Fecha de cobro</Label>
+              <Input
+                id={`collect-date-${receivable.id}-${kind}`}
+                type="date"
+                value={collectDate}
+                onChange={(e) => setCollectDate(e.target.value)}
+                className="mt-1"
+              />
+            </div>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => {
+                  setIsDialogOpen(false);
+                  onCollect(receivable, kind, collectDate);
+                }}
+              >
+                Cobrar
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </>
+        )}
       </AlertDialogContent>
     </AlertDialog>
   );
@@ -160,7 +197,6 @@ export function getColumns(
   onCollect: (receivable: Receivable, kind: ReceivableItemKind, dateUtc: string) => void,
   onUndoCollect: (receivable: Receivable, kind: ReceivableItemKind) => void,
   displayCurrency: DisplayCurrency = "BRL",
-  busyId: string | null = null,
 ): ColumnDef<Receivable>[] {
   const itemColumn = (id: string, header: string, kind: ReceivableItemKind): ColumnDef<Receivable> => ({
     id,
@@ -172,7 +208,6 @@ export function getColumns(
         kind={kind}
         onCollect={onCollect}
         onUndoCollect={onUndoCollect}
-        isBusy={busyId === row.original.id}
       />
     ),
   });

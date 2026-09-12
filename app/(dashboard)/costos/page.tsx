@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react"
 import Link from "next/link"
 import { fetchWithAuth } from "@/lib/api"
 import { ProportionSummary } from "@/components/proportion-summary"
+import { AnimatedCurrency } from "@/components/animated-figure"
 import { DataTable, DataTableSkeleton } from "@/components/data-table"
 import { getColumns } from "./columns"
 import { getTemplateDisplayAmount, monthsUntilGenerated } from "@/lib/costs"
@@ -287,7 +288,7 @@ export default function CostosPage() {
         // Por camión y toda la empresa son las dos mitades del total mensual: la barra
         // muestra cómo se reparte, en vez de repetir la misma cifra en tres cajas.
         <ProportionSummary
-          headline={formatCurrency(monthlyTotal, displayCurrency)}
+          headline={<AnimatedCurrency value={monthlyTotal} />}
           headlineLabel="de costo fijo por mes"
           context={`${formatCurrency(perTruckTotal, displayCurrency)} por camión · ${formatCurrency(companyWideTotal, displayCurrency)} toda la empresa`}
           ratio={monthlyTotal > 0 ? perTruckTotal / monthlyTotal : 0}

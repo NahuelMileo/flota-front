@@ -1,6 +1,7 @@
 "use client"
 
 import Link from "next/link"
+import { motion } from "motion/react"
 import {
   SidebarGroup,
   SidebarGroupContent,
@@ -44,18 +45,36 @@ export function NavMain({ groups }: { groups: NavGroup[] }) {
           <SidebarGroupLabel>{group.label}</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu className="gap-1">
-              {group.items.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton
-                    tooltip={item.title}
-                    render={<Link href={item.url} onClick={() => setOpenMobile(false)} />}
-                    isActive={isItemActive(pathname, item.url)}
-                  >
-                    {item.icon}
-                    <span>{item.title}</span>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
+              {group.items.map((item) => {
+                const isActive = isItemActive(pathname, item.url)
+                return (
+                  <SidebarMenuItem key={item.title}>
+                    <SidebarMenuButton
+                      tooltip={item.title}
+                      render={<Link href={item.url} onClick={() => setOpenMobile(false)} />}
+                      isActive={isActive}
+                      className="relative"
+                    >
+                      {/*
+                        El riel viaja hasta el ítem nuevo en lugar de reaparecer en otro
+                        lado: es lo que hace que la navegación se sienta como un lugar y
+                        no como una lista de botones. El `layoutId` es por grupo, así el
+                        indicador se mueve dentro de su sección.
+                      */}
+                      {isActive && (
+                        <motion.span
+                          layoutId={`nav-rail-${group.label}`}
+                          aria-hidden
+                          className="absolute top-1/2 left-0 h-4 w-0.5 -translate-y-1/2 rounded-full bg-primary"
+                          transition={{ duration: 0.2, ease: [0.2, 0, 0, 1] }}
+                        />
+                      )}
+                      {item.icon}
+                      <span>{item.title}</span>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                )
+              })}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>

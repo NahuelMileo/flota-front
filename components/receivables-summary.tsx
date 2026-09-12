@@ -1,6 +1,7 @@
 "use client"
 import { formatCurrency } from "@/lib/format"
 import { useCurrency } from "@/context/currency-context"
+import { AnimatedCurrency } from "@/components/animated-figure"
 import { RECEIVABLE_COLORS } from "@/types/receivable"
 import { ProportionSummary } from "@/components/proportion-summary"
 
@@ -30,7 +31,7 @@ export function ReceivablesSummary({ total, collected, pending, count, pendingCo
   if (pendingCount === 0) {
     return (
       <ProportionSummary
-        headline={formatCurrency(collected, displayCurrency)}
+        headline={<AnimatedCurrency value={collected} />}
         headlineLabel={`cobrados, sin nada pendiente en ${count} ${count === 1 ? "flete" : "fletes"}`}
         context=""
         ratio={1}
@@ -42,7 +43,7 @@ export function ReceivablesSummary({ total, collected, pending, count, pendingCo
 
   return (
     <ProportionSummary
-      headline={formatCurrency(pending, displayCurrency)}
+      headline={<AnimatedCurrency value={pending} />}
       headlineLabel={`a recibir de ${pendingCount} ${pendingCount === 1 ? "flete" : "fletes"}`}
       context={`${formatCurrency(collected, displayCurrency)} cobrados de ${formatCurrency(total, displayCurrency)}`}
       ratio={total > 0 ? collected / total : 0}
