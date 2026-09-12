@@ -62,6 +62,13 @@ function AmountCell({
   onUndoCollect: (receivable: Receivable, kind: ReceivableItemKind) => void;
 }) {
   const [collectDate, setCollectDate] = useState(todayIso);
+  /*
+    El diálogo se controla desde acá porque AlertDialogAction es un botón común, no un
+    Close: antes se cerraba de casualidad, porque cobrar reemplazaba el árbol entero de la
+    celda y se llevaba el diálogo puesto. Ahora el nodo sobrevive (que es lo que permite
+    animar), así que hay que cerrarlo a mano.
+  */
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
   const isBusy = useContext(CollectingReceivableContext) === receivable.id;
 
   const item = receivable.items.find((i) => i.kind === kind);
@@ -73,13 +80,18 @@ function AmountCell({
   const colors = itemClasses(item.status);
 
   /*
+    Mientras viaja el pedido la celda queda deshabilitada pero **no** se apaga: un
+    `opacity-60` sobre el rojo pleno se lee como un flash blanco justo antes de que arranque
+    la transición de color, y encima salta de golpe porque opacity no transiciona acá. El
+    acuse de recibo ya lo dan el diálogo cerrándose y el color cambiando.
+
     Un solo botón para los dos estados, y adentro del diálogo se decide qué se pregunta.
     Antes eran dos árboles distintos y cada cobro montaba un botón nuevo: el rojo→verde no
     tenía desde dónde transicionar y la fecha aparecía de golpe, empujando la fila. Siendo
     el mismo nodo, el color transiciona solo y la fecha puede abrirse y cerrarse.
   */
   return (
-    <AlertDialog>
+    <AlertDialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
       <AlertDialogTrigger
         render={
           <button
@@ -88,7 +100,7 @@ function AmountCell({
             aria-label={
               isCollected ? `${label} cobrado, deshacer cobro` : `Cobrar ${label.toLowerCase()}`
             }
-            className={`block w-full cursor-pointer rounded-md px-2.5 py-1.5 text-left font-semibold tabular-nums transition-[background-color,color,transform] duration-(--dur-base) ease-emphasis active:scale-[0.97] motion-reduce:transition-none motion-reduce:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 disabled:cursor-wait disabled:opacity-60 ${colors}`}
+            className={`block w-full cursor-pointer rounded-md px-2.5 py-1.5 text-left font-semibold tabular-nums transition-[background-color,color,transform] duration-(--dur-base) ease-emphasis active:scale-[0.97] motion-reduce:transition-none motion-reduce:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 disabled:cursor-wait ${colors}`}
           >
             {amount}
             {/*
@@ -130,7 +142,10 @@ function AmountCell({
               <AlertDialogCancel>Cancelar</AlertDialogCancel>
               <AlertDialogAction
                 variant="destructive"
-                onClick={() => onUndoCollect(receivable, kind)}
+                onClick={() => {
+                  setIsDialogOpen(false);
+                  onUndoCollect(receivable, kind);
+                }}
               >
                 Deshacer cobro
               </AlertDialogAction>
@@ -160,7 +175,12 @@ function AmountCell({
             </div>
             <AlertDialogFooter>
               <AlertDialogCancel>Cancelar</AlertDialogCancel>
-              <AlertDialogAction onClick={() => onCollect(receivable, kind, collectDate)}>
+              <AlertDialogAction
+                onClick={() => {
+                  setIsDialogOpen(false);
+                  onCollect(receivable, kind, collectDate);
+                }}
+              >
                 Cobrar
               </AlertDialogAction>
             </AlertDialogFooter>
