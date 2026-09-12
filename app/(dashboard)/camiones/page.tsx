@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback, useMemo } from "react"
 import { Button } from "@/components/ui/button"
 import { DataTable, DataTableSkeleton } from "@/components/data-table"
 import {
@@ -92,7 +92,7 @@ export default function TruckPage() {
     }
   }
 
-  async function handleDeleteTruck(truck: Truck) {
+  const handleDeleteTruck = useCallback(async (truck: Truck) => {
     try {
       const res = await fetchWithAuth(
         `/api/trucks/${truck.id}`,
@@ -104,9 +104,15 @@ export default function TruckPage() {
     } catch {
       toast.error("Error al eliminar camión")
     }
-  }
+  }, [])
 
-  const columns = getColumns((truck) => setEditingTruck(truck), handleDeleteTruck)
+  // Memoizado porque recrear las columnas cambia la identidad de las funciones `cell`, y
+  // flexRender las usa como tipo de componente: React desmonta y vuelve a montar todas
+  // las celdas en cada render.
+  const columns = useMemo(
+    () => getColumns((truck) => setEditingTruck(truck), handleDeleteTruck),
+    [handleDeleteTruck],
+  )
 
   return (
     <div className="p-6 flex flex-col gap-4">

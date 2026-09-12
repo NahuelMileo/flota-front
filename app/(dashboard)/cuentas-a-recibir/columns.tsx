@@ -1,6 +1,6 @@
 "use client";
 import { ColumnDef } from "@tanstack/react-table";
-import { useState } from "react";
+import { createContext, useContext, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -28,6 +28,15 @@ import {
   type ReceivableItemStatus,
 } from "@/types/receivable";
 
+/**
+ * La cuenta cuyo cobro está en curso, para deshabilitar sus celdas mientras viaja el
+ * pedido. Va por contexto y no por parámetro de `getColumns`: cada llamada a `getColumns`
+ * crea funciones `cell` nuevas, y como flexRender las usa como tipo de componente, React
+ * desmonta y vuelve a montar cada celda. Con el botón recreado en medio del cobro no hay
+ * transición de color ni de altura posible.
+ */
+export const CollectingReceivableContext = createContext<string | null>(null);
+
 /** Clases de la pastilla según el estado del ítem. */
 function itemClasses(status: ReceivableItemStatus) {
   return status === "Collected"
@@ -46,15 +55,14 @@ function AmountCell({
   kind,
   onCollect,
   onUndoCollect,
-  isBusy,
 }: {
   receivable: Receivable;
   kind: ReceivableItemKind;
   onCollect: (receivable: Receivable, kind: ReceivableItemKind, dateUtc: string) => void;
   onUndoCollect: (receivable: Receivable, kind: ReceivableItemKind) => void;
-  isBusy: boolean;
 }) {
   const [collectDate, setCollectDate] = useState(todayIso);
+  const isBusy = useContext(CollectingReceivableContext) === receivable.id;
 
   const item = receivable.items.find((i) => i.kind === kind);
   if (!item || item.status === "NotApplicable") return null;
@@ -169,7 +177,6 @@ export function getColumns(
   onCollect: (receivable: Receivable, kind: ReceivableItemKind, dateUtc: string) => void,
   onUndoCollect: (receivable: Receivable, kind: ReceivableItemKind) => void,
   displayCurrency: DisplayCurrency = "BRL",
-  busyId: string | null = null,
 ): ColumnDef<Receivable>[] {
   const itemColumn = (id: string, header: string, kind: ReceivableItemKind): ColumnDef<Receivable> => ({
     id,
@@ -181,7 +188,6 @@ export function getColumns(
         kind={kind}
         onCollect={onCollect}
         onUndoCollect={onUndoCollect}
-        isBusy={busyId === row.original.id}
       />
     ),
   });

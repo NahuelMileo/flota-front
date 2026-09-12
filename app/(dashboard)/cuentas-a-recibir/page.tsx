@@ -16,7 +16,7 @@ import { toast } from "sonner";
 import { fetchWithAuth } from "@/lib/api";
 import { useTrucks } from "@/hooks/use-trucks";
 import { useClients } from "@/hooks/use-clients";
-import { getColumns } from "./columns";
+import { CollectingReceivableContext, getColumns } from "./columns";
 import { ReceivablesSummary } from "@/components/receivables-summary";
 import { useDateFilter } from "@/context/date-filter-context";
 import { useCurrency } from "@/context/currency-context";
@@ -196,9 +196,10 @@ export default function ReceivablesPage() {
         handleCollect,
         handleUndoCollect,
         displayCurrency,
-        busyId,
       ),
-    [handleDelete, handleCollect, handleUndoCollect, displayCurrency, busyId],
+    // busyId queda afuera a propósito: recrear las columnas remonta todas las celdas y se
+    // pierde la animación del cobro. Viaja por CollectingReceivableContext.
+    [handleDelete, handleCollect, handleUndoCollect, displayCurrency],
   );
 
   // ================= UI =================
@@ -292,27 +293,29 @@ export default function ReceivablesPage() {
         <DataTableSkeleton columns={8} showToolbarAction />
       ) : (
         <Refreshing busy={isLoading}>
-          <DataTable
-            columns={columns}
-            data={filteredReceivables}
-            initialSorting={[{ id: "dateUtc", desc: true }]}
-            emptyMessage="No hay cuentas a recibir para el período seleccionado."
-            searchPlaceholder="Buscar por cliente o camión..."
-            csvFilename="cuentas-a-recibir"
-            csvHeaders={[
-              { key: "dateUtc", label: "Fecha" },
-              { key: "truckLicensePlate", label: "Camión" },
-              { key: "clientName", label: "Cliente" },
-              { key: "advanceAmount", label: "Adelanto" },
-              { key: "balanceAmount", label: "Saldo" },
-              { key: "tollAmount", label: "Peaje" },
-              { key: "totalAmount", label: "Total" },
-              { key: "notes", label: "Ruta" },
-              { key: "collectedAmount", label: "Cobrado" },
-              { key: "pendingAmount", label: "Pendiente" },
-              { key: "status", label: "Estado" },
-            ]}
-          />
+          <CollectingReceivableContext value={busyId}>
+            <DataTable
+              columns={columns}
+              data={filteredReceivables}
+              initialSorting={[{ id: "dateUtc", desc: true }]}
+              emptyMessage="No hay cuentas a recibir para el período seleccionado."
+              searchPlaceholder="Buscar por cliente o camión..."
+              csvFilename="cuentas-a-recibir"
+              csvHeaders={[
+                { key: "dateUtc", label: "Fecha" },
+                { key: "truckLicensePlate", label: "Camión" },
+                { key: "clientName", label: "Cliente" },
+                { key: "advanceAmount", label: "Adelanto" },
+                { key: "balanceAmount", label: "Saldo" },
+                { key: "tollAmount", label: "Peaje" },
+                { key: "totalAmount", label: "Total" },
+                { key: "notes", label: "Ruta" },
+                { key: "collectedAmount", label: "Cobrado" },
+                { key: "pendingAmount", label: "Pendiente" },
+                { key: "status", label: "Estado" },
+              ]}
+            />
+          </CollectingReceivableContext>
         </Refreshing>
       )}
     </div>
