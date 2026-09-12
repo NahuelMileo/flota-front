@@ -66,7 +66,13 @@ export function ExpenseBreakdownChart({ expenses, displayCurrency }: Props) {
                 "Total",
               ]}
             />
-            <Bar dataKey="total" fill="var(--danger)" radius={[4, 4, 0, 0]} />
+            <Bar
+              dataKey="total"
+              fill="var(--danger)"
+              radius={[4, 4, 0, 0]}
+              animationDuration={450}
+              animationEasing="ease-out"
+            />
           </BarChart>
         </ResponsiveContainer>
         )}

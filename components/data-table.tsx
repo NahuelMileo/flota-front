@@ -10,8 +10,9 @@ import {
   SortingState,
   useReactTable,
 } from "@tanstack/react-table"
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import type { ReactNode } from "react"
+import { AnimatePresence, motion } from "motion/react"
 import { ChevronUp, ChevronDown, ChevronsUpDown, Download, Search } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
@@ -25,6 +26,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+
+/** Una fila que puede salir de la tabla sin desaparecer de golpe. */
+const AnimatedTableRow = motion.create(TableRow)
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[]
@@ -111,6 +115,43 @@ export function DataTable<TData, TValue>({
   const [searchInput, setSearchInput] = useState("")
   const [globalFilter, setGlobalFilter] = useState("")
 
+  /*
+    Casi todos los listados son entidades con `id`. Cuando lo tienen, la fila se
+    identifica por ese id y no por su posición: es lo que permite que una fila borrada
+    se desvanezca en su lugar y que una recién creada se pueda señalar. Si el listado no
+    trae ids (algún resumen armado en el cliente), todo esto se apaga solo.
+  */
+  const hasRowIds = data.length > 0 && (data[0] as { id?: unknown })?.id != null
+  const rowId = (row: TData) => String((row as { id: unknown }).id)
+
+  // Filas que acaban de aparecer, para destacarlas un instante. Después de dar de alta
+  // algo, el usuario no tiene por qué buscar dónde quedó en la tabla.
+  const [freshRows, setFreshRows] = useState<Set<string>>(() => new Set())
+  const seenRowsRef = useRef<Set<string> | null>(null)
+
+  useEffect(() => {
+    if (!hasRowIds) return
+    const ids = new Set(data.map((row) => rowId(row)))
+    const seen = seenRowsRef.current
+    seenRowsRef.current = ids
+
+    // Primera carga: no hay nada "nuevo" que señalar, es la tabla apareciendo.
+    if (seen === null) return
+
+    // Sólo cuenta como alta si la tabla creció y no se fue ninguna fila. Un cambio de
+    // página o de filtro también trae ids que no estaban, y ahí no hay nada que avisar.
+    const grew = ids.size > seen.size && [...seen].every((id) => ids.has(id))
+    if (!grew) return
+
+    const added = [...ids].filter((id) => !seen.has(id))
+    if (added.length > 5) return
+
+    setFreshRows(new Set(added))
+    const timer = setTimeout(() => setFreshRows(new Set()), 1600)
+    return () => clearTimeout(timer)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data, hasRowIds])
+
   useEffect(() => {
     if (serverSide) return
     const timer = setTimeout(() => setGlobalFilter(searchInput), 300)
@@ -120,6 +161,7 @@ export function DataTable<TData, TValue>({
   const table = useReactTable({
     data,
     columns,
+    ...(hasRowIds ? { getRowId: rowId } : {}),
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
     ...(serverSide
@@ -188,7 +230,7 @@ export function DataTable<TData, TValue>({
   }
 
   return (
-    <div className="flex flex-col gap-3">
+    <div className="fv-rise flex flex-col gap-3">
       <div className="flex items-center gap-2">
         <div className="relative max-w-xs flex-1">
           <Search
@@ -256,18 +298,25 @@ export function DataTable<TData, TValue>({
           </TableHeader>
           <TableBody>
             {table.getRowModel().rows?.length ? (
-              table.getRowModel().rows.map((row) => (
-                <TableRow
-                  key={row.id}
-                  data-state={row.getIsSelected() && "selected"}
-                >
-                  {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id}>
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                    </TableCell>
-                  ))}
-                </TableRow>
-              ))
+              <AnimatePresence initial={false}>
+                {table.getRowModel().rows.map((row) => (
+                  <AnimatedTableRow
+                    key={row.id}
+                    data-state={row.getIsSelected() && "selected"}
+                    className={freshRows.has(row.id) ? "fv-flash" : undefined}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.18, ease: [0.2, 0, 0, 1] }}
+                  >
+                    {row.getVisibleCells().map((cell) => (
+                      <TableCell key={cell.id}>
+                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                      </TableCell>
+                    ))}
+                  </AnimatedTableRow>
+                ))}
+              </AnimatePresence>
             ) : (
               <TableRow>
                 <TableCell colSpan={columns.length} className="h-24 text-center text-muted-foreground">

@@ -43,8 +43,23 @@ export function MonthlyComparisonChart({ data }: Props) {
               <YAxis tickFormatter={(v) => formatCurrency(v, displayCurrency)} tick={{ fontSize: 11 }} width={90} />
               <Tooltip formatter={(value) => [typeof value === "number" ? formatCurrency(value, displayCurrency) : value]} />
               <Legend />
-              <Bar dataKey="ingresos" fill="var(--success)" radius={[4, 4, 0, 0]} />
-              <Bar dataKey="egresos" fill="var(--danger)" radius={[4, 4, 0, 0]} />
+              <Bar
+                dataKey="ingresos"
+                fill="var(--success)"
+                radius={[4, 4, 0, 0]}
+                animationDuration={450}
+                animationEasing="ease-out"
+              />
+              {/* Recharts por defecto tarda 1.5s y rebota. Las barras crecen rápido, con la
+                  misma sensación que las barras de proporción del resto de la app. */}
+              <Bar
+                dataKey="egresos"
+                fill="var(--danger)"
+                radius={[4, 4, 0, 0]}
+                animationDuration={450}
+                animationBegin={80}
+                animationEasing="ease-out"
+              />
             </BarChart>
           </ResponsiveContainer>
         )}

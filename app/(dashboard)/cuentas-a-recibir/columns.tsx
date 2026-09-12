@@ -61,7 +61,9 @@ function AmountCell({
   const amount = formatCurrency2(item.amount, receivable.currency as DisplayCurrency);
   const label = RECEIVABLE_ITEM_LABELS[kind];
   const className =
-    "block w-full cursor-pointer rounded-md px-2.5 py-1.5 text-left font-semibold tabular-nums transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 disabled:cursor-wait disabled:opacity-60";
+    // La celda es el botón: al presionarla cede, y el rojo pasa a verde en una
+    // transición — cobrar es la acción de esta pantalla, tiene que sentirse.
+    "block w-full cursor-pointer rounded-md px-2.5 py-1.5 text-left font-semibold tabular-nums transition-[background-color,color,transform] duration-(--dur-base) ease-emphasis active:scale-[0.97] motion-reduce:transition-none motion-reduce:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 disabled:cursor-wait disabled:opacity-60";
   const colors = itemClasses(item.status);
 
   if (item.status === "Collected") {

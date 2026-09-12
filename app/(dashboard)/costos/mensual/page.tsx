@@ -24,6 +24,7 @@ import type { CostEntry } from "@/types/costs"
 import type { Truck } from "@/types/truck"
 import type { DisplayCurrency } from "@/lib/format"
 import { ProportionSummary } from "@/components/proportion-summary"
+import { AnimatedCurrency } from "@/components/animated-figure"
 
 // Verde para lo pagado, naranja para lo que falta: los mismos que ya usaban los KPIs
 // y los badges de estado de esta pantalla.
@@ -264,7 +265,7 @@ function MonthlyCostsContent() {
         <p className="text-sm text-muted-foreground">Sin costos registrados en este mes.</p>
       ) : (
         <ProportionSummary
-          headline={formatCurrency(pending, displayCurrency)}
+          headline={<AnimatedCurrency value={pending} />}
           headlineLabel={`pendiente en ${entries.filter((e) => !e.isPaid).length} de ${entries.length} entradas`}
           context={`${formatCurrency(paid, displayCurrency)} pagados de ${formatCurrency(total, displayCurrency)}`}
           ratio={total > 0 ? paid / total : 0}

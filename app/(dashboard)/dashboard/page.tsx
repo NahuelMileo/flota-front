@@ -8,6 +8,7 @@ import { useCurrency } from "@/context/currency-context"
 import { MonthBalance } from "@/components/month-balance"
 import { MonthlyComparisonChart } from "@/components/monthly-comparison-chart"
 import { Skeleton } from "@/components/ui/skeleton"
+import { Refreshing } from "@/components/refreshing"
 
 type MonthlyTotal = {
   month: number
@@ -90,29 +91,34 @@ export default function DashboardPage() {
     })
   }, [summary, pickIncome, pickExpense])
 
+  // Skeletons sólo mientras no hay nada que mostrar. Al cambiar de mes ya hay datos en
+  // pantalla: se apagan un momento y las cifras cuentan hasta el valor nuevo, en vez de
+  // desarmar la pantalla entera y rearmarla por un pedido que tarda medio segundo.
+  const isFirstLoad = isLoading && !summary
+
   return (
     <div className="p-6 flex flex-col gap-4">
-      {/* BALANCE */}
-      {isLoading ? (
-        <div className="flex flex-col gap-3">
-          <Skeleton className="h-9 w-80" />
-          <Skeleton className="h-1.5 w-full rounded-full" />
-          <Skeleton className="h-5 w-96" />
-        </div>
+      {isFirstLoad ? (
+        <>
+          {/* BALANCE */}
+          <div className="flex flex-col gap-3">
+            <Skeleton className="h-9 w-80" />
+            <Skeleton className="h-1.5 w-full rounded-full" />
+            <Skeleton className="h-5 w-96" />
+          </div>
+          {/* CHART */}
+          <Skeleton className="h-72 w-full rounded-xl" />
+        </>
       ) : (
-        <MonthBalance
-          income={totalIncome}
-          expense={totalExpense}
-          incomeVariation={incomeVariation}
-          expenseVariation={expenseVariation}
-        />
-      )}
-
-      {/* CHART */}
-      {isLoading ? (
-        <Skeleton className="h-72 w-full rounded-xl" />
-      ) : (
-        <MonthlyComparisonChart data={monthlyData} />
+        <Refreshing busy={isLoading} className="fv-rise flex flex-col gap-4">
+          <MonthBalance
+            income={totalIncome}
+            expense={totalExpense}
+            incomeVariation={incomeVariation}
+            expenseVariation={expenseVariation}
+          />
+          <MonthlyComparisonChart data={monthlyData} />
+        </Refreshing>
       )}
     </div>
   )
