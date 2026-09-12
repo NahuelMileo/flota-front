@@ -47,6 +47,9 @@ export default function ReceivablesPage() {
   // desarmar la grilla entera, que es lo que se leía como parpadeo.
   const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
+  // Ítem que se acaba de cobrar o descobrar, para que su celda entre con el color
+  // animado. Es un evento, no un dato de la cuenta: se limpia solo.
+  const [justChangedItem, setJustChangedItem] = useState<string | null>(null);
 
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [editingReceivable, setEditingReceivable] = useState<Receivable | null>(null);
@@ -115,6 +118,11 @@ export default function ReceivablesPage() {
   const replaceReceivable = (updated: Receivable) =>
     setReceivables((prev) => prev.map((r) => (r.id === updated.id ? updated : r)));
 
+  const flagChangedItem = (receivableId: string, kind: ReceivableItemKind) => {
+    setJustChangedItem(`${receivableId}:${kind}`);
+    setTimeout(() => setJustChangedItem(null), 600);
+  };
+
   const handleAdd = (created: Receivable) => {
     setReceivables((prev) => [created, ...prev]);
     setIsAddDialogOpen(false);
@@ -156,6 +164,7 @@ export default function ReceivablesPage() {
           throw new Error(e.message || e.title || "No se pudo registrar el cobro");
         }
         replaceReceivable(await res.json());
+        flagChangedItem(receivable.id, kind);
         toast.success(`${RECEIVABLE_ITEM_LABELS[kind]} cobrado`);
       } catch (e) {
         toast.error(e instanceof Error ? e.message : "No se pudo registrar el cobro");
@@ -178,6 +187,7 @@ export default function ReceivablesPage() {
           throw new Error(e.message || e.title || "No se pudo deshacer el cobro");
         }
         replaceReceivable(await res.json());
+        flagChangedItem(receivable.id, kind);
         toast.success(`${RECEIVABLE_ITEM_LABELS[kind]} marcado como no cobrado`);
       } catch (e) {
         toast.error(e instanceof Error ? e.message : "No se pudo deshacer el cobro");
@@ -197,8 +207,9 @@ export default function ReceivablesPage() {
         handleUndoCollect,
         displayCurrency,
         busyId,
+        justChangedItem,
       ),
-    [handleDelete, handleCollect, handleUndoCollect, displayCurrency, busyId],
+    [handleDelete, handleCollect, handleUndoCollect, displayCurrency, busyId, justChangedItem],
   );
 
   // ================= UI =================

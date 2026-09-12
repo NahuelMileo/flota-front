@@ -549,6 +549,48 @@ html:not(.dark) [data-slot="table"] [data-slot="button"] {
 }
 
 /*
+  Cobrar y deshacer un cobro cambian de rama el árbol de la celda (confirmación de
+  deshacer contra selector de fecha), así que el botón nuevo no tiene desde dónde
+  transicionar el color: arranca en el del estado anterior y llega al propio. La celda
+  aplica estas clases sólo cuando el estado cambió de verdad — al cargar la pantalla las
+  celdas ya cobradas no tienen por qué parpadear.
+*/
+@keyframes fv-collected-in {
+  from {
+    background-color: var(--color-red-600);
+  }
+}
+
+@keyframes fv-pending-in {
+  from {
+    background-color: var(--color-green-600);
+  }
+}
+
+.fv-collected-in {
+  animation: fv-collected-in var(--dur-base) var(--ease-emphasis);
+}
+
+.fv-pending-in {
+  animation: fv-pending-in var(--dur-base) var(--ease-emphasis);
+}
+
+/*
+  El cursor de hover de los gráficos: Recharts lo pinta gris claro fijo, que sobre el
+  fondo casi negro del tema oscuro aparece como un bloque blanquecino. Va apenas
+  insinuado, como el resto de la grilla.
+*/
+.dark .recharts-rectangle.recharts-tooltip-cursor,
+.dark .recharts-tooltip-cursor {
+  fill: rgba(255, 255, 255, 0.06);
+}
+
+/* En los de línea el cursor es una raya, no un bloque: apenas más marcada. */
+.dark .recharts-curve.recharts-tooltip-cursor {
+  stroke: rgba(255, 255, 255, 0.18);
+}
+
+/*
   El ítem activo del sidebar cambia de fondo con el mismo tiempo que tarda el
   riel en deslizarse hasta él, si no el color salta y el riel llega después.
 */

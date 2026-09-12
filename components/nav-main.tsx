@@ -1,6 +1,6 @@
 "use client"
 
-import Link, { useLinkStatus } from "next/link"
+import Link from "next/link"
 import { motion } from "motion/react"
 import {
   SidebarGroup,
@@ -32,23 +32,6 @@ export type NavGroup = {
 function isItemActive(pathname: string, url: string) {
   if (pathname === url) return true
   return pathname.startsWith(`${url}/`)
-}
-
-/**
- * El dato que falta entre el click y el skeleton: la página se pide en el cliente, así
- * que sin esto hay un hueco en el que la app no acusó el click y se lee como demora.
- * Vive dentro del `<Link>` porque `useLinkStatus` reporta el estado del link que lo
- * contiene.
- */
-function NavItemPending() {
-  const { pending } = useLinkStatus()
-  return (
-    <span
-      aria-hidden
-      data-pending={pending || undefined}
-      className="ml-auto size-1.5 shrink-0 rounded-full bg-current opacity-0 transition-opacity duration-(--dur-fast) data-pending:animate-pulse data-pending:opacity-50 group-data-[collapsible=icon]:hidden"
-    />
-  )
 }
 
 export function NavMain({ groups }: { groups: NavGroup[] }) {
@@ -88,7 +71,6 @@ export function NavMain({ groups }: { groups: NavGroup[] }) {
                       )}
                       {item.icon}
                       <span>{item.title}</span>
-                      <NavItemPending />
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 )

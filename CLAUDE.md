@@ -190,8 +190,9 @@ La landing tiene que impresionar; el dashboard lo abre alguien a las 6am para sa
 - **Cifras:** `components/animated-figure.tsx` — `<AnimatedCurrency>` y `<AnimatedPercent>` transicionan cuando cambia el dato (mes, moneda, un cobro). Lo usan `total-line`, `month-balance` y los headlines de `ProportionSummary`, que por eso recibe `headline` como `ReactNode` y no como string. El hook es `hooks/use-animated-value.ts`; **no** usar el contador de la landing (`components/home/cinema/animated-number.tsx`), que cuenta desde cero al entrar en viewport.
 - **Recargas:** `components/refreshing.tsx` — con datos ya en pantalla, un refetch los apaga al 60% en vez de volver a los skeletons. Los skeletons son para la primera carga (`isLoading && !data`), si no cambiar de mes parpadea. Aplicado en `/dashboard` y `/cuentas-a-recibir`; replicarlo en el resto de las pantallas con filtro de mes.
 - **Tablas:** cuando las filas tienen `id`, `DataTable` lo usa como `getRowId` — de ahí salen la salida en fade de la fila borrada, el destello de la recién creada y que el rojo→verde de cuentas a recibir transicione en vez de saltar (la celda es el mismo nodo, sólo cambia la clase).
-- **Sidebar:** el riel del ítem activo viaja con `layoutId` por grupo, y `useLinkStatus` marca el ítem mientras la ruta carga — entre el click y el skeleton hay un hueco que sin eso se lee como demora.
-- **Charts:** Recharts por defecto tarda 1.5s y rebota; las series van con `animationDuration={450}` y `ease-out`.
+- **Sidebar:** el riel del ítem activo viaja con `layoutId` por grupo.
+- **Charts:** Recharts por defecto tarda 1.5s y rebota; las series van con `animationDuration={450}` y `ease-out`. El cursor de hover viene con `fill: #ccc` fijo, que en tema oscuro es un bloque blanquecino: se apaga en `globals.css` (`.dark .recharts-tooltip-cursor`). Las utilidades que trae shadcn para esto sólo aplican dentro de su `ChartContainer`, que estos gráficos no usan.
+- **Cuentas a recibir:** cobrar cambia de rama el árbol de la celda (confirmar deshacer contra elegir fecha), así que el botón es un nodo nuevo y `transition-colors` no tiene desde dónde salir: el color entra con un keyframe (`.fv-collected-in` / `.fv-pending-in`) y la pantalla marca cuál ítem se tocó con `justChangedItem`, para que al cargar la grilla no parpadeen las celdas ya cobradas.
 
 ---
 

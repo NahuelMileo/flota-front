@@ -46,17 +46,32 @@ function AmountCell({
   onCollect,
   onUndoCollect,
   isBusy,
+  justChanged,
 }: {
   receivable: Receivable;
   kind: ReceivableItemKind;
   onCollect: (receivable: Receivable, kind: ReceivableItemKind, dateUtc: string) => void;
   onUndoCollect: (receivable: Receivable, kind: ReceivableItemKind) => void;
   isBusy: boolean;
+  /** Este ítem es el que se acaba de cobrar o descobrar: el color entra animado. */
+  justChanged: boolean;
 }) {
   const [collectDate, setCollectDate] = useState(todayIso);
 
   const item = receivable.items.find((i) => i.kind === kind);
   if (!item || item.status === "NotApplicable") return null;
+
+  /*
+    Cobrar reemplaza el botón por otro — las dos ramas de abajo son árboles distintos, así
+    que no hay transición posible: el color arranca en el del estado anterior con un
+    keyframe. Sólo en el ítem que se acaba de tocar, que es lo que sabe la pantalla: al
+    cargar la grilla las celdas ya cobradas no tienen por qué parpadear.
+  */
+  const enterAnimation = !justChanged
+    ? ""
+    : item.status === "Collected"
+      ? "fv-collected-in"
+      : "fv-pending-in";
 
   const amount = formatCurrency2(item.amount, receivable.currency as DisplayCurrency);
   const label = RECEIVABLE_ITEM_LABELS[kind];
@@ -75,7 +90,7 @@ function AmountCell({
               type="button"
               disabled={isBusy}
               aria-label={`${label} cobrado, deshacer cobro`}
-              className={`${className} ${colors}`}
+              className={`${className} ${colors} ${enterAnimation}`}
             >
               {amount}
               {item.collectedAt && (
@@ -120,7 +135,7 @@ function AmountCell({
             type="button"
             disabled={isBusy}
             aria-label={`Cobrar ${label.toLowerCase()}`}
-            className={`${className} ${colors}`}
+            className={`${className} ${colors} ${enterAnimation}`}
           >
             {amount}
           </button>
@@ -163,6 +178,8 @@ export function getColumns(
   onUndoCollect: (receivable: Receivable, kind: ReceivableItemKind) => void,
   displayCurrency: DisplayCurrency = "BRL",
   busyId: string | null = null,
+  /** Ítem que se acaba de cobrar o descobrar, como `${receivableId}:${kind}`. */
+  justChangedItem: string | null = null,
 ): ColumnDef<Receivable>[] {
   const itemColumn = (id: string, header: string, kind: ReceivableItemKind): ColumnDef<Receivable> => ({
     id,
@@ -175,6 +192,7 @@ export function getColumns(
         onCollect={onCollect}
         onUndoCollect={onUndoCollect}
         isBusy={busyId === row.original.id}
+        justChanged={justChangedItem === `${row.original.id}:${kind}`}
       />
     ),
   });
