@@ -304,6 +304,19 @@ Status API (string): `"Scheduled"`, `"InProgress"`, `"Completed"`, `"Cancelled"`
 
 ---
 
+## Autorización de asistentes de IA (`/oauth/authorize`)
+
+- Pantalla de consentimiento OAuth del servidor MCP (flota-back, `docs/mcp-plan.md`): ChatGPT/Claude abren esta URL con `client_id`, `redirect_uri`, `code_challenge`, `state`, `scope`, `resource`
+- Llama a `POST /api/oauth/authorize/validate` y muestra: cliente (con dominio verificado si es CIMD), empresa, permisos de solo lectura y a qué host se vuelve
+- **Permitir** → `POST /api/oauth/authorize/approve`; **Cancelar** → `/deny`. Las dos devuelven `redirectUrl` y la pantalla solo hace `window.location.assign`: **nunca armar URLs de redirección en el front**
+- Errores: 403 `owner_required` → "Solo el dueño de la flota puede conectar"; error con `redirectUrl` → vuelve a la aplicación; error sin `redirectUrl` → se muestra y no redirige
+- Usa `fetchWithSession` (`lib/api.ts`): igual que `fetchWithAuth` pero sin redirigir sola al login; ante 401 limpia la sesión local y va a `/login?returnTo=<esta URL>`
+- `returnTo` (`lib/return-to.ts`): login y GuestGuard solo aceptan paths del mismo origen con pathname `/oauth/authorize` (evita open redirect)
+- `next.config.ts` agrega `X-Frame-Options: DENY` y `frame-ancestors 'none'` en `/oauth/*` (anti-clickjacking)
+- **Configuración → Asistentes IA** (`components/ai-connections-section.tsx`): muestra la URL del conector (`NEXT_PUBLIC_API_URL` + `/mcp`) para pegar en ChatGPT/Claude y lista las conexiones activas (`GET /api/mcp/connections`: cliente, dominio verificado, quién conectó, alta y último uso). **Desconectar** → `DELETE /api/mcp/connections/{id}` con AlertDialog; corta el acceso en la siguiente pregunta del asistente. Solo Owner: con 403 muestra un mensaje en lugar de la lista
+
+---
+
 ## Arquitectura
 
 - **Autenticación:** `fetchWithAuth()` en `lib/api.ts` — envía `credentials: "include"` (cookies httpOnly), refresca en 401 vía `POST /api/auth/refresh`. Acepta rutas relativas (`fetchWithAuth("/api/trucks")`) y las resuelve contra `NEXT_PUBLIC_API_URL`; usar siempre rutas relativas, no repetir el env var en los call sites. Para fetch sin auth (login/signup) usar `apiUrl(path)` del mismo módulo

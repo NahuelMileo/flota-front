@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import { returnToFromLocation } from "@/lib/return-to";
 
 export default function GuestGuard({
   children,
@@ -13,7 +14,10 @@ export default function GuestGuard({
     const tenantId = localStorage.getItem("tenantId");
 
     if (isAuthenticated) {
-      if (tenantId) {
+      const returnTo = returnToFromLocation();
+      if (tenantId && returnTo) {
+        window.location.href = returnTo;
+      } else if (tenantId) {
         window.location.href = "/dashboard";
       } else {
         window.location.href = "/onboarding";

@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { apiUrl } from "@/lib/api";
+import { returnToFromLocation } from "@/lib/return-to";
 
 export function LoginForm({
   className,
@@ -120,8 +121,13 @@ export function LoginForm({
         localStorage.setItem("displayCurrency", data.displayCurrency);
       }
 
+      // Si el login vino desde la autorización de un asistente de IA, se vuelve ahí.
+      const returnTo = returnToFromLocation();
+
       setTimeout(() => {
-        if (data.tenantId) {
+        if (data.tenantId && returnTo) {
+          window.location.href = returnTo;
+        } else if (data.tenantId) {
           window.location.href = "/dashboard";
         } else {
           window.location.href = "/onboarding";
