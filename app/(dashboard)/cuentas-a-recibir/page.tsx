@@ -19,6 +19,7 @@ import { useClients } from "@/hooks/use-clients";
 import { CollectingReceivableContext, getColumns } from "./columns";
 import { ReceivablesSummary } from "@/components/receivables-summary";
 import { useDateFilter } from "@/context/date-filter-context";
+import { isInSelectedMonth } from "@/lib/month-filter";
 import { useCurrency } from "@/context/currency-context";
 import AddReceivableForm from "./AddReceivableForm";
 import EditReceivableForm from "./EditReceivableForm";
@@ -116,12 +117,19 @@ export default function ReceivablesPage() {
     setReceivables((prev) => prev.map((r) => (r.id === updated.id ? updated : r)));
 
   const handleAdd = (created: Receivable) => {
-    setReceivables((prev) => [created, ...prev]);
+    if (isInSelectedMonth(created.dateUtc, selectedDate)) {
+      setReceivables((prev) => [created, ...prev]);
+    }
     setIsAddDialogOpen(false);
   };
 
   const handleUpdate = (updated: Receivable) => {
-    replaceReceivable(updated);
+    // Si la edición la movió a otro mes, deja de pertenecer a esta lista.
+    if (isInSelectedMonth(updated.dateUtc, selectedDate)) {
+      replaceReceivable(updated);
+    } else {
+      setReceivables((prev) => prev.filter((r) => r.id !== updated.id));
+    }
     setEditingReceivable(null);
   };
 

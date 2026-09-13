@@ -20,6 +20,7 @@ import { getColumns, Expense } from "./columns";
 import { TotalLine } from "@/components/total-line";
 import { ExpenseBreakdownChart } from "@/components/expense-breakdown-chart";
 import { useDateFilter } from "@/context/date-filter-context";
+import { isInSelectedMonth } from "@/lib/month-filter";
 import { useCurrency } from "@/context/currency-context";
 import AddExpenseForm from "./AddExpenseForm";
 import EditExpenseForm from "./EditExpenseForm";
@@ -161,13 +162,19 @@ export default function ExpensePage() {
 
   // ================= CRUD =================
   const handleAddExpense = (newExpenses: Expense[]) => {
-    setExpenses((prev) => [...prev, ...newExpenses]);
+    const visible = newExpenses.filter((e) => isInSelectedMonth(e.date, selectedDate));
+    setExpenses((prev) => [...prev, ...visible]);
     setIsAddDialogOpen(false);
   };
 
   const handleUpdateExpense = (updated: Expense) => {
     const scrollY = window.scrollY
-    setExpenses((prev) => prev.map((e) => (e.id === updated.id ? updated : e)))
+    // Si la edición lo movió a otro mes, deja de pertenecer a esta lista.
+    setExpenses((prev) =>
+      isInSelectedMonth(updated.date, selectedDate)
+        ? prev.map((e) => (e.id === updated.id ? updated : e))
+        : prev.filter((e) => e.id !== updated.id)
+    )
     setEditingExpense(null)
     requestAnimationFrame(() => window.scrollTo(0, scrollY))
   };
