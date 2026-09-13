@@ -19,6 +19,7 @@ import { getColumns, Income, normalizeIncomeType } from "./columns";
 import { TotalLine } from "@/components/total-line";
 import { IncomeByTruckChart } from "@/components/income-by-truck-chart";
 import { useDateFilter } from "@/context/date-filter-context";
+import { isInSelectedMonth } from "@/lib/month-filter";
 import { useCurrency } from "@/context/currency-context";
 import AddIncomeForm from "./AddIncomeForm";
 import EditIncomeForm from "./EditIncomeForm";
@@ -139,13 +140,18 @@ export default function IncomePage() {
 
   // ================= CRUD =================
   const handleAddIncome = (newIncome: Income) => {
-    setIncomes((prev) => [...prev, newIncome]);
+    if (isInSelectedMonth(newIncome.dateUtc, selectedDate)) {
+      setIncomes((prev) => [...prev, newIncome]);
+    }
     setIsAddDialogOpen(false);
   };
 
   const handleUpdateIncome = (updated: Income) => {
+    // Si la edición lo movió a otro mes, deja de pertenecer a esta lista.
     setIncomes((prev) =>
-      prev.map((i) => (i.id === updated.id ? updated : i))
+      isInSelectedMonth(updated.dateUtc, selectedDate)
+        ? prev.map((i) => (i.id === updated.id ? updated : i))
+        : prev.filter((i) => i.id !== updated.id)
     );
     setEditingIncome(null);
   };
