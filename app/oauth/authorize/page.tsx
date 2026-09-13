@@ -85,17 +85,19 @@ export default function AuthorizePage() {
 
   // Traduce cualquier respuesta no exitosa del back a lo que ve el usuario.
   const handleFailure = useCallback(async (response: Response) => {
-    if (response.status === 401) {
-      clearLocalSession()
-      window.location.href = loginUrlReturningHere()
-      return
-    }
     if (response.status === 429) {
       setView({ kind: "error", title: "Demasiados intentos", description: "Esperá un minuto y volvé a intentar la conexión." })
       return
     }
 
     const body: ApiError = await response.json().catch(() => ({}))
+    // 401 sin código OAuth = no hay sesión. Con código (ej. invalid_client) es un error del
+    // pedido: mandar al login lo haría volver acá y entrar en loop.
+    if (response.status === 401 && !body.error) {
+      clearLocalSession()
+      window.location.href = loginUrlReturningHere()
+      return
+    }
     if (body.error === "owner_required") {
       setView({ kind: "owner-required" })
       return
