@@ -20,7 +20,8 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
-import { Check, Copy, RefreshCw, Trash2, Users, Tag, Lock } from "lucide-react"
+import { Bot, Check, Copy, RefreshCw, Trash2, Users, Tag, Lock } from "lucide-react"
+import { AiConnectionsSection } from "@/components/ai-connections-section"
 import type { ExpenseCategory } from "@/types/expense-category"
 
 type JoinCode = { code: string; expiresAtUtc: string }
@@ -473,6 +474,7 @@ export default function ConfiguracionPage() {
     { id: "equipo", label: "Equipo", icon: Users },
     { id: "categorias", label: "Categorías", icon: Tag },
     { id: "seguridad", label: "Seguridad", icon: Lock },
+    { id: "asistentes", label: "Asistentes IA", icon: Bot },
   ]
 
   return (
@@ -507,6 +509,7 @@ export default function ConfiguracionPage() {
           {activeSection === "equipo" && <InviteCodeSection />}
           {activeSection === "categorias" && <CategoriesSection />}
           {activeSection === "seguridad" && <ChangePasswordSection />}
+          {activeSection === "asistentes" && <AiConnectionsSection />}
         </div>
       </div>
     </div>

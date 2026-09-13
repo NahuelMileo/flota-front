@@ -313,6 +313,7 @@ Status API (string): `"Scheduled"`, `"InProgress"`, `"Completed"`, `"Cancelled"`
 - Usa `fetchWithSession` (`lib/api.ts`): igual que `fetchWithAuth` pero sin redirigir sola al login; ante 401 limpia la sesión local y va a `/login?returnTo=<esta URL>`
 - `returnTo` (`lib/return-to.ts`): login y GuestGuard solo aceptan paths del mismo origen con pathname `/oauth/authorize` (evita open redirect)
 - `next.config.ts` agrega `X-Frame-Options: DENY` y `frame-ancestors 'none'` en `/oauth/*` (anti-clickjacking)
+- **Configuración → Asistentes IA** (`components/ai-connections-section.tsx`): muestra la URL del conector (`NEXT_PUBLIC_API_URL` + `/mcp`) para pegar en ChatGPT/Claude y lista las conexiones activas (`GET /api/mcp/connections`: cliente, dominio verificado, quién conectó, alta y último uso). **Desconectar** → `DELETE /api/mcp/connections/{id}` con AlertDialog; corta el acceso en la siguiente pregunta del asistente. Solo Owner: con 403 muestra un mensaje en lugar de la lista
 
 ---
 
