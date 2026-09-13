@@ -80,3 +80,36 @@ export async function fetchWithAuth(url: string, options: RequestInit = {}): Pro
 
   return res;
 }
+
+/*
+  Como fetchWithAuth, pero si la sesión no se puede renovar NO manda al login: devuelve el 401
+  para que la pantalla decida. La autorización de asistentes de IA lo necesita, porque después
+  del login tiene que volver a sí misma con todos sus parámetros (fetchWithAuth iría a /login
+  a secas y el pedido de ChatGPT/Claude se perdería).
+*/
+export async function fetchWithSession(url: string, options: RequestInit = {}): Promise<Response> {
+  if (url.startsWith('/')) url = apiUrl(url);
+
+  const send = () =>
+    fetch(url, {
+      ...options,
+      credentials: "include",
+      headers: {
+        "Content-Type": "application/json",
+        ...options.headers,
+      },
+    });
+
+  let res = await send();
+  if (res.status === 401) {
+    const refreshed = await fetch(apiUrl("/api/auth/refresh"), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+    });
+    if (refreshed.ok) {
+      res = await send();
+    }
+  }
+  return res;
+}
