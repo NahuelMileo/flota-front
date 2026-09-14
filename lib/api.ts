@@ -113,3 +113,12 @@ export async function fetchWithSession(url: string, options: RequestInit = {}): 
   }
   return res;
 }
+
+/**
+ * Mensaje de error de una respuesta del back: `{ message }` de ExceptionMiddleware o el
+ * `title` de un ProblemDetails de validación. Si no hay nada legible, usa el fallback.
+ */
+export async function errorMessage(res: Response, fallback: string): Promise<string> {
+  const body = await res.json().catch(() => null)
+  return body?.message || body?.title || fallback
+}

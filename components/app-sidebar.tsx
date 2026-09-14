@@ -24,6 +24,7 @@ import {
   Settings2Icon,
   Wrench,
   Users,
+  CalendarClock,
 } from "lucide-react";
 import { useLayoutEffect, useState } from "react";
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
@@ -59,6 +60,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           { title: "Viajes", url: "/trips", icon: <MapPin /> },
           { title: "Camiones", url: "/camiones", icon: <TruckIcon /> },
           { title: "Mantenimientos", url: "/mantenimientos", icon: <Wrench /> },
+          { title: "Vencimientos", url: "/vencimientos", icon: <CalendarClock /> },
         ],
       },
       {

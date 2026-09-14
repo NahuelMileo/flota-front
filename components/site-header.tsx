@@ -6,7 +6,7 @@ import { useCurrency } from "@/context/currency-context";
 import { usePathname } from "next/navigation";
 import { DatePicker } from "./ui/date-picker";
 import type { DisplayCurrency } from "@/lib/format";
-import { MaintenanceNotificationsBell } from "@/components/notifications/maintenance-notifications-bell";
+import { NotificationsBell } from "@/components/notifications/notifications-bell";
 import { ThemeToggle } from "@/components/theme-toggle";
 
 const CURRENCIES: DisplayCurrency[] = ["USD", "BRL", "UYU"];
@@ -21,6 +21,7 @@ const PAGE_TITLES: Record<string, string> = {
   "/ingresos": "Ingresos",
   "/egresos": "Egresos",
   "/costos": "Costos fijos",
+  "/vencimientos": "Vencimientos",
   "/clientes": "Clientes",
   "/configuracion": "Configuración",
 };
@@ -98,7 +99,7 @@ export function SiteHeader() {
             onChange={(d) => setSelectedDate(d ?? null)}
           />
           <ThemeToggle />
-          <MaintenanceNotificationsBell />
+          <NotificationsBell />
         </div>
       </div>
     </header>

@@ -1,8 +1,8 @@
 "use client"
 
 import { createContext, useCallback, useContext, useEffect, useState } from "react"
-import * as signalR from "@microsoft/signalr"
-import { fetchWithAuth, apiUrl } from "@/lib/api"
+import { fetchWithAuth } from "@/lib/api"
+import { useRealtimeEvent } from "@/context/realtime-context"
 import { toast } from "sonner"
 import type { MaintenanceAlert } from "@/types/maintenance-alert"
 
@@ -33,10 +33,9 @@ interface MaintenanceAlertsContextType {
 
 const MaintenanceAlertsContext = createContext<MaintenanceAlertsContextType | null>(null)
 
-// Conexión SignalR única compartida por toda la sesión del dashboard: el hub solo
-// avisa "algo cambió para tu tenant" (sin payload), y acá reaccionamos refetcheando
-// el mismo GET que ya se usaba antes — así los datos que se muestran siempre vienen
-// de la fuente de verdad (REST), nunca del mensaje del socket.
+// El hub solo avisa "algo cambió para tu tenant" (sin payload), y acá reaccionamos
+// refetcheando el mismo GET — así los datos que se muestran siempre vienen de la fuente
+// de verdad (REST), nunca del mensaje del socket. La conexión vive en RealtimeProvider.
 export function MaintenanceAlertsProvider({ children }: { children: React.ReactNode }) {
   const [alerts, setAlerts] = useState<MaintenanceAlert[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -61,30 +60,9 @@ export function MaintenanceAlertsProvider({ children }: { children: React.ReactN
 
   useEffect(() => {
     fetchAlerts()
-
-    const connection = new signalR.HubConnectionBuilder()
-      .withUrl(apiUrl("/hubs/maintenance-alerts"), { withCredentials: true })
-      .withAutomaticReconnect()
-      .build()
-
-    connection.on("MaintenanceAlertsChanged", () => {
-      fetchAlerts()
-    })
-
-    // React StrictMode (dev) monta cada efecto dos veces (monta -> limpia -> monta):
-    // si el cleanup llamara stop() de forma sincrónica, cortaría la negociación de la
-    // primera conexión a mitad de camino ("stopped during negotiation" / "Load failed").
-    // Encadenar el stop() al propio start() (con .finally) asegura que solo se cierre
-    // una vez que terminó de conectar (o de fallar), nunca a mitad de la negociación.
-    const startPromise = connection.start().catch(() => {
-      // Si el hub no está disponible, la campanita sigue funcionando con el fetch
-      // inicial; simplemente no se actualiza en tiempo real hasta reconectar.
-    })
-
-    return () => {
-      startPromise.finally(() => connection.stop())
-    }
   }, [fetchAlerts])
+
+  useRealtimeEvent("MaintenanceAlertsChanged", fetchAlerts)
 
   const markAsRead = useCallback(async (id: string) => {
     const previous = alerts
