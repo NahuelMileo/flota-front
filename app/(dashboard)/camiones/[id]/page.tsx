@@ -35,10 +35,11 @@ import {
 } from "@/components/ui/dialog"
 import EditIncomeForm from "@/app/(dashboard)/ingresos/EditIncomeForm"
 import EditExpenseForm from "@/app/(dashboard)/egresos/EditExpenseForm"
-import type { Income } from "@/app/(dashboard)/ingresos/columns"
+import { normalizeIncomeType, type Income } from "@/app/(dashboard)/ingresos/columns"
 import type { Expense } from "@/app/(dashboard)/egresos/columns"
 import type { Truck } from "@/types/truck"
 import { useOdometerReadings } from "@/hooks/use-odometer-readings"
+import { TruckDueDates } from "@/components/due-dates/truck-due-dates"
 
 type Trip = {
   id: string
@@ -59,6 +60,13 @@ const tripStatusLabels: Record<string, string> = {
   InProgress: "En progreso",
   Completed: "Completado",
   Cancelled: "Cancelado",
+}
+
+// Mismos colores que la columna Moneda de /ingresos.
+const currencyColorMap: Record<string, string> = {
+  USD: "text-blue-600 border-blue-300 bg-blue-50 dark:border-blue-900 dark:bg-blue-950/40 dark:text-blue-400",
+  BRL: "border-success-border bg-success-surface text-success",
+  UYU: "text-purple-600 border-purple-300 bg-purple-50 dark:border-purple-900 dark:bg-purple-950/40 dark:text-purple-400",
 }
 
 const tripStatusColorMap: Record<string, string> = {
@@ -91,7 +99,7 @@ function buildTripColumns(): ColumnDef<Trip>[] {
       header: "Km",
       cell: ({ row }) => {
         const km = row.getValue("kilometers") as number | null
-        return km != null ? `${km.toLocaleString("es-UY")} km` : <span className="text-muted-foreground">—</span>
+        return km != null ? <span className="tabular-nums">{km.toLocaleString("es-UY")} km</span> : <span className="text-muted-foreground">—</span>
       },
     },
     {
@@ -133,14 +141,27 @@ function buildIncomeColumns(
     {
       accessorKey: "value",
       header: "Valor",
-      cell: ({ row }) => formatCurrency(getDisplayValue(row.original), displayCurrency),
+      cell: ({ row }) => (
+        <span className="font-medium tabular-nums text-success">
+          {formatCurrency(getDisplayValue(row.original), displayCurrency)}
+        </span>
+      ),
+    },
+    {
+      accessorKey: "currency",
+      header: "Moneda",
+      cell: ({ row }) => (
+        <Badge variant="outline" className={currencyColorMap[row.original.currency] ?? ""}>
+          {row.original.currency}
+        </Badge>
+      ),
     },
     {
       accessorKey: "type",
       header: "Categoría",
       cell: ({ row }) => {
-        const type = row.getValue("type") as string
-        return type === "1"
+        // La API manda "Freight"/"Other": sin normalizar, todo salía como "Otro".
+        return normalizeIncomeType(row.getValue("type") as string) === "1"
           ? <Badge variant="outline" className="border-success-border bg-success-surface text-success">Flete</Badge>
           : <Badge variant="outline">Otro</Badge>
       },
@@ -204,7 +225,11 @@ function buildExpenseColumns(
     {
       accessorKey: "value",
       header: "Valor",
-      cell: ({ row }) => formatCurrency(getDisplayValue(row.original), displayCurrency),
+      cell: ({ row }) => (
+        <span className="font-medium tabular-nums text-danger">
+          {formatCurrency(getDisplayValue(row.original), displayCurrency)}
+        </span>
+      ),
     },
     {
       accessorKey: "categoryName",
@@ -223,7 +248,15 @@ function buildExpenseColumns(
       header: "Km",
       cell: ({ row }) => {
         const km = row.getValue("kilometers") as number | null
-        return km != null ? km.toLocaleString("es-UY") : <span className="text-muted-foreground">—</span>
+        return km != null ? <span className="tabular-nums">{km.toLocaleString("es-UY")}</span> : <span className="text-muted-foreground">—</span>
+      },
+    },
+    {
+      accessorKey: "liters",
+      header: "Litros",
+      cell: ({ row }) => {
+        const liters = row.original.liters
+        return liters != null ? <span className="tabular-nums">{liters.toLocaleString("es-UY")}</span> : <span className="text-muted-foreground">—</span>
       },
     },
     {
@@ -534,6 +567,8 @@ export default function TruckDetailPage() {
           )}
         </>
       )}
+
+      <TruckDueDates truckId={id} />
 
       <section className="flex flex-col gap-3">
         <h2 className="border-b pb-2 font-semibold">Viajes</h2>

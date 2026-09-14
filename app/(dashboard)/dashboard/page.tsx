@@ -9,6 +9,7 @@ import { MonthBalance } from "@/components/month-balance"
 import { MonthlyComparisonChart } from "@/components/monthly-comparison-chart"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Refreshing } from "@/components/refreshing"
+import { UpcomingDueDates } from "@/components/due-dates/upcoming-due-dates"
 
 type MonthlyTotal = {
   month: number
@@ -120,6 +121,7 @@ export default function DashboardPage() {
           <MonthlyComparisonChart data={monthlyData} />
         </Refreshing>
       )}
+      <UpcomingDueDates />
     </div>
   )
 }

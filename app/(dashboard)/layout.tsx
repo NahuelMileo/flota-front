@@ -8,13 +8,17 @@ import {
 import { DateFilterProvider } from "@/context/date-filter-context"
 import { CurrencyProvider } from "@/context/currency-context"
 import { MaintenanceAlertsProvider } from "@/context/maintenance-alerts-context"
+import { RealtimeProvider } from "@/context/realtime-context"
+import { DueDateRemindersProvider } from "@/context/due-date-reminders-context"
 
 export default function DashboardLayout({children} : {children:React.ReactNode}) {
   return (
     <AuthGuard>
       <CurrencyProvider>
       <DateFilterProvider>
+      <RealtimeProvider>
       <MaintenanceAlertsProvider>
+      <DueDateRemindersProvider>
     <SidebarProvider
       style={
         {
@@ -31,7 +35,9 @@ export default function DashboardLayout({children} : {children:React.ReactNode})
         </div>
       </SidebarInset>
     </SidebarProvider>
+      </DueDateRemindersProvider>
       </MaintenanceAlertsProvider>
+      </RealtimeProvider>
       </DateFilterProvider>
       </CurrencyProvider>
     </AuthGuard>
