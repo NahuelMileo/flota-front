@@ -1,5 +1,7 @@
 # Flota — Mileo Express Fleet Management - Frontend
 
+> Reglas obligatorias para agentes y developers: [`AGENTS.md`](./AGENTS.md). Este archivo describe cada pantalla y el porqué de sus decisiones.
+
 Sistema de gestión de flotas de transporte. Next.js 16 + React 19, shadcn/ui, Tailwind CSS 4, Recharts, React Hook Form + Zod, TanStack Table v8.
 
 **Locale:** es-UY · **Monedas soportadas:** BRL, USD, UYU
@@ -40,8 +42,7 @@ Sistema de gestión de flotas de transporte. Next.js 16 + React 19, shadcn/ui, T
 
 ## Dashboard (`/dashboard`)
 
-- KPI cards (4): Total Ingresos, Total Egresos, Balance Neto, Costo/km
-- Variación % vs mes anterior (verde/rojo) en ingreso y egreso
+- Balance del mes con `MonthBalance` (utilidad, margen, barra y composición ingresos/egresos con variación % vs mes anterior) — sin cards
 - Gráfico de barras: comparativa últimos 6 meses (ingresos vs egresos)
 - Filtro por mes/año (DateFilterContext compartido con todo el dashboard)
 - Skeletons de carga para cada métrica
@@ -59,9 +60,8 @@ Sistema de gestión de flotas de transporte. Next.js 16 + React 19, shadcn/ui, T
 ### Detalle de camión (`/camiones/[id]`)
 
 - Header: matrícula, modelo, año, botón volver, link "Costos fijos"
-- KPI cards (3): Total Ingresos, Total Egresos, Balance Neto del camión
-- Métricas fila 1 (3): Total km (con conteo de viajes), Costo/km (egresos/km de viajes), Ingreso/km
-- Métricas fila 2 (condicional): Costo/km desde costos fijos (`monthlyCost / estimatedMonthlyKm`), Km actual (con "Hace X días" si hay `lastKmUpdatedAt`), Km mensuales estimados
+- Balance del camión con `MonthBalance`; km, costo/km, ingreso/km, costo/km desde costos fijos (`monthlyCost / estimatedMonthlyKm`), km actual y km mensuales estimados van como `<dl>` en línea — sin cards
+- Sección **Vencimientos** (`components/due-dates/truck-due-dates.tsx`): pendientes del camión, vencidos y próximos 365 días (`GET /api/due-dates/upcoming?days=365&truckId=`), con estado y avisos. "Nuevo vencimiento" abre el Sheet con el camión precargado y cada fila lleva al calendario en esa fecha. No depende del mes elegido
 - Tabla de viajes del camión (filtrada por truckId)
 - Tabla de ingresos del camión
 - Tabla de egresos del camión
@@ -79,7 +79,7 @@ Sistema de gestión de flotas de transporte. Next.js 16 + React 19, shadcn/ui, T
 
 - Filtros: por camión, por estado, y checkbox "Solo viajes abiertos" (InProgress) — activo por defecto muestra todos
 - Viajes con estado InProgress o Scheduled siempre se muestran independientemente del filtro de mes
-- Stats cards: total de viajes, kilómetros totales
+- Cantidad de viajes y km recorridos como línea de contexto sobre la tabla — sin cards
 - Tabla: Salida, Ruta (origen → destino), Camión, Chofer, Km, Estado (badge con color), Acciones
 - Alta: fecha salida, fecha llegada, origen, destino, camión (required), chofer, km, estado, notas → POST `/api/trips`
 - Edición: mismos campos → PUT `/api/trips/{id}`
@@ -94,14 +94,14 @@ Sistema de gestión de flotas de transporte. Next.js 16 + React 19, shadcn/ui, T
 - Sección ingresos: lista + botón agregar ingreso (dialog)
 - Sección egresos: lista + botón agregar egreso (dialog)
 - Tabla de breakdown de egresos por tipo (%, monto)
-- FuelEfficiencyCard: km/L, costo/km, precio/L, tendencia, gráfico, tabla detalle
+- `FuelEfficiency`: km/L, costo/km, precio/L, tendencia, gráfico, tabla detalle
 
 ---
 
 ## Ingresos (`/ingresos`)
 
 - Filtros: por camión, por tipo (Flete / Otro)
-- KPI card: total ingresos con variación %
+- Total con `TotalLine` (cifra, conteo y variación %) — sin card
 - Gráfico: ingresos por camión (barras, ordenado desc, "Sin asignar" para sin camión)
 - Tabla: Descripción, Valor (en moneda de visualización), Moneda original (badge), Camión (badge), Fecha, Tipo (badge), Acciones
 - Alta: descripción, valor, fecha, camión (opcional), tipo (Flete/Otro), moneda (BRL/USD/UYU) → POST `/api/incomes`
@@ -120,7 +120,7 @@ Sistema de gestión de flotas de transporte. Next.js 16 + React 19, shadcn/ui, T
 - Las categorías se administran (CRUD) desde `/configuracion`
 - Filtros: por camión, por categoría (`expenseCategoryId`)
 - Filtro por camión también coincide por `truckLicensePlate` cuando `truckId` es null
-- KPI card: Total Egresos con variación % (si hay camión seleccionado, suma el costo fijo mensual del summary)
+- Total con `TotalLine` (si hay camión seleccionado, suma el costo fijo mensual del summary) — sin card
 - Gráfico: egresos por categoría (barras, ordenado desc)
 - Tabla: Nombre, Tipo (badge con `categoryName`), Valor (en moneda de visualización), Camión, Fecha, Km, Litros, Acciones
 - Alta: nombre (opcional), valor, fecha, camión (opcional), categoría, moneda (BRL/USD/UYU), km y litros solo si la categoría es combustible → POST `/api/expenses`
@@ -271,14 +271,14 @@ Status API (string): `"Scheduled"`, `"InProgress"`, `"Completed"`, `"Cancelled"`
 
 - Lista de templates de costos fijos de la empresa (scope: `PerTruck` | `CompanyWide`)
 - CRUD de templates → GET/POST/PUT/DELETE `/api/costs/templates`
-- KPIs: Total mensual, Por camión, Toda la empresa — todos en moneda de visualización
+- Resumen con `ProportionSummary` en moneda de visualización — sin cards
 - Link a "Vista mensual" del mes actual
 
 ### Vista mensual (`/costos/mensual?month=2026-04`)
 
 - Una sola llamada: GET `/api/costs/monthly?month=X&year=Y` (sin truckId = todas las entries del tenant)
 - Entries agrupadas por `truckId`; `truckId === null` → bucket "Sin camión"
-- KPIs: Total, Pagado, Pendiente — todos en moneda de visualización
+- Resumen con `ProportionSummary` (total, pagado, pendiente) en moneda de visualización — sin cards
 - Por grupo: subtotal pagado/total + costo/km si el camión tiene `estimatedMonthlyKm`
 - Badge "Falta configurar" si el camión no tiene `estimatedMonthlyKm`
 - Marcar pagado: PATCH `/api/costs/entries/{id}` `{ isPaid }`
@@ -293,6 +293,26 @@ Status API (string): `"Scheduled"`, `"InProgress"`, `"Completed"`, `"Cancelled"`
 - Tipos: `Maintenance` y `MaintenanceConcept` en `types/maintenance.ts`; hook `use-maintenance-concepts.ts`
 - `Maintenance` sigue el patrón multi-moneda (`value`, `valueUSD`, `valueBRL`, `valueUYU`)
 - Se vincula a una categoría de egreso (`expenseCategoryId`) y opcionalmente a un egreso (`expenseId`) o viaje (`tripId`) existente
+
+---
+
+## Vencimientos (`/vencimientos`)
+
+- Reemplaza Google Calendar para seguros, SUCTA, libretas de propiedad, habilitaciones MTOP y otros trámites. Backend: `flota-back/docs/due-dates.md`
+- **Vista calendario** (`components/due-dates/month-calendar.tsx`): grilla mensual armada con date-fns (semana arranca el lunes), sin librería de calendario ni marco exterior. **Cada vencimiento se pinta con el color del camión** (`truckColor`, el mismo del ABM y de cuentas a recibir, texto con `readableTextColor`); los de la empresa o de camiones sin color van en gris. Como el color es del camión, el estado va como ícono: triángulo + anillo rojo si está vencido, reloj si está en aviso, tilde y tachado si está hecho. En la lista y el Dashboard la matrícula usa `components/due-dates/truck-plate.tsx`. Click en un día → Sheet de alta con esa fecha; click en un chip → Sheet de edición con "Marcar como hecho"/"Reabrir" y "Eliminar". Pide `GET /api/due-dates?from&to&truckId` con el rango visible de la grilla
+- **Vista lista:** `DataTable` con los del mes. Es la vista por defecto en el celular (7 columnas no entran)
+- `?fecha=yyyy-MM-dd` (desde la campanita o el Dashboard) mueve el calendario a ese mes y resalta el día; `?vista=lista` abre la lista
+- Formulario `components/due-dates/due-date-form.tsx`: tipo, título (obligatorio solo si es "Otro"), camión o "Empresa", fecha, avisos (chips 30/15/7/3/1 + días a mano, máx. 5, default 7 y 1) y notas
+- **El estado lo calcula el backend** (`Scheduled`, `Upcoming`, `DueToday`, `Overdue`, `Completed`) con la fecha de hoy en Montevideo; el front solo lo muestra. Colores y labels en `lib/due-date-format.ts` (`DUE_DATE_STATUS_TONE`, `DUE_DATE_STATUS_LABELS`)
+- **Fechas:** `dueOn` es `yyyy-MM-dd`. Nunca `new Date("2026-09-20")` (UTC → en Uruguay cae el día anterior): usar `parseIsoDate` / `toIsoDate`
+- **Campanita** (`components/notifications/notifications-bell.tsx`): una sola para mantenimientos y vencimientos, con dos secciones y el contador sumado; abre en la sección que tiene algo sin leer. Los avisos salen de `DueDateRemindersProvider` (`context/due-date-reminders-context.tsx`, `GET /api/due-dates/notifications`), que también refetchea al volver a la pestaña porque el cambio de día no dispara ningún evento. **Lo leído es por usuario** (lo guarda el back por usuario): si el dueño marca un aviso como leído, a otro usuario de la empresa le sigue apareciendo sin leer. Un aviso leído vuelve a quedar sin leer cuando pasa de etapa (7 días → 1 día → hoy → vencido)
+- **Dashboard:** `components/due-dates/upcoming-due-dates.tsx` debajo del gráfico (`GET /api/due-dates/upcoming?days=30`). Sin cards, como el resto: `<h2>` con divisoria y link "Ver calendario", un `<dl>` en línea (vencidos, hoy, esta semana, próximos 30 días) y la lista de los próximos 5 con divisorias horizontales. No depende del mes elegido en el header
+
+### DueDate
+```
+{ id, type, title?, dueOn, truckId?, truckLicensePlate?, truckColor?, notes?, reminderDaysBefore[], completedAt?, daysRemaining, status, isRead }
+```
+- `type` (API string): `"Insurance"` | `"Sucta"` | `"PropertyTitle"` | `"MtopPermit"` | `"Other"`
 
 ---
 
@@ -330,5 +350,6 @@ Status API (string): `"Scheduled"`, `"InProgress"`, `"Completed"`, `"Cancelled"`
 - **Formularios:** React Hook Form + Zod en todos los CRUD; campos numéricos opcionales usan `setValueAs` (no `valueAsNumber`) para evitar conflictos con el resolver
 - **Enum normalización en formularios de edición:** la API devuelve strings (`"Freight"`, `"InProgress"`) — siempre normalizar antes de usar como defaultValue en selects numéricos (`normalizeIncomeType`, mapeo de status en EditTripForm)
 - **Tipos compartidos:** `types/truck.ts`, `types/costs.ts`, `types/expense-category.ts` — no duplicar tipos localmente
+- **Tiempo real:** `RealtimeProvider` (`context/realtime-context.tsx`) abre **una** conexión SignalR para todo el dashboard; cada pantalla se suscribe con `useRealtimeEvent("MaintenanceAlertsChanged" | "DueDatesChanged", refetch)`. Los eventos no traen datos: siempre se refetchea el GET
 - **Notificaciones:** `sonner` (toast) — `position` y `richColors` se configuran globalmente en el `<Toaster />` de `app/layout.tsx`; no pasarlos por llamada
 - **Monitoreo:** Sentry (`sentry.client.config.ts`, `sentry.server.config.ts`)
