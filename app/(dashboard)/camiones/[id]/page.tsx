@@ -13,6 +13,7 @@ import { MonthBalance } from "@/components/month-balance"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { ConfirmDeleteAction } from "@/components/confirm-delete-action"
 import { DataTable, DataTableSkeleton } from "@/components/data-table"
 import { ColumnDef } from "@tanstack/react-table"
 import type { ExpenseCategory } from "@/types/expense-category"
@@ -212,7 +213,7 @@ function buildIncomeColumns(
 
 function buildExpenseColumns(
   onEdit: (expense: Expense) => void,
-  onDelete: (expense: Expense) => void,
+  onDelete: (expense: Expense) => Promise<void>,
   displayCurrency: import("@/lib/format").DisplayCurrency,
   getDisplayValue: (item: { value: number; valueUSD?: number | null; valueBRL?: number | null; valueUYU?: number | null }) => number,
 ): ColumnDef<Expense>[] {
@@ -287,9 +288,7 @@ function buildExpenseColumns(
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                   <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                  <AlertDialogAction variant="destructive" onClick={() => onDelete(expense)}>
-                    Eliminar
-                  </AlertDialogAction>
+                  <ConfirmDeleteAction onConfirm={() => onDelete(expense)} />
                 </AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>
