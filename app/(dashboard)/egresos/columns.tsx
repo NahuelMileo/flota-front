@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button";
 import { Pencil, Trash2 } from "lucide-react";
 import {
   AlertDialog,
-  AlertDialogAction,
   AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
@@ -14,6 +13,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
+import { ConfirmDeleteAction } from "@/components/confirm-delete-action";
 import { formatCurrency, formatDate, DisplayCurrency } from "@/lib/format";
 
 export type Expense = {
@@ -46,7 +46,7 @@ function getDisplayValue(
 
 export function getColumns(
   onEdit: (expense: Expense) => void,
-  onDelete: (expense: Expense) => void,
+  onDelete: (expense: Expense) => Promise<void>,
   displayCurrency: DisplayCurrency = "BRL",
 ): ColumnDef<Expense>[] {
   return [
@@ -155,12 +155,7 @@ export function getColumns(
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                   <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                  <AlertDialogAction
-                    variant="destructive"
-                    onClick={() => onDelete(expense)}
-                  >
-                    Eliminar
-                  </AlertDialogAction>
+                  <ConfirmDeleteAction onConfirm={() => onDelete(expense)} />
                 </AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>

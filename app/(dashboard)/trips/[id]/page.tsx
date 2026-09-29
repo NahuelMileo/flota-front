@@ -9,6 +9,7 @@ import type { Truck } from "@/types/truck";
 import type { ExpenseCategory } from "@/types/expense-category";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { ConfirmDeleteAction } from "@/components/confirm-delete-action";
 import { ArrowLeft, Edit2, Trash2, Pencil } from "lucide-react";
 import {
   AlertDialog,
@@ -772,12 +773,9 @@ export default function TripDetailPage() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction
-              variant="destructive"
-              onClick={() => deletingExpenseId && handleDeleteExpense(deletingExpenseId)}
-            >
-              Eliminar
-            </AlertDialogAction>
+            <ConfirmDeleteAction
+              onConfirm={() => deletingExpenseId ? handleDeleteExpense(deletingExpenseId) : undefined}
+            />
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
