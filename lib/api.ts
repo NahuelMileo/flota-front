@@ -1,5 +1,5 @@
 export function apiUrl(path: string): string {
-  return `${process.env.NEXT_PUBLIC_API_URL}${path}`;
+  return `${process.env.NEXT_PUBLIC_API_URL ?? ''}${path}`;
 }
 
 function clearSessionAndRedirect(path: string) {
