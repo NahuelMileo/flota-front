@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { formatCurrency, formatDate, DisplayCurrency } from "@/lib/format";
+import { getDisplayValue } from "@/lib/currency";
 
 export type Expense = {
   id: string;
@@ -34,15 +35,6 @@ export type Expense = {
   liters: number | null;
   tripId?: string | null;
 };
-
-function getDisplayValue(
-  item: Pick<Expense, "value" | "valueUSD" | "valueBRL" | "valueUYU">,
-  currency: DisplayCurrency
-): number {
-  if (currency === "USD") return item.valueUSD ?? item.value;
-  if (currency === "UYU") return item.valueUYU ?? item.value;
-  return item.valueBRL ?? item.value;
-}
 
 export function getColumns(
   onEdit: (expense: Expense) => void,

@@ -100,6 +100,7 @@ export default function ReceivablesPage() {
           valueUSD: r.valueUSD,
           valueBRL: r.valueBRL,
           valueUYU: r.valueUYU,
+          currency: r.currency,
         });
         const { collected, pending } = splitDisplayTotal(r, displayTotal);
         return {

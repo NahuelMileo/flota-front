@@ -2,7 +2,8 @@
 
 import { useMemo } from "react";
 import { ArrowUp, ArrowDown } from "lucide-react";
-import { formatCurrency2, formatCurrency, type DisplayCurrency } from "@/lib/format";
+import { formatCurrency2, formatCurrency } from "@/lib/format";
+import { getDisplayValue } from "@/lib/currency";
 import { useCurrency } from "@/context/currency-context";
 
 const FUEL_CATEGORY_NAMES = new Set(["Gasoil", "Arla 32", "Arla32", "Aceite"])
@@ -16,20 +17,12 @@ type Expense = {
   valueUSD?: number | null;
   valueBRL?: number | null;
   valueUYU?: number | null;
+  currency?: string | null;
   kilometers?: number | null;
   liters?: number | null;
   name?: string | null;
   truckId?: string | null;
 };
-
-function getDisplayValue(
-  item: { value: number; valueUSD?: number | null; valueBRL?: number | null; valueUYU?: number | null },
-  currency: DisplayCurrency
-): number {
-  if (currency === "USD") return item.valueUSD ?? item.value;
-  if (currency === "UYU") return item.valueUYU ?? item.value;
-  return item.valueBRL ?? item.value;
-}
 
 type FuelEfficiencyProps = {
   expenses: Expense[];

@@ -27,7 +27,7 @@ Sistema de gestión de flotas de transporte. Next.js 16 + React 19, shadcn/ui, T
 - **Contexto:** `CurrencyProvider` en `context/currency-context.tsx` — provee `displayCurrency`, `setDisplayCurrency`, `getDisplayValue(item)`
 - **Formateo:** `formatCurrency(value, currency)` y `formatCurrency2(value, currency)` en `lib/format.ts`
   - USD → `U$S 518`, BRL → `R$ 3.000`, UYU → `UYU 20.488`
-- `getDisplayValue(item)` elige el campo correcto (`valueUSD`/`valueBRL`/`valueUYU`) con fallback a `value`
+- `getDisplayValue(item)` elige el campo correcto (`valueUSD`/`valueBRL`/`valueUYU`). Si falta, usa `value`/`amount` **solo** si `item.currency` es la moneda elegida; si no, devuelve 0 (nunca suma un monto en otra moneda). Implementación única en `lib/currency.ts`: no duplicarla en componentes; pasá `currency` en el item.
 - **Nunca usar `formatBRL`/`formatBRL2` para mostrar montos** — usar siempre `formatCurrency` con `displayCurrency`
 - Tipos que tienen los 3 campos: `Income`, `Expense`, `CostEntry`, `CostTemplate`
 

@@ -15,16 +15,8 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { formatCurrency, formatDate, DisplayCurrency } from "@/lib/format";
+import { getDisplayValue } from "@/lib/currency";
 import { Maintenance, MaintenanceConcept } from "@/types/maintenance";
-
-function getDisplayValue(
-  item: Pick<Maintenance, "value" | "valueUSD" | "valueBRL" | "valueUYU">,
-  currency: DisplayCurrency
-): number {
-  if (currency === "USD") return item.valueUSD ?? item.value ?? 0;
-  if (currency === "UYU") return item.valueUYU ?? item.value ?? 0;
-  return item.valueBRL ?? item.value ?? 0;
-}
 
 export type MaintenanceRow = Maintenance & { concept: MaintenanceConcept };
 

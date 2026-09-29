@@ -2,15 +2,7 @@
 import { createContext, useCallback, useContext, useEffect, useState } from "react"
 import { fetchWithAuth } from "@/lib/api"
 import { type DisplayCurrency } from "@/lib/format"
-
-interface CurrencyItem {
-  valueUSD?: number | null
-  valueBRL?: number | null
-  valueUYU?: number | null
-  value?: number
-  // CostEntry usa `amount` como valor original en lugar de `value`
-  amount?: number
-}
+import { type CurrencyItem, getDisplayValue as pickDisplayValue } from "@/lib/currency"
 
 interface CurrencyContextType {
   displayCurrency: DisplayCurrency
@@ -49,12 +41,10 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
     } catch {}
   }, [])
 
-  const getDisplayValue = useCallback((item: CurrencyItem): number => {
-    const original = item.value ?? item.amount ?? 0
-    if (displayCurrency === "USD") return item.valueUSD ?? original
-    if (displayCurrency === "UYU") return item.valueUYU ?? original
-    return item.valueBRL ?? original
-  }, [displayCurrency])
+  const getDisplayValue = useCallback(
+    (item: CurrencyItem): number => pickDisplayValue(item, displayCurrency),
+    [displayCurrency],
+  )
 
   return (
     <CurrencyContext.Provider value={{ displayCurrency, setDisplayCurrency, getDisplayValue }}>

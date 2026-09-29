@@ -10,6 +10,7 @@ import { toast } from "sonner"
 import { AlertTriangle, ArrowLeft, Eye, Pencil, Trash2 } from "lucide-react"
 import { useDateFilter } from "@/context/date-filter-context"
 import { MonthBalance } from "@/components/month-balance"
+import type { CurrencyItem } from "@/lib/currency"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -134,7 +135,7 @@ function buildIncomeColumns(
   onEdit: (income: Income) => void,
   onDelete: (income: Income) => void,
   displayCurrency: import("@/lib/format").DisplayCurrency,
-  getDisplayValue: (item: { value: number; valueUSD?: number | null; valueBRL?: number | null; valueUYU?: number | null }) => number,
+  getDisplayValue: (item: CurrencyItem) => number,
 ): ColumnDef<Income>[] {
   return [
     { accessorKey: "description", header: "Descripción" },
@@ -214,7 +215,7 @@ function buildExpenseColumns(
   onEdit: (expense: Expense) => void,
   onDelete: (expense: Expense) => void,
   displayCurrency: import("@/lib/format").DisplayCurrency,
-  getDisplayValue: (item: { value: number; valueUSD?: number | null; valueBRL?: number | null; valueUYU?: number | null }) => number,
+  getDisplayValue: (item: CurrencyItem) => number,
 ): ColumnDef<Expense>[] {
   return [
     {
