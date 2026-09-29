@@ -1,10 +1,10 @@
 import type { DisplayCurrency } from "@/lib/format"
+import { getDisplayValue } from "@/lib/currency"
 import type { FixedCost } from "@/types/costs"
 
 export function getTemplateDisplayAmount(t: FixedCost, currency: DisplayCurrency): number {
-  if (currency === "USD") return t.valueUSD ?? t.amount
-  if (currency === "UYU") return t.valueUYU ?? t.amount
-  return t.valueBRL ?? t.amount
+  // Los costos fijos no traen moneda: el back los registra siempre en reales.
+  return getDisplayValue({ ...t, currency: "BRL" }, currency)
 }
 
 /** Meses que faltan entre el mes actual y el último generado (negativo si ya se cortó). */

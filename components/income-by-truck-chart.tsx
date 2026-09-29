@@ -11,15 +11,7 @@ import {
 } from "recharts";
 import { Income } from "@/app/(dashboard)/ingresos/columns";
 import { formatCurrency, DisplayCurrency } from "@/lib/format";
-
-function getDisplayValue(
-  item: { value: number; valueUSD?: number | null; valueBRL?: number | null; valueUYU?: number | null },
-  currency: DisplayCurrency
-): number {
-  if (currency === "USD") return item.valueUSD ?? item.value;
-  if (currency === "UYU") return item.valueUYU ?? item.value;
-  return item.valueBRL ?? item.value;
-}
+import { getDisplayValue } from "@/lib/currency";
 
 type Props = {
   incomes: Income[];

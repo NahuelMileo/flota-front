@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { formatCurrency, formatDate, DisplayCurrency } from "@/lib/format";
+import { getDisplayValue } from "@/lib/currency";
 import { RECEIVABLE_ITEM_LABELS, type ReceivableItemKind } from "@/types/receivable";
 
 const incomeTypeMap: Record<string, "1" | "2"> = {
@@ -44,15 +45,6 @@ export type Income = {
   receivableKind?: ReceivableItemKind | null;
   receivableClientName?: string | null;
 };
-
-function getDisplayValue(
-  item: Pick<Income, "value" | "valueUSD" | "valueBRL" | "valueUYU">,
-  currency: DisplayCurrency
-): number {
-  if (currency === "USD") return item.valueUSD ?? item.value;
-  if (currency === "UYU") return item.valueUYU ?? item.value;
-  return item.valueBRL ?? item.value;
-}
 
 export function getColumns(
   onEdit: (income: Income) => void,
