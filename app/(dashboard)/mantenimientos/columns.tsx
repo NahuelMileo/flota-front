@@ -107,6 +107,8 @@ export function getColumns(
                   <AlertDialogTitle>¿Eliminar mantenimiento?</AlertDialogTitle>
                   <AlertDialogDescription>
                     Esta acción no se puede deshacer.
+                    {maintenance.expenseId && " También se eliminará el egreso asociado."}
+                    {maintenance.installmentCount && ` También se eliminarán sus ${maintenance.installmentCount} cuotas.`}
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>

@@ -3,6 +3,16 @@
 import { SheetFormActions } from "@/components/sheet-form-actions";
 import { Field, FieldGroup, FieldError } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -37,14 +47,16 @@ const expenseSchema = z.object({
   value: z.number().positive("El valor debe ser mayor a 0"),
   date: z.string().min(1, "La fecha es requerida"),
   truckId: z.string().nullable(),
-  expenseCategoryId: z
-    .string()
-    .nullable()
-    .refine((v) => v !== null && v !== "none", { message: "La categoría es requerida" }),
+  expenseCategoryId: z.string().nullable(),
   currency: z.enum(["USD", "BRL", "UYU"]),
   kilometers: z.number().positive("Debe ser mayor a 0").nullable(),
   liters: z.number().positive("Debe ser mayor a 0").nullable(),
 });
+
+const expenseSchemaWithCategory = expenseSchema.refine(
+  (d) => d.expenseCategoryId !== null && d.expenseCategoryId !== "none",
+  { message: "La categoría es requerida", path: ["expenseCategoryId"] },
+);
 
 type ExpenseFormValues = z.infer<typeof expenseSchema>;
 
@@ -61,6 +73,9 @@ export default function EditExpenseForm({
 }) {
   const [activeTrip, setActiveTrip] = useState<ActiveTrip | null>(null);
   const activeTripRequestId = useRef(0);
+  // Nombre y categoría salen del concepto del mantenimiento: solo se editan desde ahí.
+  const isMaintenance = !!expense.maintenanceId;
+  const [pendingData, setPendingData] = useState<ExpenseFormValues | null>(null);
 
   const fetchActiveTrip = useCallback(async (truckId: string | null) => {
     const requestId = ++activeTripRequestId.current;
@@ -80,7 +95,7 @@ export default function EditExpenseForm({
   }, [expense.truckId, fetchActiveTrip]);
 
   const truckItems = [
-    { label: "Empresa", value: "none" },
+    ...(isMaintenance ? [] : [{ label: "Empresa", value: "none" }]),
     ...trucks.map((t) => ({
       label: `${t.licensePlate}`,
       value: t.id,
@@ -96,7 +111,8 @@ export default function EditExpenseForm({
     watch,
     formState: { errors, isSubmitting },
   } = useForm<ExpenseFormValues>({
-    resolver: zodResolver(expenseSchema),
+    // La categoría de un mantenimiento la define su concepto (puede no tener).
+    resolver: zodResolver(isMaintenance ? expenseSchema : expenseSchemaWithCategory),
     defaultValues: {
       name: expense.name ?? "",
       value: expense.value,
@@ -113,7 +129,15 @@ export default function EditExpenseForm({
   const currentCategory = categories.find((c) => c.id === currentCategoryId);
   const isFuelType = currentCategory ? FUEL_CATEGORY_NAMES.has(currentCategory.name) : false;
 
-  async function onSubmit(data: ExpenseFormValues) {
+  function onSubmit(data: ExpenseFormValues) {
+    if (isMaintenance) {
+      setPendingData(data);
+      return;
+    }
+    return save(data);
+  }
+
+  async function save(data: ExpenseFormValues) {
     try {
       const res = await fetchWithAuth(
         `/api/expenses/${expense.id}`,
@@ -148,11 +172,18 @@ export default function EditExpenseForm({
   return (
     <form onSubmit={handleSubmit(onSubmit)}>
       <FieldGroup>
+        {isMaintenance && (
+          <p className="text-sm text-muted-foreground">
+            Este egreso pertenece a un mantenimiento. Los cambios también se aplicarán al mantenimiento.
+          </p>
+        )}
+
         <Field>
           <Label>Nombre</Label>
           <Input
             {...register("name")}
             placeholder="Ej: Nafta viaje Montevideo"
+            disabled={isMaintenance}
           />
           <FieldError errors={[errors.name]} />
         </Field>
@@ -256,6 +287,7 @@ export default function EditExpenseForm({
             render={({ field }) => (
               <Select
                 items={categoryItems}
+                disabled={isMaintenance}
                 value={field.value ?? null}
                 onValueChange={(value) => field.onChange(value === "none" ? null : value)}
               >
@@ -277,44 +309,67 @@ export default function EditExpenseForm({
           <FieldError errors={[errors.expenseCategoryId]} />
         </Field>
 
-        {isFuelType && (
-          <>
-            <Field>
-              <Label>Kilómetros</Label>
-              <Input
-                {...register("kilometers", {
-                  setValueAs: (v) =>
-                    v === "" || v === null || v === undefined
-                      ? null
-                      : parseFloat(String(v).replace(",", ".")),
-                })}
-                type="number"
-                step="0.01"
-                placeholder="Opcional"
-              />
-              <FieldError errors={[errors.kilometers]} />
-            </Field>
+        {(isFuelType || isMaintenance) && (
+          <Field>
+            <Label>Kilómetros</Label>
+            <Input
+              {...register("kilometers", {
+                setValueAs: (v) =>
+                  v === "" || v === null || v === undefined
+                    ? null
+                    : parseFloat(String(v).replace(",", ".")),
+              })}
+              type="number"
+              step="0.01"
+              placeholder="Opcional"
+            />
+            <FieldError errors={[errors.kilometers]} />
+          </Field>
+        )}
 
-            <Field>
-              <Label>Litros</Label>
-              <Input
-                {...register("liters", {
-                  setValueAs: (v) =>
-                    v === "" || v === null || v === undefined
-                      ? null
-                      : parseFloat(String(v).replace(",", ".")),
-                })}
-                type="number"
-                step="0.01"
-                placeholder="Opcional"
-              />
-              <FieldError errors={[errors.liters]} />
-            </Field>
-          </>
+        {isFuelType && (
+          <Field>
+            <Label>Litros</Label>
+            <Input
+              {...register("liters", {
+                setValueAs: (v) =>
+                  v === "" || v === null || v === undefined
+                    ? null
+                    : parseFloat(String(v).replace(",", ".")),
+              })}
+              type="number"
+              step="0.01"
+              placeholder="Opcional"
+            />
+            <FieldError errors={[errors.liters]} />
+          </Field>
         )}
       </FieldGroup>
 
       <SheetFormActions submitLabel="Guardar cambios" isSubmitting={isSubmitting} />
+
+      <AlertDialog open={!!pendingData} onOpenChange={(open) => { if (!open) setPendingData(null); }}>
+        <AlertDialogContent size="sm">
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Modificar el mantenimiento?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Este egreso pertenece a un mantenimiento. Los cambios también se aplicarán al mantenimiento. ¿Seguro que querés continuar?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                const data = pendingData;
+                setPendingData(null);
+                if (data) save(data);
+              }}
+            >
+              Guardar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </form>
   );
 }
