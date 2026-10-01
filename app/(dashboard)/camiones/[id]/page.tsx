@@ -15,6 +15,8 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { ConfirmDeleteAction } from "@/components/confirm-delete-action"
+import { ExpenseDeleteFooter } from "@/components/expense-delete-footer"
+import { deleteExpense } from "@/lib/driver-salary"
 import { DataTable, DataTableSkeleton } from "@/components/data-table"
 import { ColumnDef } from "@tanstack/react-table"
 import type { ExpenseCategory } from "@/types/expense-category"
@@ -194,6 +196,7 @@ function buildIncomeColumns(
                   <AlertDialogDescription>
                     Esta acción no se puede deshacer. Se eliminará{" "}
                     <span className="font-medium text-foreground">{income.description}</span>.
+                    {income.driverSalaryExpenseId && " También se eliminará el egreso de salario del chofer."}
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
@@ -211,7 +214,7 @@ function buildIncomeColumns(
 
 function buildExpenseColumns(
   onEdit: (expense: Expense) => void,
-  onDelete: (expense: Expense) => Promise<void>,
+  onDelete: (expense: Expense, alsoDeleteIncome: boolean) => Promise<void>,
   displayCurrency: import("@/lib/format").DisplayCurrency,
   getDisplayValue: (item: CurrencyItem) => number,
 ): ColumnDef<Expense>[] {
@@ -284,10 +287,10 @@ function buildExpenseColumns(
                     </span>.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                  <ConfirmDeleteAction onConfirm={() => onDelete(expense)} />
-                </AlertDialogFooter>
+                <ExpenseDeleteFooter
+                  incomeId={expense.incomeId}
+                  onConfirm={(alsoDeleteIncome) => onDelete(expense, alsoDeleteIncome)}
+                />
               </AlertDialogContent>
             </AlertDialog>
           </div>
@@ -347,13 +350,21 @@ export default function TruckDetailPage() {
     if (!res.ok) { const e = await res.json().catch(() => ({})); toast.error(e.message || e.title || "Error al eliminar ingreso"); return }
     toast.success("Ingreso eliminado")
     setAllIncomes((prev) => prev.filter((i) => i.id !== income.id))
+    // El backend borró también su salario de chofer.
+    setAllExpenses((prev) => prev.filter((e) => e.incomeId !== income.id))
   }, [])
 
-  const handleDeleteExpense = useCallback(async (expense: Expense) => {
-    const res = await fetchWithAuth(`/api/expenses/${expense.id}`, { method: "DELETE" })
-    if (!res.ok) { const e = await res.json().catch(() => ({})); toast.error(e.message || e.title || "Error al eliminar egreso"); return }
-    toast.success("Egreso eliminado")
+  const handleDeleteExpense = useCallback(async (expense: Expense, alsoDeleteIncome: boolean) => {
+    try {
+      await deleteExpense(expense, alsoDeleteIncome)
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Error al eliminar egreso")
+      return
+    }
+    const incomeDeleted = alsoDeleteIncome && !!expense.incomeId
+    toast.success(incomeDeleted ? "Egreso e ingreso eliminados" : "Egreso eliminado")
     setAllExpenses((prev) => prev.filter((e) => e.id !== expense.id))
+    if (incomeDeleted) setAllIncomes((prev) => prev.filter((i) => i.id !== expense.incomeId))
   }, [])
 
   const trips = useMemo(() => {
@@ -618,8 +629,15 @@ export default function TruckDetailPage() {
             <EditIncomeForm
               income={editingIncome}
               trucks={trucks}
-              onSuccess={(updated) => {
+              onSuccess={(updated, driverSalary) => {
                 setAllIncomes((prev) => prev.map((i) => i.id === updated.id ? updated : i))
+                if (driverSalary) {
+                  // El salario sigue al ingreso: si el ingreso cambió de camión, sale de esta lista.
+                  setAllExpenses((prev) => [
+                    ...prev.filter((e) => e.id !== driverSalary.id),
+                    ...(driverSalary.truckId === id ? [driverSalary] : []),
+                  ])
+                }
                 setEditingIncome(null)
               }}
             />

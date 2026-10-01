@@ -44,6 +44,9 @@ export type Income = {
   receivableId?: string | null;
   receivableKind?: ReceivableItemKind | null;
   receivableClientName?: string | null;
+  // Egreso "Salario chofer" generado desde este ingreso, si lo hay.
+  driverSalaryExpenseId?: string | null;
+  driverSalaryPercentage?: number | null;
 };
 
 export function getColumns(
@@ -156,6 +159,7 @@ export function getColumns(
                         lo borrás, ese ítem vuelve a figurar como no cobrado.
                       </>
                     )}
+                    {income.driverSalaryExpenseId && " También se eliminará el egreso de salario del chofer."}
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>

@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/sheet";
 import { toast } from "sonner";
 import { fetchWithAuth } from "@/lib/api";
+import { deleteExpense } from "@/lib/driver-salary";
 import { useTrucks } from "@/hooks/use-trucks";
 import type { ExpenseCategory } from "@/types/expense-category";
 import { getColumns, Expense } from "./columns";
@@ -179,16 +180,12 @@ export default function ExpensePage() {
     requestAnimationFrame(() => window.scrollTo(0, scrollY))
   };
 
-  const handleDeleteExpense = useCallback(async (expense: Expense) => {
+  const handleDeleteExpense = useCallback(async (expense: Expense, alsoDeleteIncome: boolean) => {
     try {
-      const res = await fetchWithAuth(
-        `/api/expenses/${expense.id}`,
-        { method: "DELETE" }
-      );
-      if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.message || e.title || "Error al eliminar egreso"); }
+      await deleteExpense(expense, alsoDeleteIncome);
 
       setExpenses((prev) => prev.filter((e) => e.id !== expense.id));
-      toast.success("Egreso eliminado");
+      toast.success(alsoDeleteIncome && expense.incomeId ? "Egreso e ingreso eliminados" : "Egreso eliminado");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Error al eliminar egreso");
     }

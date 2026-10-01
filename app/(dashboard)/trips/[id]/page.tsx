@@ -10,6 +10,8 @@ import type { ExpenseCategory } from "@/types/expense-category";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { ConfirmDeleteAction } from "@/components/confirm-delete-action";
+import { ExpenseDeleteFooter } from "@/components/expense-delete-footer";
+import { deleteExpense } from "@/lib/driver-salary";
 import { ArrowLeft, Edit2, Trash2, Pencil } from "lucide-react";
 import {
   AlertDialog,
@@ -56,6 +58,8 @@ type Income = {
   type: string;
   currency: string;
   tripId?: string | null;
+  driverSalaryExpenseId?: string | null;
+  driverSalaryPercentage?: number | null;
 };
 
 type Expense = {
@@ -75,6 +79,7 @@ type Expense = {
   kilometers: number | null;
   liters: number | null;
   tripId?: string | null;
+  incomeId?: string | null;
 };
 
 type TripDetail = Trip & {
@@ -87,6 +92,24 @@ type TripDetail = Trip & {
   initialKm: number | null;
   finalKm: number | null;
 };
+
+// Recalcula totales, ganancia y costo por km a partir de los ingresos y egresos del viaje.
+function withTotals(trip: TripDetail, incomes: Income[], expenses: Expense[]): TripDetail {
+  const totalIncome = incomes.reduce((sum, i) => sum + i.value, 0);
+  const totalExpense = expenses.reduce((sum, e) => sum + e.value, 0);
+  const tripKm = trip.initialKm != null && trip.finalKm != null
+    ? trip.finalKm - trip.initialKm
+    : trip.kilometers;
+  return {
+    ...trip,
+    incomes,
+    expenses,
+    totalIncome,
+    totalExpense,
+    profit: totalIncome - totalExpense,
+    costPerKm: tripKm && tripKm > 0 ? totalExpense / tripKm : null,
+  };
+}
 
 const tripStatusLabels: Record<string, string> = {
   Scheduled: "Programado",
@@ -119,6 +142,8 @@ export default function TripDetailPage() {
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
   const [deletingIncomeId, setDeletingIncomeId] = useState<string | null>(null);
   const [deletingExpenseId, setDeletingExpenseId] = useState<string | null>(null);
+  const deletingIncome = trip?.incomes.find(i => i.id === deletingIncomeId) ?? null;
+  const deletingExpense = trip?.expenses.find(e => e.id === deletingExpenseId) ?? null;
 
   useEffect(() => {
     const loadData = async () => {
@@ -221,15 +246,22 @@ export default function TripDetailPage() {
     toast.success(newExpenses.length > 1 ? `${newExpenses.length} egresos agregados` : "Egreso agregado");
   };
 
-  const handleEditIncomeSuccess = (updated: IncomeFormType) => {
+  const handleEditIncomeSuccess = (updated: IncomeFormType, driverSalary?: ExpenseFormType) => {
     setTrip(prev => {
       if (!prev) return null;
       const incomes = prev.incomes.map(i => i.id === updated.id ? { ...i, ...updated } : i);
-      const totalIncome = incomes.reduce((sum, i) => sum + i.value, 0);
-      return { ...prev, incomes, totalIncome, profit: totalIncome - prev.totalExpense };
+      if (!driverSalary) {
+        const totalIncome = incomes.reduce((sum, i) => sum + i.value, 0);
+        return { ...prev, incomes, totalIncome, profit: totalIncome - prev.totalExpense };
+      }
+      // El backend recalculó el salario del chofer; si el ingreso dejó este viaje, el salario también.
+      const expenses = [
+        ...prev.expenses.filter(e => e.id !== driverSalary.id),
+        ...(driverSalary.tripId === tripId ? [driverSalary] : []),
+      ];
+      return withTotals(prev, incomes, expenses);
     });
     setEditingIncome(null);
-    toast.success("Ingreso actualizado");
   };
 
   const handleDeleteIncome = async (id: string) => {
@@ -241,9 +273,8 @@ export default function TripDetailPage() {
       if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.message || e.title || "Error al eliminar ingreso"); }
       setTrip(prev => {
         if (!prev) return null;
-        const incomes = prev.incomes.filter(i => i.id !== id);
-        const totalIncome = incomes.reduce((sum, i) => sum + i.value, 0);
-        return { ...prev, incomes, totalIncome, profit: totalIncome - prev.totalExpense };
+        // El backend borró también el salario del chofer de este ingreso.
+        return withTotals(prev, prev.incomes.filter(i => i.id !== id), prev.expenses.filter(e => e.incomeId !== id));
       });
       setDeletingIncomeId(null);
       toast.success("Ingreso eliminado");
@@ -272,30 +303,17 @@ export default function TripDetailPage() {
     toast.success("Egreso actualizado");
   };
 
-  const handleDeleteExpense = async (id: string) => {
+  const handleDeleteExpense = async (expense: Expense, alsoDeleteIncome: boolean) => {
     try {
-      const res = await fetchWithAuth(
-        `/api/expenses/${id}`,
-        { method: "DELETE" }
-      );
-      if (!res.ok) { const err = await res.json().catch(() => ({})); throw new Error(err.message || err.title || "Error al eliminar egreso"); }
+      await deleteExpense(expense, alsoDeleteIncome);
+      const incomeDeleted = alsoDeleteIncome && !!expense.incomeId;
       setTrip(prev => {
         if (!prev) return null;
-        const expenses = prev.expenses.filter(e => e.id !== id);
-        const totalExpense = expenses.reduce((sum, e) => sum + e.value, 0);
-        const tripKm = prev.initialKm != null && prev.finalKm != null
-          ? prev.finalKm - prev.initialKm
-          : prev.kilometers;
-        return {
-          ...prev,
-          expenses,
-          totalExpense,
-          profit: prev.totalIncome - totalExpense,
-          costPerKm: tripKm && tripKm > 0 ? totalExpense / tripKm : null,
-        };
+        const incomes = incomeDeleted ? prev.incomes.filter(i => i.id !== expense.incomeId) : prev.incomes;
+        return withTotals(prev, incomes, prev.expenses.filter(e => e.id !== expense.id));
       });
       setDeletingExpenseId(null);
-      toast.success("Egreso eliminado");
+      toast.success(incomeDeleted ? "Egreso e ingreso eliminados" : "Egreso eliminado");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Error al eliminar egreso");
     }
@@ -748,16 +766,14 @@ export default function TripDetailPage() {
             <AlertDialogTitle>¿Eliminar ingreso?</AlertDialogTitle>
             <AlertDialogDescription>
               Esta acción no se puede deshacer.
+              {deletingIncome?.driverSalaryExpenseId && " También se eliminará el egreso de salario del chofer."}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction
-              variant="destructive"
-              onClick={() => deletingIncomeId && handleDeleteIncome(deletingIncomeId)}
-            >
-              Eliminar
-            </AlertDialogAction>
+            <ConfirmDeleteAction
+              onConfirm={() => deletingIncomeId ? handleDeleteIncome(deletingIncomeId) : undefined}
+            />
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
@@ -771,12 +787,11 @@ export default function TripDetailPage() {
               Esta acción no se puede deshacer.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <ConfirmDeleteAction
-              onConfirm={() => deletingExpenseId ? handleDeleteExpense(deletingExpenseId) : undefined}
-            />
-          </AlertDialogFooter>
+          <ExpenseDeleteFooter
+            key={deletingExpenseId}
+            incomeId={deletingExpense?.incomeId}
+            onConfirm={(alsoDeleteIncome) => deletingExpense ? handleDeleteExpense(deletingExpense, alsoDeleteIncome) : undefined}
+          />
         </AlertDialogContent>
       </AlertDialog>
     </div>

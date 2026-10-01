@@ -4,16 +4,14 @@ import { Button } from "@/components/ui/button";
 import { Pencil, Trash2 } from "lucide-react";
 import {
   AlertDialog,
-  AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
-  AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
-import { ConfirmDeleteAction } from "@/components/confirm-delete-action";
+import { ExpenseDeleteFooter } from "@/components/expense-delete-footer";
 import { formatCurrency, formatDate, DisplayCurrency } from "@/lib/format";
 import { getDisplayValue } from "@/lib/currency";
 
@@ -35,11 +33,13 @@ export type Expense = {
   liters: number | null;
   tripId?: string | null;
   maintenanceId?: string | null;
+  // Presente cuando el egreso es el salario del chofer generado desde un ingreso.
+  incomeId?: string | null;
 };
 
 export function getColumns(
   onEdit: (expense: Expense) => void,
-  onDelete: (expense: Expense) => Promise<void>,
+  onDelete: (expense: Expense, alsoDeleteIncome: boolean) => Promise<void>,
   displayCurrency: DisplayCurrency = "BRL",
 ): ColumnDef<Expense>[] {
   return [
@@ -147,10 +147,10 @@ export function getColumns(
                     {expense.maintenanceId && " También se eliminará el mantenimiento asociado."}
                   </AlertDialogDescription>
                 </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                  <ConfirmDeleteAction onConfirm={() => onDelete(expense)} />
-                </AlertDialogFooter>
+                <ExpenseDeleteFooter
+                  incomeId={expense.incomeId}
+                  onConfirm={(alsoDeleteIncome) => onDelete(expense, alsoDeleteIncome)}
+                />
               </AlertDialogContent>
             </AlertDialog>
           </div>

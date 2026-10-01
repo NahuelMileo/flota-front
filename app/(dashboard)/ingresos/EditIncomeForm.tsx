@@ -19,6 +19,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
 import { Income, normalizeIncomeType } from "./columns";
+import type { Expense } from "@/app/(dashboard)/egresos/columns";
+import { fetchDriverSalary } from "@/lib/driver-salary";
 import { useState, useEffect, useCallback, useRef } from "react";
 
 type ActiveTrip = { id: string; origin: string; destination: string };
@@ -53,8 +55,13 @@ export default function EditIncomeForm({
 }: {
   income: Income;
   trucks: Truck[];
-  onSuccess: (income: Income) => void;
+  /** `driverSalary` llega cuando el ingreso tiene un salario de chofer: el backend lo recalculó. */
+  onSuccess: (income: Income, driverSalary?: Expense) => void;
 }) {
+  const hasDriverSalary = !!income.driverSalaryExpenseId;
+  const [driverPercentage, setDriverPercentage] = useState(income.driverSalaryPercentage ?? 15);
+  const [driverPercentageError, setDriverPercentageError] = useState<string | null>(null);
+
   const [activeTrip, setActiveTrip] = useState<ActiveTrip | null>(null);
   const activeTripRequestId = useRef(0);
 
@@ -101,6 +108,10 @@ export default function EditIncomeForm({
   });
 
   async function onSubmit(data: IncomeFormValues) {
+    if (hasDriverSalary && (driverPercentage <= 0 || driverPercentage > 100)) {
+      setDriverPercentageError("Debe ser mayor a 0 y hasta 100");
+      return;
+    }
     try {
       const res = await fetchWithAuth(
         `/api/incomes/${income.id}`,
@@ -116,15 +127,18 @@ export default function EditIncomeForm({
             // Solo conservar el tripId original si el camión no cambió — si cambió,
             // ese viaje pertenece al camión anterior y no debe reenviarse.
             tripId: activeTrip?.id ?? (data.truckId === income.truckId ? income.tripId : null) ?? null,
+            // El backend recalcula el salario vinculado (valor, fecha, camión, nombre).
+            ...(hasDriverSalary ? { driverSalaryPercentage: driverPercentage } : {}),
           }),
         },
       );
 
       if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.message || e.title || "Error al actualizar"); }
 
-      const updated = await res.json();
-      toast.success("Ingreso actualizado");
-      onSuccess(updated);
+      const updated: Income = await res.json();
+      const driverSalary = await fetchDriverSalary(updated.driverSalaryExpenseId);
+      toast.success(driverSalary ? "Ingreso y salario del chofer actualizados" : "Ingreso actualizado");
+      onSuccess(updated, driverSalary);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Error al actualizar");
     }
@@ -260,6 +274,29 @@ export default function EditIncomeForm({
             )}
           />
         </Field>
+
+        {hasDriverSalary && (
+          <Field>
+            <Label>Porcentaje del chofer (%)</Label>
+            <Input
+              type="number"
+              min={0}
+              max={100}
+              step={0.1}
+              value={driverPercentage}
+              onChange={(e) => {
+                setDriverPercentage(parseFloat(e.target.value) || 0);
+                setDriverPercentageError(null);
+              }}
+            />
+            <p className="text-sm text-muted-foreground">
+              El egreso de salario del chofer se recalcula al guardar.
+            </p>
+            {driverPercentageError && (
+              <p className="text-sm text-destructive">{driverPercentageError}</p>
+            )}
+          </Field>
+        )}
       </FieldGroup>
 
       <SheetFormActions submitLabel="Guardar cambios" isSubmitting={isSubmitting} />

@@ -23,6 +23,7 @@ import { Income } from "./columns";
 import { Expense } from "@/app/(dashboard)/egresos/columns";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { Checkbox } from "@/components/ui/checkbox";
+import { fetchDriverSalary } from "@/lib/driver-salary";
 
 type ActiveTrip = { id: string; origin: string; destination: string };
 
@@ -124,9 +125,10 @@ export default function AddIncomeForm({
   const isFlete = currentType === "1";
 
   async function onSubmit(data: IncomeFormValues) {
-    if (createDriverExpense && isFlete) {
-      if (driverPercentage < 0 || driverPercentage > 100) {
-        setDriverPercentageError("Debe estar entre 0 y 100");
+    const withDriverSalary = createDriverExpense && isFlete;
+    if (withDriverSalary) {
+      if (driverPercentage <= 0 || driverPercentage > 100) {
+        setDriverPercentageError("Debe ser mayor a 0 y hasta 100");
         return;
       }
       setDriverPercentageError(null);
@@ -144,52 +146,19 @@ export default function AddIncomeForm({
             type: parseInt(data.type),
             currency: data.currency,
             ...(tripId || activeTrip?.id ? { tripId: tripId ?? activeTrip?.id } : {}),
+            // El backend crea el egreso "Salario chofer (empresa)" vinculado al ingreso,
+            // en la misma operación: si falla uno, no se guarda ninguno.
+            ...(withDriverSalary
+              ? { driverSalaryPercentage: driverPercentage, driverSalaryCategoryId: salaryCategoryId }
+              : {}),
           }),
         },
       );
 
       if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.message || e.title || "Error al agregar ingreso"); }
 
-      const result = await res.json();
-
-      let driverExpense: Expense | undefined;
-      if (createDriverExpense && isFlete) {
-        const driverValue = result.value * (driverPercentage / 100);
-        const salaryCategory = categories?.find(c => c.id === salaryCategoryId) ?? null;
-        // El nombre del egreso admite hasta 200 caracteres; la descripción del ingreso, 500.
-        const company = data.description.trim();
-        const salaryName = company
-          ? `Salario chofer (${company.length > 180 ? `${company.slice(0, 179)}…` : company})`
-          : "Salario chofer";
-        try {
-          const expRes = await fetchWithAuth(`/api/expenses`, {
-            method: "POST",
-            body: JSON.stringify({
-              name: salaryName,
-              value: driverValue,
-              date: data.dateUtc,
-              truckId: data.truckId === "none" ? null : data.truckId,
-              currency: data.currency,
-              expenseCategoryId: salaryCategoryId,
-              kilometers: null,
-              liters: null,
-              ...(tripId || activeTrip?.id ? { tripId: tripId ?? activeTrip?.id } : {}),
-            }),
-          });
-          if (expRes.ok) {
-            const expResult = await expRes.json();
-            driverExpense = {
-              ...expResult,
-              categoryName: expResult.categoryName ?? salaryCategory?.name ?? null,
-            };
-          } else {
-            const e = await expRes.json().catch(() => ({}));
-            toast.error(e.message || e.title || "Ingreso creado, pero no se pudo crear el egreso de salario");
-          }
-        } catch (e) {
-          toast.error(e instanceof Error ? e.message : "Ingreso creado, pero no se pudo crear el egreso de salario");
-        }
-      }
+      const result: Income = await res.json();
+      const driverExpense = await fetchDriverSalary(result.driverSalaryExpenseId);
 
       toast.success("Ingreso agregado");
       onSuccess(result, driverExpense);
