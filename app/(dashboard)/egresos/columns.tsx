@@ -34,6 +34,7 @@ export type Expense = {
   kilometers: number | null;
   liters: number | null;
   tripId?: string | null;
+  maintenanceId?: string | null;
 };
 
 export function getColumns(
@@ -143,6 +144,7 @@ export function getColumns(
                       {formatCurrency(getDisplayValue(expense, displayCurrency), displayCurrency)}
                     </span>{" "}
                     de tu registro.
+                    {expense.maintenanceId && " También se eliminará el mantenimiento asociado."}
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
