@@ -156,11 +156,16 @@ export default function AddIncomeForm({
       if (createDriverExpense && isFlete) {
         const driverValue = result.value * (driverPercentage / 100);
         const salaryCategory = categories?.find(c => c.id === salaryCategoryId) ?? null;
+        // El nombre del egreso admite hasta 200 caracteres; la descripción del ingreso, 500.
+        const company = data.description.trim();
+        const salaryName = company
+          ? `Salario chofer (${company.length > 180 ? `${company.slice(0, 179)}…` : company})`
+          : "Salario chofer";
         try {
           const expRes = await fetchWithAuth(`/api/expenses`, {
             method: "POST",
             body: JSON.stringify({
-              name: "Salario chofer",
+              name: salaryName,
               value: driverValue,
               date: data.dateUtc,
               truckId: data.truckId === "none" ? null : data.truckId,
