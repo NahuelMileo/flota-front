@@ -38,6 +38,7 @@ export type Maintenance = {
   currency?: string | null
   notes?: string | null
   expenseId?: string | null
+  installmentCount?: number | null
 }
 
 export type CreateMaintenanceDto = {
@@ -50,4 +51,5 @@ export type CreateMaintenanceDto = {
   truckId: string
   tripId?: string | null
   maintenanceConceptId: string
+  installmentCount?: number
 }

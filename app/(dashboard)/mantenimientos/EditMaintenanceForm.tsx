@@ -33,6 +33,11 @@ const maintenanceSchema = z.object({
   kilometers: z.number().positive("Los km deben ser mayor a 0"),
   value: z.number().nonnegative("El valor no puede ser negativo").optional(),
   currency: z.enum(["BRL", "USD", "UYU"]).optional(),
+  installments: z
+    .number({ message: "Ingresá la cantidad de cuotas" })
+    .int("Debe ser un número entero")
+    .min(1, "Mínimo 1 cuota")
+    .max(60, "Máximo 60 cuotas"),
   notes: z.string().optional(),
 });
 
@@ -83,10 +88,14 @@ export default function EditMaintenanceForm({
           ? maintenance.currency
           : "BRL",
       notes: maintenance.notes || "",
+      installments: maintenance.installmentCount ?? 1,
     },
   });
 
   const value = watch("value");
+  const installments = watch("installments");
+  const installmentAmount =
+    (value ?? 0) > 0 && installments > 1 ? ((value ?? 0) / installments).toFixed(2) : null;
   const conceptItems = concepts.map((c) => ({ label: c.name, value: c.id }));
 
   const onSubmit = async (data: MaintenanceFormValues) => {
@@ -101,6 +110,7 @@ export default function EditMaintenanceForm({
         kilometers: data.kilometers,
         truckId: data.truckId,
         maintenanceConceptId: data.maintenanceConceptId,
+        installmentCount: data.value && data.value > 0 ? data.installments : 1,
       };
 
       const res = await fetchWithAuth(`/api/maintenances/${maintenance.id}`, {
@@ -285,6 +295,29 @@ export default function EditMaintenanceForm({
           />
           {errors.currency && (
             <FieldError>{errors.currency.message}</FieldError>
+          )}
+        </Field>
+      )}
+
+      {/* CUOTAS */}
+      {(value ?? 0) > 0 && (
+        <Field>
+          <Label>Cuotas</Label>
+          <Input
+            type="number"
+            min={1}
+            max={60}
+            {...formRegister("installments", {
+              setValueAs: (v: string) => (v === "" ? undefined : parseInt(v, 10)),
+            })}
+          />
+          {installmentAmount && (
+            <p className="text-xs text-muted-foreground">
+              Se creará un plan de {installments} cuotas mensuales de ${installmentAmount}
+            </p>
+          )}
+          {errors.installments && (
+            <FieldError>{errors.installments.message}</FieldError>
           )}
         </Field>
       )}
