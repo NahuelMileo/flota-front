@@ -142,7 +142,10 @@ function buildIncomeColumns(
   return [
     { accessorKey: "description", header: "Descripción" },
     {
-      accessorKey: "value",
+      // Ordena por lo que se muestra (convertido a la moneda elegida), no por el valor
+      // en su moneda original: mezclar USD, BRL y UYU daba un orden sin sentido.
+      id: "value",
+      accessorFn: (row) => getDisplayValue(row),
       header: "Valor",
       cell: ({ row }) => (
         <span className="font-medium tabular-nums text-success">
@@ -225,7 +228,10 @@ function buildExpenseColumns(
       cell: ({ row }) => row.getValue("name") ?? <span className="text-muted-foreground">—</span>,
     },
     {
-      accessorKey: "value",
+      // Ordena por lo que se muestra (convertido a la moneda elegida), no por el valor
+      // en su moneda original: mezclar USD, BRL y UYU daba un orden sin sentido.
+      id: "value",
+      accessorFn: (row) => getDisplayValue(row),
       header: "Valor",
       cell: ({ row }) => (
         <span className="font-medium tabular-nums text-danger">

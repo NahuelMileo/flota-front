@@ -69,7 +69,10 @@ export function getColumns(
       header: "Km",
     },
     {
-      accessorKey: "value",
+      // Ordena por lo que se muestra (convertido a la moneda elegida), no por el valor
+      // en su moneda original: mezclar USD, BRL y UYU daba un orden sin sentido.
+      id: "value",
+      accessorFn: (row) => getDisplayValue(row, displayCurrency),
       header: "Valor",
       cell: ({ row }) => {
         const value = row.original.value;
