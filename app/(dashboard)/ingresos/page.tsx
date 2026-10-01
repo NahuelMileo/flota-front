@@ -162,12 +162,12 @@ export default function IncomePage() {
         `/api/incomes/${income.id}`,
         { method: "DELETE" }
       );
-      if (!res.ok) throw new Error();
+      if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.message || e.title || "Error al eliminar ingreso"); }
 
       setIncomes((prev) => prev.filter((i) => i.id !== income.id));
       toast.success("Ingreso eliminado");
-    } catch {
-      toast.error("Error al eliminar ingreso");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Error al eliminar ingreso");
     }
   }, []);
 

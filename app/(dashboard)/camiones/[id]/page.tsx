@@ -20,7 +20,6 @@ import { ColumnDef } from "@tanstack/react-table"
 import type { ExpenseCategory } from "@/types/expense-category"
 import {
   AlertDialog,
-  AlertDialogAction,
   AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
@@ -134,7 +133,7 @@ function buildTripColumns(): ColumnDef<Trip>[] {
 
 function buildIncomeColumns(
   onEdit: (income: Income) => void,
-  onDelete: (income: Income) => void,
+  onDelete: (income: Income) => Promise<void>,
   displayCurrency: import("@/lib/format").DisplayCurrency,
   getDisplayValue: (item: CurrencyItem) => number,
 ): ColumnDef<Income>[] {
@@ -199,9 +198,7 @@ function buildIncomeColumns(
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                   <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                  <AlertDialogAction variant="destructive" onClick={() => onDelete(income)}>
-                    Eliminar
-                  </AlertDialogAction>
+                  <ConfirmDeleteAction onConfirm={() => onDelete(income)} />
                 </AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>

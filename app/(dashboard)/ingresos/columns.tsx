@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button";
 import { Pencil, Trash2 } from "lucide-react";
 import {
   AlertDialog,
-  AlertDialogAction,
   AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
@@ -14,6 +13,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
+import { ConfirmDeleteAction } from "@/components/confirm-delete-action";
 import { formatCurrency, formatDate, DisplayCurrency } from "@/lib/format";
 import { getDisplayValue } from "@/lib/currency";
 import { RECEIVABLE_ITEM_LABELS, type ReceivableItemKind } from "@/types/receivable";
@@ -48,7 +48,7 @@ export type Income = {
 
 export function getColumns(
   onEdit: (income: Income) => void,
-  onDelete: (income: Income) => void,
+  onDelete: (income: Income) => Promise<void>,
   displayCurrency: DisplayCurrency = "BRL",
 ): ColumnDef<Income>[] {
   return [
@@ -160,12 +160,7 @@ export function getColumns(
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                   <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                  <AlertDialogAction
-                    variant="destructive"
-                    onClick={() => onDelete(income)}
-                  >
-                    Eliminar
-                  </AlertDialogAction>
+                  <ConfirmDeleteAction onConfirm={() => onDelete(income)} />
                 </AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>
