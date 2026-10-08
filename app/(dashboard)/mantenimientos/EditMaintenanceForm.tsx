@@ -80,7 +80,7 @@ export default function EditMaintenanceForm({
       maintenanceConceptId: maintenance.maintenanceConceptId,
       type: maintenance.type,
       truckId: maintenance.truckId,
-      date: maintenance.date,
+      date: maintenance.date.split("T")[0],
       kilometers: maintenance.kilometers,
       value: maintenance.value || 0,
       currency:
