@@ -1,0 +1,116 @@
+/* Estilos de la landing (/br y /uy). Todo va bajo [data-kmbr] para no
+   tocar el panel. */
+
+[data-kmbr] {
+  position: relative;
+  min-height: 100vh;
+  background: #FAFAF8;
+  color: #0B0C0E;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  /* clip y no hidden: hidden vuelve al div un contenedor de scroll y rompe el sticky de la escena. */
+  overflow-x: clip;
+}
+
+[data-kmbr] *,
+[data-kmbr] *::before,
+[data-kmbr] *::after { box-sizing: border-box; }
+
+[data-kmbr] a { color: #0B0C0E; text-decoration: none; }
+[data-kmbr] a:hover { color: #13865A; }
+[data-kmbr] button { font-family: inherit; }
+[data-kmbr] :focus-visible { outline: 2px solid #13865A; outline-offset: 3px; border-radius: 6px; }
+[data-kmbr] ::selection { background: rgba(19, 134, 90, .3); }
+
+html.lenis, html.lenis body { height: auto; }
+.lenis.lenis-smooth { scroll-behavior: auto !important; }
+
+@keyframes kmPulse { 0%, 100% { opacity: 1; transform: scale(1) } 50% { opacity: .35; transform: scale(.6) } }
+@keyframes kmFloat { 0%, 100% { transform: translateY(0) } 50% { transform: translateY(-6px) } }
+@keyframes kmPop { from { opacity: 0; transform: scale(.6) } to { opacity: 1; transform: scale(1) } }
+@keyframes kmIn { from { opacity: 0; transform: translateY(14px) } to { opacity: 1; transform: none } }
+
+@media (prefers-reduced-motion: reduce) {
+  [data-kmbr] *, [data-kmbr] *::before, [data-kmbr] *::after { animation: none !important; transition: none !important; }
+}
+
+.kmbr-mono { font-family: var(--font-geist-mono), ui-monospace, monospace; }
+
+[data-kmbr] a.kmbr-navlink {
+  height: 36px;
+  padding: 0 14px;
+  display: flex;
+  align-items: center;
+  border-radius: 8px;
+  white-space: nowrap;
+  color: #3A3F47;
+  transition: background-color .2s, color .2s;
+}
+[data-kmbr] a.kmbr-navlink:hover { background: rgba(11, 12, 14, 0.05); color: #0B0C0E; }
+
+.kmbr-btn-dark { background: #0B0C0E; color: #FAFAF8; transition: background-color .2s; }
+.kmbr-btn-dark:hover { background: #2A2D33; }
+
+.kmbr-btn-light { background: #F3F4F6; color: #0F1114; transition: background-color .2s; }
+.kmbr-btn-light:hover { background: #FFFFFF; }
+
+[data-kmbr] a.kmbr-btn-outline {
+  border: 1px solid rgba(11, 12, 14, 0.12);
+  color: #0B0C0E;
+  transition: border-color .2s, background-color .2s;
+}
+[data-kmbr] a.kmbr-btn-outline:hover {
+  border-color: rgba(11, 12, 14, 0.28);
+  background: rgba(11, 12, 14, 0.03);
+  color: #0B0C0E;
+}
+
+.kmbr-ghost { background: transparent; color: #4A4F57; }
+.kmbr-ghost:hover { background: rgba(11, 12, 14, 0.05); color: #0B0C0E; }
+
+[data-btn] [data-arrow] { transition: transform .2s cubic-bezier(0.22, 1, 0.36, 1); }
+@media (hover: hover) {
+  [data-btn]:hover [data-arrow] { transform: translateX(3px); }
+}
+
+.kmbr-card {
+  position: relative;
+  overflow: hidden;
+  border-radius: 16px;
+  background: #FFFFFF;
+  border: 1px solid rgba(11, 12, 14, 0.07);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4);
+  transition: border-color .2s;
+}
+.kmbr-card:hover { border-color: rgba(11, 12, 14, 0.12); }
+
+/* Brillo que sigue al mouse; --x, --y y --o los setea useLandingMotion. */
+.kmbr-spot {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: var(--o, 0);
+  transition: opacity .3s;
+  background: radial-gradient(380px circle at var(--x, 50%) var(--y, 50%), rgba(19, 134, 90, 0.07), transparent 60%);
+}
+
+.kmbr-demotag {
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-size: 12px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: #5F656E;
+}
+
+.kmbr-input {
+  height: 50px;
+  padding: 0 14px;
+  border-radius: 10px;
+  border: 1px solid rgba(11, 12, 14, 0.12);
+  background: #FAFAF8;
+  color: #0B0C0E;
+  font-family: inherit;
+  font-size: 16px;
+  outline: none;
+}
+.kmbr-input:focus { border-color: #13865A; }

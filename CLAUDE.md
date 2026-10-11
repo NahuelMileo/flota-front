@@ -33,10 +33,13 @@ Sistema de gestión de flotas de transporte. Next.js 16 + React 19, shadcn/ui, T
 
 ---
 
-## Landing (`/landing`)
+## Landing (`/`, `/uy`, `/br`)
 
-- Página de marketing: HeroSection, ProblemSection, FeaturesSection, KPISection, HowItWorks, CTASection
-- No requiere autenticación
+- `/` es un selector de país (banderas en SVG, no emoji: en Windows no se ven) que lleva a `/uy` o `/br`. No requiere autenticación
+- `/uy` y `/br` son la misma landing (`components/marketing/landing.tsx`) con `locale="es"` o `"pt"`. Todo lo que cambia por país (textos, moneda, matrículas, clientes, vencimientos, montos de la demo) está en `components/marketing/content.ts`: no hardcodear textos en los componentes
+- Los montos de Uruguay son los de Brasil pasados a pesos (≈ 7,3 por real). El total "a cobrar" de la demo se calcula de `fletes`
+- El movimiento vive en `use-landing-motion.ts` (atributos `data-*` + Web Animations + Lenis) y los estilos en `landing.css`, todo bajo `[data-kmbr]` para no tocar el panel
+- `components/home` y `components/landing` son landings viejas que no usa ninguna ruta
 
 ---
 
