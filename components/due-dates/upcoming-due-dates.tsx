@@ -102,11 +102,17 @@ export function UpcomingDueDates() {
                       {format(date, "d MMM", { locale: es })}
                     </span>
                     <span className="min-w-0 flex-1 truncate text-sm">{dueDateName(dueDate)}</span>
-                    <TruckPlate dueDate={dueDate} className="hidden text-sm sm:inline-block" />
-                    <span className="hidden w-28 text-right text-xs text-muted-foreground tabular-nums md:inline">
+                    {/* Columnas de ancho fijo: si no, la matrícula, los días y la etiqueta
+                        quedan corridos de una fila a otra según lo largo de cada texto. */}
+                    <span className="hidden w-24 shrink-0 sm:block">
+                      <TruckPlate dueDate={dueDate} className="text-sm" />
+                    </span>
+                    <span className="hidden w-24 shrink-0 text-xs text-muted-foreground tabular-nums md:block">
                       {dueDate.status !== "DueToday" && formatDaysRemaining(dueDate.daysRemaining)}
                     </span>
-                    <DueDateStatusBadge status={dueDate.status} />
+                    <span className="flex w-24 shrink-0 justify-end">
+                      <DueDateStatusBadge status={dueDate.status} />
+                    </span>
                   </Link>
                 </li>
               )
