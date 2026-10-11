@@ -119,7 +119,8 @@ export default function ReceivablesPage() {
 
   const handleAdd = (created: Receivable) => {
     if (isInSelectedMonth(created.dateUtc, selectedDate)) {
-      setReceivables((prev) => [created, ...prev]);
+      // Al final: es la última cargada, y a igual fecha la tabla respeta este orden.
+      setReceivables((prev) => [...prev, created]);
     }
     setIsAddDialogOpen(false);
   };
@@ -306,7 +307,9 @@ export default function ReceivablesPage() {
             <DataTable
               columns={columns}
               data={filteredReceivables}
-              initialSorting={[{ id: "dateUtc", desc: true }]}
+              // Fecha ascendente, como la planilla. A igual fecha TanStack respeta el orden
+              // en que llegan, y el back las manda por orden de carga (CreatedAt).
+              initialSorting={[{ id: "dateUtc", desc: false }]}
               emptyMessage="No hay cuentas a recibir para el período seleccionado."
               searchPlaceholder="Buscar por cliente o camión..."
               csvFilename="cuentas-a-recibir"
