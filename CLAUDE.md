@@ -134,7 +134,7 @@ Sistema de gestión de flotas de transporte. Next.js 16 + React 19, shadcn/ui, T
 
 ## Cuentas a Recibir (`/cuentas-a-recibir`)
 
-- Reemplaza el Excel de cobranza: cada fila es un flete a cobrar, con **adelanto** (70% del flete, al cargar), **saldo** (30%, al descargar) y **peaje** (aparte del split)
+- Reemplaza el Excel de cobranza: cada fila es un flete a cobrar, con **adelanto** (70% del flete sin peaje, al cargar), **saldo** (30%, al descargar) y **peaje**. El flete incluye el peaje: `adelanto + saldo + peaje = flete`
 - Filtros: por cliente, por camión, por estado (Pendiente / Parcial / Cobrado)
 - Resumen (`components/receivables-summary.tsx`): la cifra a recibir, cuántos fletes la componen, cuánto se cobró del total, y una barra de proporción con los mismos verde/rojo de la grilla. Los totales se calculan con `useMemo`, no vienen del backend. Deliberadamente **no** son cards: la pantalla responde una sola pregunta (cuánto falta cobrar)
 - Tabla: Fecha, Camión, Cliente, Adelanto, Saldo, Peaje, Total, Estado, Acciones
@@ -142,7 +142,10 @@ Sistema de gestión de flotas de transporte. Next.js 16 + React 19, shadcn/ui, T
 - **Cada celda de monto es clickeable:** roja → POST `/api/receivables/{id}/collect`; verde → confirmación → DELETE `/api/receivables/{id}/collect/{kind}`. Ambos endpoints devuelven la cuenta actualizada, así que se reemplaza la fila sin refetchear
 - El pintado se aplica con la prop `getCellStyle` de `DataTable` (opcional, la usa solo esta pantalla), alimentada por `getReceivableCellStyle()` de `columns.tsx`
 - **El estado de cobro es derivado:** no hay flag; un ítem está cobrado si existe un `Income` de esa cuenta con ese `receivableKind`. Cobrar crea el ingreso, deshacer lo borra
-- Alta/Edición: cliente y camión (requeridos), fecha, moneda, valor del flete, peaje → el 70/30 se precarga al tipear el flete y queda editable (al tocar el adelanto, el saldo se recalcula); zod valida que sumen el flete
+- Alta/Edición: cliente y camión (requeridos), fecha, moneda, valor del flete, adelanto, saldo, peaje. Funciona en los dos sentidos, siempre en los `onChange` (nunca en efectos, para no pisar una cuenta existente al abrirla):
+  - Tipear el flete precarga el 70/30 de lo que queda sin el peaje, editable
+  - Tipear adelanto, saldo o peaje recalcula el flete como la suma de los tres: se puede dejar el flete vacío y cargar las partes
+  - zod valida que adelanto + saldo + peaje sumen el flete, igual que el back
 - Si el camión tiene un viaje activo, el form lo sugiere y lo vincula (`GET /api/trips/active?truckId=`) — nunca obligatorio: los choferes no siempre reportan los km
 - Eliminación: AlertDialog que avisa cuántos cobros se borran junto con la cuenta → DELETE `/api/receivables/{id}`
 - Exportar CSV: `cuentas-a-recibir.csv`
