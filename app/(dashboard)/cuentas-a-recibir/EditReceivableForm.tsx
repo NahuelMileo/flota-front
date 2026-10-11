@@ -89,7 +89,6 @@ export default function EditReceivableForm({
         errors={errors}
         clients={clients}
         trucks={trucks}
-        freightValue={watch("freightValue")}
         tollAmount={watch("tollAmount")}
         activeTrip={activeTrip}
         onTruckChange={(truckId) => {
