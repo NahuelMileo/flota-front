@@ -1,6 +1,5 @@
 "use client";
 import * as React from "react";
-import Link from "next/link";
 import { NavMain } from "@/components/nav-main";
 import { NavUser } from "@/components/nav-user";
 import {
@@ -8,14 +7,10 @@ import {
   SidebarContent,
   SidebarFooter,
   SidebarHeader,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import {
   LayoutDashboardIcon,
   TruckIcon,
-  CommandIcon,
   DollarSign,
   BanknoteArrowDown,
   HandCoins,
@@ -84,17 +79,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   return (
     <Sidebar collapsible="offcanvas" {...props}>
       <SidebarHeader>
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton
-              className="data-[slot=sidebar-menu-button]:p-1.5!"
-              render={<Link href="/dashboard" />}
-            >
-              <CommandIcon className="size-5!" />
-              <span className="text-base font-semibold">{userInfo.tenantName}</span>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
+        {/* Solo el nombre de la empresa: no es un botón, así que sin ícono ni hover. */}
+        <span className="truncate p-1.5 text-base font-semibold">{userInfo.tenantName}</span>
       </SidebarHeader>
       <SidebarContent>
         <NavMain groups={data.navGroups} />
