@@ -4,7 +4,7 @@ import type { CSSProperties } from "react"
 import { TONES } from "./demo-data"
 import { ArrowIcon, BellIcon, WhatsAppIcon } from "./icons"
 import { useLanding } from "./landing"
-import { INSET_PANEL, MONO, PILL, SR_ONLY, TABLE_HEAD, WRAP } from "./styles"
+import { MONO, PILL, SR_ONLY, TABLE_HEAD, WRAP } from "./styles"
 
 const WINDOW_DOTS = (size: number) =>
   [0, 1, 2].map((i) => <span key={i} style={{ width: size, height: size, borderRadius: 99, background: "#DCDAD5" }} />)
@@ -119,7 +119,7 @@ export function Hero() {
         <p style={SR_ONLY}>{h.sr}</p>
 
         <div aria-hidden="true" data-reveal="" data-delay="380" style={{ margin: "clamp(56px,7vw,88px) auto 0", maxWidth: 1120, perspective: 1800 }}>
-          <div data-tilt="" style={{ position: "relative", transform: "rotateX(8deg)", transformOrigin: "50% 0%", willChange: "transform" }}>
+          <div data-tilt="" style={{ position: "relative", transform: "rotateX(16deg) scale(.92)", transformOrigin: "50% 0%", willChange: "transform" }}>
             <div
               style={{
                 borderRadius: 16,
@@ -177,30 +177,40 @@ export function Hero() {
                       <span style={PILL}>{c.currency}</span>
                     </div>
                   </div>
-                  <div style={{ marginTop: 20, display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(min(100%,150px),1fr))", gap: 12 }}>
-                    <div style={{ padding: "16px 18px", ...INSET_PANEL }}>
-                      <div style={{ fontSize: 13, color: "#5F656E" }}>{h.billed}</div>
-                      <div style={FIGURE}>
-                        <span data-count={c.summary.billed} data-prefix={prefix}>
-                          {money(c.summary.billed)}
-                        </span>
-                      </div>
+                  {/* Balance como en el panel (MonthBalance): una cifra, una línea de contexto y una barra. Sin cards. */}
+                  <div style={{ marginTop: 18 }}>
+                    <div style={{ fontSize: 13, color: "#5F656E" }}>{h.profitTitle}</div>
+                    <div style={{ ...FIGURE, fontSize: "clamp(28px,3.4vw,40px)", color: "#13865A" }}>
+                      <span data-count={c.summary.profit} data-prefix={prefix}>
+                        {money(c.summary.profit)}
+                      </span>
                     </div>
-                    <div style={{ padding: "16px 18px", ...INSET_PANEL }}>
-                      <div style={{ fontSize: 13, color: "#5F656E" }}>{h.costs}</div>
-                      <div style={FIGURE}>
-                        <span data-count={c.summary.costs} data-prefix={prefix}>
-                          {money(c.summary.costs)}
-                        </span>
+                    <dl style={{ margin: "6px 0 0", display: "flex", flexWrap: "wrap", gap: "4px 18px", fontSize: 14, color: "#4A4F57" }}>
+                      <div style={{ display: "flex", gap: 6 }}>
+                        <dt style={{ fontFamily: MONO, color: "#0B0C0E" }}>{Math.round((c.summary.profit / c.summary.billed) * 100)} %</dt>
+                        <dd style={{ margin: 0 }}>{h.marginLabel}</dd>
                       </div>
-                    </div>
-                    <div style={{ padding: "16px 18px", borderRadius: 12, background: "rgba(19,134,90,0.06)", border: "1px solid rgba(19,134,90,0.18)" }}>
-                      <div style={{ fontSize: 13, color: "#5F656E" }}>{h.profit}</div>
-                      <div style={{ ...FIGURE, color: "#13865A" }}>
-                        <span data-count={c.summary.profit} data-prefix={prefix}>
-                          {money(c.summary.profit)}
-                        </span>
+                      <div style={{ display: "flex", gap: 6 }}>
+                        <dt>{h.billed}</dt>
+                        <dd style={{ margin: 0, fontFamily: MONO, color: "#0B0C0E" }}>{money(c.summary.billed)}</dd>
                       </div>
+                      <div style={{ display: "flex", gap: 6 }}>
+                        <dt>{h.costs}</dt>
+                        <dd style={{ margin: 0, fontFamily: MONO, color: "#0B0C0E" }}>{money(c.summary.costs)}</dd>
+                      </div>
+                    </dl>
+                    <div style={{ marginTop: 12, height: 8, borderRadius: 99, background: "rgba(19,134,90,0.22)", overflow: "hidden" }}>
+                      <span
+                        data-grow="x"
+                        data-delay="600"
+                        style={{
+                          display: "block",
+                          height: "100%",
+                          background: "#3A3F47",
+                          transformOrigin: "0 50%",
+                          transform: `scaleX(${(c.summary.costs / c.summary.billed).toFixed(3)})`,
+                        }}
+                      />
                     </div>
                   </div>
                   <div style={{ marginTop: 20, border: "1px solid rgba(11,12,14,0.07)", borderRadius: 12, overflow: "hidden" }}>
@@ -376,7 +386,7 @@ export function ProblemScene() {
     <section
       data-scene=""
       aria-labelledby="problema-title"
-      style={{ position: "relative", background: "#F1F0EC", height: reduced ? "100svh" : "320vh", borderTop: "1px solid rgba(11,12,14,0.05)" }}
+      style={{ position: "relative", background: "#F1F0EC", height: reduced ? "100svh" : "230vh", borderTop: "1px solid rgba(11,12,14,0.05)" }}
     >
       <div style={{ position: "sticky", top: 0, height: "100svh", overflow: "hidden", display: "flex", flexDirection: "column" }}>
         <div style={{ ...WRAP, width: "100%", paddingTop: "clamp(100px,12vh,128px)", textAlign: "center" }}>
@@ -614,29 +624,18 @@ export function ProblemScene() {
               {WINDOW_DOTS(8)}
               <span style={{ marginLeft: 10, fontSize: 12, fontWeight: 600, color: "#4A4F57" }}>Kilometría</span>
             </div>
-            <div style={{ padding: 18, display: "grid", gridTemplateColumns: "repeat(3,minmax(0,1fr))", gap: 10 }}>
-              {(
-                [
-                  [c.hero.billed, c.summary.billed, false],
-                  [c.hero.costs, c.summary.costs, false],
-                  [c.hero.profit, c.summary.profit, true],
-                ] as const
-              ).map(([label, value, profit]) => (
-                <div
-                  key={label}
-                  style={{
-                    padding: 12,
-                    borderRadius: 10,
-                    background: profit ? "rgba(19,134,90,0.06)" : "#F3F2EE",
-                    border: `1px solid ${profit ? "rgba(19,134,90,0.18)" : "rgba(11,12,14,0.07)"}`,
-                  }}
-                >
-                  <div style={{ fontSize: 12, color: "#5F656E" }}>{label}</div>
-                  <div style={{ marginTop: 4, fontFamily: MONO, fontSize: "clamp(13px,1.6vw,17px)", color: profit ? "#13865A" : undefined }}>
-                    {money(value)}
-                  </div>
-                </div>
-              ))}
+            <div style={{ padding: "18px 18px 14px" }}>
+              <div style={{ fontSize: 12, color: "#5F656E" }}>{c.hero.profitTitle}</div>
+              <div style={{ marginTop: 2, fontFamily: MONO, fontVariantNumeric: "tabular-nums", fontSize: "clamp(22px,2.6vw,30px)", color: "#13865A" }}>
+                {money(c.summary.profit)}
+              </div>
+              <div style={{ marginTop: 4, fontSize: 12, color: "#4A4F57" }}>
+                {c.hero.billed} <span style={{ fontFamily: MONO, color: "#0B0C0E" }}>{money(c.summary.billed)}</span> · {c.hero.costs}{" "}
+                <span style={{ fontFamily: MONO, color: "#0B0C0E" }}>{money(c.summary.costs)}</span>
+              </div>
+              <div style={{ marginTop: 10, height: 6, borderRadius: 99, background: "rgba(19,134,90,0.22)", overflow: "hidden" }}>
+                <span style={{ display: "block", height: "100%", width: `${((c.summary.costs / c.summary.billed) * 100).toFixed(1)}%`, background: "#3A3F47" }} />
+              </div>
             </div>
             <div style={{ padding: "0 18px 18px", display: "flex", flexDirection: "column", gap: 8, fontFamily: MONO, fontSize: 13 }}>
               <div style={{ display: "flex", justifyContent: "space-between", padding: "10px 12px", borderRadius: 8, background: "#F3F2EE" }}>

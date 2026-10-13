@@ -1,10 +1,10 @@
 "use client"
 
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react"
-import { EASE, EVENTS, JOIN_CODE, TODAY, TONES } from "./demo-data"
-import { BellIcon, CheckIcon, CopyIcon, CursorIcon } from "./icons"
+import { EASE, EVENTS, JOIN_CODE, TODAY, TONES, fmt } from "./demo-data"
+import { BellIcon, CopyIcon } from "./icons"
 import { useLanding } from "./landing"
-import { EYEBROW, H2, H3_FEATURE, H3_TILE, INSET_PANEL, LEAD, MONO, PILL, SECTION_GAP, SR_ONLY, TABLE_HEAD, TILE_TEXT } from "./styles"
+import { EYEBROW, H2, H3_FEATURE, H3_TILE, INSET_PANEL, LEAD, MONO, PILL, SECTION_GAP, SR_ONLY, TILE_TEXT } from "./styles"
 
 function FeatureRow({
   id,
@@ -63,128 +63,6 @@ function DemoCard({ demo, padding, children }: { demo?: string; padding: string;
 }
 
 const LEGEND_ROW: CSSProperties = { display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap", fontSize: 13, color: "#5F656E" }
-
-function AmountPill({ amount, paid }: { amount: number; paid: boolean }) {
-  const { money } = useLanding()
-  const base: CSSProperties = {
-    display: "inline-flex",
-    alignItems: "center",
-    height: 28,
-    borderRadius: 99,
-    fontFamily: MONO,
-    fontVariantNumeric: "tabular-nums",
-    fontSize: 13,
-    whiteSpace: "nowrap",
-  }
-  if (paid)
-    return (
-      <span
-        style={{
-          ...base,
-          gap: 5,
-          padding: "0 9px",
-          background: "rgba(19,134,90,0.12)",
-          border: "1px solid rgba(19,134,90,0.28)",
-          color: "#13865A",
-        }}
-      >
-        <CheckIcon />
-        {money(amount)}
-      </span>
-    )
-  return <span style={{ ...base, padding: "0 10px", border: "1px solid rgba(11,12,14,0.14)", color: "#4A4F57" }}>{money(amount)}</span>
-}
-
-function CuentasDemo() {
-  const { c, m, money, saldoPaid } = useLanding()
-  const t = c.cuentas
-  const mHide = m ? "none" : undefined
-  const cols = m ? "minmax(0,1.3fr) 1fr 1fr" : "minmax(0,1.5fr) 0.6fr 1fr 1fr 0.9fr"
-  // Lo pendiente antes de la demo, y lo que queda cuando se cobra el saldo marcado.
-  const owedBefore = c.fletes.reduce((sum, f) => sum + [f.a, f.s, f.p].reduce((s, [amt, paid]) => s + (paid ? 0 : amt), 0), 0)
-  const owedAfter = owedBefore - (c.fletes.find((f) => f.target)?.s[0] ?? 0)
-  return (
-    <DemoCard demo="cuentas" padding="clamp(16px,2.4vw,24px)">
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", gap: 16, flexWrap: "wrap" }}>
-        <div>
-          <div style={{ fontSize: 14, color: "#5F656E" }}>{t.owedLabel}</div>
-          <div
-            data-owed=""
-            data-from={owedBefore}
-            data-to={owedAfter}
-            data-prefix={`${c.currency} `}
-            style={{ marginTop: 4, fontFamily: MONO, fontVariantNumeric: "tabular-nums", fontSize: "clamp(28px,3vw,36px)", letterSpacing: "-0.02em" }}
-          >
-            {money(owedBefore)}
-          </div>
-        </div>
-        <div style={{ fontSize: 14, color: "#5F656E" }}>{t.period}</div>
-      </div>
-      <div style={{ marginTop: 20, border: "1px solid rgba(11,12,14,0.07)", borderRadius: 12, overflow: "hidden" }}>
-        <div style={{ ...TABLE_HEAD, display: "grid", gridTemplateColumns: cols, gap: 10, padding: "11px 14px" }}>
-          <span>{t.cols[0]}</span>
-          <span style={{ display: mHide }}>{t.cols[1]}</span>
-          <span>{t.cols[2]}</span>
-          <span>{t.cols[3]}</span>
-          <span style={{ display: mHide }}>{t.cols[4]}</span>
-        </div>
-        {c.fletes.map((f) => (
-          <div
-            key={f.client}
-            style={{
-              display: "grid",
-              gridTemplateColumns: cols,
-              gap: 10,
-              alignItems: "center",
-              padding: "12px 14px",
-              borderBottom: "1px solid rgba(11,12,14,0.05)",
-              fontSize: 14,
-            }}
-          >
-            <span style={{ color: "#0B0C0E", lineHeight: 1.3, minWidth: 0 }}>{f.client}</span>
-            <span style={{ display: mHide, fontFamily: MONO, color: "#4A4F57" }}>{f.truck}</span>
-            <span>
-              <AmountPill amount={f.a[0]} paid={f.a[1]} />
-            </span>
-            <span data-target={f.target ? "1" : undefined}>
-              <AmountPill amount={f.s[0]} paid={f.target ? saldoPaid : f.s[1]} />
-            </span>
-            <span style={{ display: mHide }}>
-              <AmountPill amount={f.p[0]} paid={f.p[1]} />
-            </span>
-          </div>
-        ))}
-      </div>
-      <div style={{ ...LEGEND_ROW, marginTop: 14 }}>
-        <span style={{ display: "flex", gap: 14 }}>
-          <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-            <span style={{ width: 8, height: 8, borderRadius: 99, border: "1px solid rgba(11,12,14,0.3)" }} />
-            {t.pending}
-          </span>
-          <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-            <span style={{ width: 8, height: 8, borderRadius: 99, background: "#13865A" }} />
-            {t.paid}
-          </span>
-        </span>
-        <span className="kmbr-demotag">{c.hero.demoTag}</span>
-      </div>
-      <div
-        data-cursor=""
-        style={{
-          position: "absolute",
-          top: 0,
-          left: 0,
-          opacity: 0,
-          pointerEvents: "none",
-          zIndex: 4,
-          filter: "drop-shadow(0 4px 10px rgba(11,12,14,0.25))",
-        }}
-      >
-        <CursorIcon />
-      </div>
-    </DemoCard>
-  )
-}
 
 function LucroDemo() {
   const { c } = useLanding()
@@ -366,6 +244,15 @@ function AvisosDemo() {
           </div>
         </div>
         <div style={{ flex: "1 1 240px", minWidth: 0, display: "flex", flexDirection: "column" }}>
+          <div className="kmbr-odo">
+            <div className="kmbr-odo-top">
+              <span>{t.odo.title}</span>
+              <span>{t.odo.every}</span>
+            </div>
+            <span className="kmbr-odo-digits" data-odo-num="" data-from={t.odo.from} data-to={t.odo.to} data-service={t.odo.serviceAt}>
+              {fmt(t.odo.from)}
+            </span>
+          </div>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <span
               data-bell=""
@@ -409,38 +296,30 @@ function AvisosDemo() {
             <span style={{ fontSize: 16, fontWeight: 500 }}>{t.alertsTitle}</span>
           </div>
           <div style={{ marginTop: 14, display: "flex", flexDirection: "column", gap: 8 }}>
-            {t.alerts.map((a) => {
-              const color = a.urgent ? "#C8352D" : "#A86A12"
+            {t.alerts.map((a, i) => {
+              // El primer aviso es el cambio de aceite: lo maneja el odómetro.
+              const odo = i === 0
               return (
                 <div
                   key={a.label}
                   data-reveal=""
                   data-delay="500"
-                  style={{
-                    display: "flex",
-                    gap: 12,
-                    alignItems: "flex-start",
-                    padding: "12px 14px",
-                    borderRadius: 12,
-                    background: "#F3F2EE",
-                    border: `1px solid ${a.urgent ? "rgba(200,53,45,0.25)" : "rgba(11,12,14,0.07)"}`,
-                  }}
+                  className="kmbr-alert"
+                  data-urgent={a.urgent ? "1" : "0"}
+                  data-odo-alert={odo ? "" : undefined}
                 >
-                  <span
-                    style={{
-                      flex: "none",
-                      marginTop: 6,
-                      width: 8,
-                      height: 8,
-                      borderRadius: 99,
-                      background: color,
-                      boxShadow: `0 0 0 4px ${a.urgent ? "rgba(200,53,45,0.14)" : "rgba(168,106,18,0.14)"}`,
-                    }}
-                  />
+                  <span className="kmbr-alert-dot" />
                   <span style={{ fontSize: 14, lineHeight: 1.45 }}>
                     {a.label} · <span style={{ fontFamily: MONO }}>{a.plate}</span>
                     <br />
-                    <span style={{ color }}>{a.when}</span>
+                    <span
+                      className="kmbr-alert-when"
+                      data-odo-when={odo ? "" : undefined}
+                      data-left={odo ? t.odo.left : undefined}
+                      data-over={odo ? t.odo.over : undefined}
+                    >
+                      {a.when}
+                    </span>
                   </span>
                 </div>
               )
@@ -459,7 +338,6 @@ export function Features() {
   const { c } = useLanding()
   return (
     <div
-      id="como-funciona"
       style={{
         maxWidth: 1264,
         margin: "0 auto",
@@ -469,13 +347,10 @@ export function Features() {
         gap: "clamp(88px,11vw,140px)",
       }}
     >
-      <FeatureRow id="fa-title" eyebrow={c.cuentas.eyebrow} title={c.cuentas.title} lead={c.cuentas.lead} srText={c.cuentas.sr}>
-        <CuentasDemo />
-      </FeatureRow>
-      <FeatureRow id="fb-title" reverse eyebrow={c.lucro.eyebrow} title={c.lucro.title} lead={c.lucro.lead} srText={c.lucro.sr}>
+      <FeatureRow id="fb-title" eyebrow={c.lucro.eyebrow} title={c.lucro.title} lead={c.lucro.lead} srText={c.lucro.sr}>
         <LucroDemo />
       </FeatureRow>
-      <FeatureRow id="fc-title" eyebrow={c.avisos.eyebrow} title={c.avisos.title} lead={c.avisos.lead} srText={c.avisos.sr}>
+      <FeatureRow id="fc-title" reverse eyebrow={c.avisos.eyebrow} title={c.avisos.title} lead={c.avisos.lead} srText={c.avisos.sr}>
         <AvisosDemo />
       </FeatureRow>
     </div>
@@ -496,15 +371,9 @@ function Tile({
   children: ReactNode
 }) {
   const { m } = useLanding()
+  // Patrón del panel: sección con divisoria arriba, sin caja alrededor.
   return (
-    <article
-      data-reveal=""
-      data-spot=""
-      data-demo={demo}
-      className="kmbr-card"
-      style={{ gridColumn: m ? "span 12" : `span ${span}`, padding: 28, ...style }}
-    >
-      <div className="kmbr-spot" />
+    <article data-reveal="" data-demo={demo} className="kmbr-open" style={{ gridColumn: m ? "span 12" : `span ${span}`, ...style }}>
       {children}
     </article>
   )
@@ -646,7 +515,7 @@ export function Bento() {
           {b.title}
         </h2>
       </div>
-      <div style={{ marginTop: 48, display: "grid", gridTemplateColumns: "repeat(12,minmax(0,1fr))", gap: 16 }}>
+      <div style={{ marginTop: 48, display: "grid", gridTemplateColumns: "repeat(12,minmax(0,1fr))", gap: "clamp(40px,5vw,64px) clamp(24px,4vw,56px)" }}>
         <Tile span={7} demo="donut" style={{ display: "flex", flexWrap: "wrap", gap: 28, alignItems: "center", justifyContent: "space-between" }}>
           <div style={{ flex: "1 1 220px", minWidth: 0, maxWidth: 300 }}>
             <h3 style={H3_TILE}>{b.fuel.title}</h3>

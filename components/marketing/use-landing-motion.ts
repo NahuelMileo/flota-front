@@ -18,6 +18,7 @@ const easeOut = (t: number) => 1 - Math.pow(1 - t, 3)
  * - data-count / data-dec / data-prefix: cifras que cuentan desde cero.
  * - data-demo: demos animadas (cuentas, avisos, donut, chat).
  * - data-scene / data-frag / data-step / data-scenewin: la escena fijada del problema.
+ * - data-pin="journey|cobro": escenas fijadas que avanzan con el scroll.
  * - data-spot: brillo que sigue al mouse.
  *
  * Con prefers-reduced-motion todo queda en su estado final y no hay Lenis.
@@ -26,7 +27,6 @@ export function useLandingMotion(
   rootRef: RefObject<HTMLDivElement | null>,
   lenisRef: RefObject<Lenis | null>,
   onScrolled: (scrolled: boolean) => void,
-  onSaldoPaid: (paid: boolean) => void,
 ) {
   useEffect(() => {
     const root = rootRef.current
@@ -93,64 +93,41 @@ export function useLandingMotion(
 
     // --- Demos -------------------------------------------------------------
 
-    const loopCuentas = async (box: HTMLElement) => {
-      const cursor = box.querySelector<HTMLElement>("[data-cursor]")
-      const owed = box.querySelector<HTMLElement>("[data-owed]")
-      if (!cursor || !owed) return
-      // El total antes y después de cobrar el saldo viene del markup (cambia por país).
-      const before = Number(owed.dataset.from)
-      const after = Number(owed.dataset.to)
-      const pre = owed.dataset.prefix ?? ""
-      while (alive) {
-        await sleep(1000)
-        const target = box.querySelector("[data-target='1']")
-        if (!target || !alive) return
-        cursor.getAnimations().forEach((a) => a.cancel())
-        const b = box.getBoundingClientRect()
-        const r = target.getBoundingClientRect()
-        const tx = r.left - b.left + 26
-        const ty = r.top - b.top + 14
-        const sx = b.width - 60
-        const sy = b.height - 40
-        await cursor.animate(
-          [
-            { transform: `translate(${sx}px,${sy}px)`, opacity: 0 },
-            { transform: `translate(${tx}px,${ty}px)`, opacity: 1 },
-          ],
-          { duration: 1100, easing: EASE, fill: "forwards" },
-        ).finished
-        await cursor.animate(
-          [
-            { transform: `translate(${tx}px,${ty}px) scale(1)`, opacity: 1 },
-            { transform: `translate(${tx}px,${ty}px) scale(.8)`, opacity: 1 },
-            { transform: `translate(${tx}px,${ty}px) scale(1)`, opacity: 1 },
-          ],
-          { duration: 260, fill: "forwards" },
-        ).finished
-        onSaldoPaid(true)
-        await sleep(40)
-        box.querySelector("[data-target='1'] > *")?.animate(
-          [
-            { transform: "scale(.82)", opacity: 0.3, filter: "blur(3px)" },
-            { transform: "scale(1)", opacity: 1, filter: "blur(0)" },
-          ],
-          { duration: 450, easing: EASE },
-        )
-        await count(owed, before, after, 1200, pre)
-        await sleep(2400)
-        await cursor.animate(
-          [
-            { transform: `translate(${tx}px,${ty}px)`, opacity: 1 },
-            { transform: `translate(${tx + 20}px,${ty + 20}px)`, opacity: 0 },
-          ],
-          { duration: 500, easing: EASE, fill: "forwards" },
-        ).finished
-        await sleep(1600)
-        if (!alive) return
-        onSaldoPaid(false)
-        owed.textContent = pre + fmt(before)
-        owed.animate([{ opacity: 0.3 }, { opacity: 1 }], { duration: 400 })
+    const ringBell = (bell: Element | null) =>
+      bell?.animate(
+        ["0", "-16deg", "13deg", "-9deg", "6deg", "-3deg", "0"].map((d) => ({ transform: `rotate(${d})` })),
+        { duration: 900, easing: "ease-out" },
+      )
+
+    // Odómetro de avisos: cuenta km hasta pasarse del cambio de aceite y el
+    // aviso pasa de "faltan X km" a vencido (y suena la campanita).
+    const runOdometer = (box: HTMLElement) => {
+      const digits = box.querySelector<HTMLElement>("[data-odo-num]")
+      const alert = box.querySelector<HTMLElement>("[data-odo-alert]")
+      const when = box.querySelector<HTMLElement>("[data-odo-when]")
+      if (!digits || !alert || !when) return
+      const from = Number(digits.dataset.from)
+      const to = Number(digits.dataset.to)
+      const service = Number(digits.dataset.service)
+      const left = when.dataset.left ?? ""
+      const over = when.dataset.over ?? ""
+      let wasOver = false
+      const t0 = performance.now()
+      const step = (now: number) => {
+        const t = clamp((now - t0) / 3600)
+        const km = Math.round(from + (to - from) * easeOut(t))
+        digits.textContent = fmt(km)
+        const rest = service - km
+        const isOver = rest <= 0
+        when.textContent = isOver ? over : `${left} ${fmt(rest)} km`
+        if (isOver !== wasOver) {
+          wasOver = isOver
+          alert.dataset.urgent = isOver ? "1" : "0"
+          if (isOver) ringBell(box.querySelector("[data-bell]"))
+        }
+        if (t < 1 && alive) frame(step)
       }
+      later(() => frame(step), 400)
     }
 
     const typeChat = async (el: HTMLElement) => {
@@ -176,19 +153,8 @@ export function useLandingMotion(
 
     const runDemo = (name: string | undefined, el: HTMLElement) => {
       if (reduced) return
-      if (name === "cuentas") loopCuentas(el).catch(() => {})
       if (name === "chat") typeChat(el).catch(() => {})
-      if (name === "avisos") {
-        const bell = el.querySelector("[data-bell]")
-        later(
-          () =>
-            bell?.animate(
-              ["0", "-16deg", "13deg", "-9deg", "6deg", "-3deg", "0"].map((d) => ({ transform: `rotate(${d})` })),
-              { duration: 900, easing: "ease-out" },
-            ),
-          250,
-        )
-      }
+      if (name === "avisos") runOdometer(el)
       if (name === "donut") {
         el.querySelector("[data-donut]")?.animate(
           [
@@ -314,6 +280,70 @@ export function useLandingMotion(
     const stepLine = q<SVGElement>("[data-stepline]")
     let lastScrolled = false
 
+    // Escenas fijadas: cada una recibe el progreso (0 a 1) de su sección.
+    const setAttr = (el: Element | null | undefined, name: string, value: string) => {
+      if (el && el.getAttribute(name) !== value) el.setAttribute(name, value)
+    }
+    const setText = (el: Element | null | undefined, value: string) => {
+      if (el && el.textContent !== value) el.textContent = value
+    }
+
+    const journey = (sec: HTMLElement) => {
+      const odoFrom = Number(sec.dataset.odoFrom)
+      const km = Number(sec.dataset.km)
+      const profit = Number(sec.dataset.profit)
+      const perKm = Number(sec.dataset.perkm)
+      const pre = sec.dataset.prefix ?? ""
+      const items = Array.from(sec.querySelectorAll("[data-jstep]"))
+      const captions = Array.from(sec.querySelectorAll("[data-jcaption]"))
+      const rows = Array.from(sec.querySelectorAll<HTMLElement>("[data-jrow]"))
+      const odo = sec.querySelector("[data-jodo]")
+      const kmPill = sec.querySelector<HTMLElement>("[data-jkm]")
+      const result = sec.querySelector("[data-jresult]")
+      const profitEl = sec.querySelector("[data-jprofit]")
+      const perKmEl = sec.querySelector("[data-jperkm]")
+      return (p: number) => {
+        const idx = p < 0.22 ? 0 : p < 0.46 ? 1 : p < 0.7 ? 2 : 3
+        items.forEach((el, i) => {
+          setAttr(el, "data-active", i === idx ? "1" : "0")
+          setAttr(el, "data-done", i < idx ? "1" : "0")
+        })
+        captions.forEach((el, i) => setAttr(el, "data-active", i === idx ? "1" : "0"))
+        rows.forEach((el) => setAttr(el, "data-on", Number(el.dataset.jrow) <= idx ? "1" : "0"))
+        const t = easeOut(clamp(p / 0.18))
+        setText(odo, `${fmt(Math.round(odoFrom + km * t))} km`)
+        if (kmPill) kmPill.style.opacity = t > 0.02 ? "1" : "0"
+        setAttr(result, "data-on", idx === 3 ? "1" : "0")
+        const r = easeOut(clamp((p - 0.7) / 0.16))
+        setText(profitEl, pre + fmt(Math.round(profit * r)))
+        setText(perKmEl, pre + fmt(perKm * r, 2))
+      }
+    }
+
+    const cobro = (sec: HTMLElement) => {
+      const grand = Number(sec.dataset.grand)
+      const pre = sec.dataset.prefix ?? ""
+      const cells = Array.from(sec.querySelectorAll<HTMLElement>("[data-cell]"))
+      const flips = cells.filter((c) => c.dataset.order !== undefined).sort((a, b) => Number(a.dataset.order) - Number(b.dataset.order))
+      const fixedPaid = cells.filter((c) => c.dataset.order === undefined && c.dataset.paid === "1").reduce((s, c) => s + Number(c.dataset.amount), 0)
+      const owed = sec.querySelector("[data-owed]")
+      const collected = sec.querySelector("[data-collected]")
+      const bar = sec.querySelector<HTMLElement>("[data-paidbar]")
+      return (p: number) => {
+        let paid = fixedPaid
+        flips.forEach((cell, i) => {
+          const on = p >= 0.12 + (i * 0.62) / Math.max(1, flips.length)
+          setAttr(cell, "data-paid", on ? "1" : "0")
+          if (on) paid += Number(cell.dataset.amount)
+        })
+        setText(owed, pre + fmt(grand - paid))
+        setText(collected, pre + fmt(paid))
+        if (bar) bar.style.transform = `scaleX(${(paid / grand).toFixed(3)})`
+      }
+    }
+
+    const pins = qa("[data-pin]").map((sec) => ({ sec, render: sec.dataset.pin === "journey" ? journey(sec) : cobro(sec) }))
+
     const scene = (p: number) => {
       if (!stage || !sceneWin) return
       const W = stage.clientWidth
@@ -350,7 +380,19 @@ export function useLandingMotion(
         lastScrolled = scrolled
         onScrolled(scrolled)
       }
-      if (tilt) tilt.style.transform = reduced ? "none" : `rotateX(${8 * (1 - clamp(y / (vh * 0.55)))}deg)`
+      // El mockup del hero arranca inclinado y más chico, y se "aplana" al bajar.
+      if (tilt) {
+        const k = 1 - easeOut(clamp(y / (vh * 0.6)))
+        tilt.style.transform = reduced ? "none" : `rotateX(${(16 * k).toFixed(2)}deg) scale(${(1 - 0.08 * k).toFixed(4)})`
+      }
+      pins.forEach(({ sec, render }) => {
+        if (reduced) return render(1)
+        const r = sec.getBoundingClientRect()
+        // En el celular la escena no se fija (no entra en la pantalla): avanza
+        // mientras la sección pasa por la vista.
+        if (sec.hasAttribute("data-static")) render(clamp((vh * 0.8 - r.top) / Math.max(1, r.height * 0.8)))
+        else render(clamp(-r.top / Math.max(1, r.height - vh)))
+      })
       if (sceneEl) {
         if (reduced) scene(1)
         else {
@@ -422,5 +464,5 @@ export function useLandingMotion(
       io.disconnect()
       cleanups.forEach((fn) => fn())
     }
-  }, [rootRef, lenisRef, onScrolled, onSaldoPaid])
+  }, [rootRef, lenisRef, onScrolled])
 }

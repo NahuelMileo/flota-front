@@ -16,10 +16,11 @@ import {
 import { SITE_CONFIG, whatsappHref } from "@/lib/site-config"
 import { CONTENT, type Content, type Locale } from "./content"
 import { FLEET_SIZES, fmt, type FleetSize } from "./demo-data"
-import { ArrowIcon, CheckIcon, CloseIcon, MenuIcon } from "./icons"
+import { ArrowIcon, CheckIcon, CloseIcon, MenuIcon, WhatsAppIcon } from "./icons"
 import { Closing } from "./sections-closing"
 import { Bento, Features } from "./sections-features"
 import { Hero, ProblemScene } from "./sections-hero"
+import { CobroScene, JourneyScene } from "./sections-scenes"
 import { MONO, WRAP } from "./styles"
 import { useLandingMotion } from "./use-landing-motion"
 
@@ -32,7 +33,6 @@ type LandingContext = {
   m: boolean
   reduced: boolean
   waHref: string
-  saldoPaid: boolean
   fleet: FleetSize
   setFleet: (f: FleetSize) => void
   openDemo: () => void
@@ -69,9 +69,17 @@ export function Landing({ locale }: { locale: Locale }) {
   const [menuOpen, setMenuOpen] = useState(false)
   const [dialogOpen, setDialogOpen] = useState(false)
   const [fleet, setFleet] = useState<FleetSize>("4–10")
-  const [saldoPaid, setSaldoPaid] = useState(false)
+  const [pastHero, setPastHero] = useState(false)
 
-  useLandingMotion(rootRef, lenisRef, setScrolled, setSaldoPaid)
+  useLandingMotion(rootRef, lenisRef, setScrolled)
+
+  // La barra del celular aparece cuando los botones del hero ya quedaron atrás.
+  useEffect(() => {
+    const onScroll = () => setPastHero(window.scrollY > window.innerHeight * 0.85)
+    onScroll()
+    window.addEventListener("scroll", onScroll, { passive: true })
+    return () => window.removeEventListener("scroll", onScroll)
+  }, [])
 
   useEffect(() => {
     const html = document.documentElement
@@ -119,7 +127,6 @@ export function Landing({ locale }: { locale: Locale }) {
     m: w < 768,
     reduced,
     waHref: whatsappHref(c.whatsappText),
-    saldoPaid,
     fleet,
     setFleet,
     openDemo,
@@ -148,11 +155,22 @@ export function Landing({ locale }: { locale: Locale }) {
         <main>
           <Hero />
           <ProblemScene />
+          <JourneyScene />
+          <CobroScene />
           <Features />
           <Bento />
           <Closing />
         </main>
         <Footer />
+        {/* En el celular, la acción principal queda siempre a mano después del hero. */}
+        <div className="kmbr-mcta" data-show={pastHero && !menuOpen && !dialogOpen ? "1" : "0"}>
+          <button className="kmbr-btn-dark" onClick={openDemo}>
+            {c.nav.demo}
+          </button>
+          <a href={ctx.waHref} target="_blank" rel="noopener" aria-label={c.nav.whatsapp}>
+            <WhatsAppIcon />
+          </a>
+        </div>
         {dialogOpen && <DemoDialog onClose={() => setDialogOpen(false)} />}
       </div>
     </Ctx.Provider>

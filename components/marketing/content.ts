@@ -49,9 +49,31 @@ export type Content = {
     billed: string
     costs: string
     profit: string
+    /** Encabezado del balance del mockup ("Ganancia de setiembre"). */
+    profitTitle: string
+    marginLabel: string
     cols: [string, string, string, string, string]
     toast: Emphasis
     demoTag: string
+  }
+  /** Escena fijada "Cargás una vez": viaje → flete → gasoil → ganancia. */
+  journey: {
+    eyebrow: string
+    title: string
+    lead: string
+    sr: string
+    steps: [string, string][]
+    window: string
+    route: string
+    odoLabel: string
+    odoFrom: number
+    km: number
+    tripKm: string
+    /** [concepto, monto, ingreso o egreso, paso en que aparece, se carga solo] */
+    rows: [string, number, "in" | "out", number, boolean][]
+    autoTag: string
+    result: string
+    perKm: string
   }
   summary: { billed: number; costs: number; profit: number }
   trucks: DemoTruck[]
@@ -80,6 +102,7 @@ export type Content = {
     cols: [string, string, string, string, string]
     pending: string
     paid: string
+    of: string
   }
   fletes: Flete[]
   lucro: {
@@ -104,7 +127,9 @@ export type Content = {
     dueDates: string
     weekdays: string[]
     alertsTitle: string
+    /** El primer aviso (cambio de aceite) lo maneja el odómetro de la demo. */
     alerts: { label: string; plate: string; when: string; urgent: boolean }[]
+    odo: { title: string; serviceAt: number; from: number; to: number; left: string; over: string; every: string }
   }
   bento: {
     title: string
@@ -179,9 +204,38 @@ const PT: Content = {
     billed: "Faturado",
     costs: "Custos",
     profit: "Lucro",
+    profitTitle: "Lucro de setembro",
+    marginLabel: "de margem",
     cols: ["Placa", "Receita/km", "Custo/km", "Lucro/km", "Status"],
     toast: ["O seguro do ", "IKG", " vence em 7 dias"],
     demoTag: "Dados de demonstração",
+  },
+  journey: {
+    eyebrow: "Como funciona",
+    title: "Você lança uma vez. Tudo se atualiza.",
+    lead: "Cada dado que você lança alimenta os outros: a viagem move o odômetro, o frete gera a comissão do motorista e o diesel entra no custo por km.",
+    sr: "Demonstração: uma viagem Porto Alegre → São Paulo de 1.110 km. O frete de 12.000 reais gera sozinho a comissão do motorista de 1.800. Com diesel de 2.598 e pedágios de 480, o lucro da viagem é de 7.122 reais, 6,42 por quilômetro.",
+    steps: [
+      ["Você lança a viagem", "Os km da viagem atualizam o odômetro do caminhão."],
+      ["Você lança o frete", "A comissão do motorista é registrada sozinha: 15 % do frete por padrão, ou o percentual que você definir."],
+      ["Você lança o diesel e os pedágios", "Com os litros e os km, para saber quanto custa cada quilômetro."],
+      ["Você sabe quanto lucrou", "O lucro da viagem e do caminhão, também por quilômetro."],
+    ],
+    window: "Viagem · IKG",
+    route: "Porto Alegre → São Paulo",
+    odoLabel: "Odômetro",
+    odoFrom: 412150,
+    km: 1110,
+    tripKm: "km da viagem",
+    rows: [
+      ["Frete · Agro Paraná", 12000, "in", 1, false],
+      ["Comissão do motorista · 15 %", 1800, "out", 1, true],
+      ["Diesel · 412,6 L", 2598, "out", 2, false],
+      ["Pedágios", 480, "out", 2, false],
+    ],
+    autoTag: "automático",
+    result: "Lucro da viagem",
+    perKm: "por km",
   },
   summary: { billed: 198420, costs: 147880, profit: 50540 },
   trucks: [
@@ -218,12 +272,13 @@ const PT: Content = {
     eyebrow: "Cobrança",
     title: "Nenhum saldo fica para trás.",
     lead: "Cada frete com seu adiantamento, seu saldo e seu pedágio. Você marca o que recebeu com um clique e a receita é lançada sozinha. Em segundos você sabe quem te deve e quanto.",
-    sr: "Demonstração: uma tabela de quatro fretes com adiantamento, saldo e pedágio. Ao marcar como recebido o saldo de 5.500 reais da Agro Paraná, o total a receber cai de 18.400 para 12.900 reais.",
-    owedLabel: "A receber",
+    sr: "Demonstração: ao rolar, os saldos e adiantamentos pendentes de quatro fretes passam para recebidos um por um e o total a receber cai de 18.400 para 1.800 reais.",
+    owedLabel: "Falta receber",
     period: "4 fretes · Setembro",
     cols: ["Cliente", "Caminhão", "Adiantamento", "Saldo", "Pedágio"],
     pending: "Pendente",
     paid: "Recebido",
+    of: "de",
   },
   fletes: [
     { client: "Transportes Serra Gaúcha", truck: "IKG", a: [8400, true], s: [3600, false], p: [620, true] },
@@ -248,7 +303,7 @@ const PT: Content = {
     eyebrow: "Tranquilidade",
     title: "Avisa antes de quebrar ou vencer.",
     lead: "Seguro, RNTRC, licenciamento e os vencimentos que você criar: alerta uma semana antes e no dia anterior. E cada revisão por km ou por data, para não descobrir na estrada.",
-    sr: "Demonstração: calendário de outubro com vencimentos marcados e três alertas: troca de óleo do HXR em 800 km, RNTRC do JRT vence amanhã e seguro do IKG vence em 7 dias.",
+    sr: "Demonstração: o odômetro do HXR sobe até passar da troca de óleo, marcada para os 412.000 km, e o alerta muda de pendente para vencido. Ao lado, um calendário de outubro com vencimentos: o RNTRC do JRT vence amanhã e o seguro do IKG em 7 dias.",
     month: "Outubro 2026",
     dueDates: "Vencimentos",
     weekdays: ["S", "T", "Q", "Q", "S", "S", "D"],
@@ -258,6 +313,7 @@ const PT: Content = {
       { label: "RNTRC", plate: "JRT", when: "vence amanhã", urgent: true },
       { label: "Seguro", plate: "IKG", when: "vence em 7 dias", urgent: false },
     ],
+    odo: { title: "Odômetro · HXR", serviceAt: 412000, from: 411200, to: 412040, left: "faltam", over: "passou da troca", every: "Troca de óleo a cada 20.000 km" },
   },
   bento: {
     title: "E todo o resto, também.",
@@ -426,9 +482,38 @@ const ES: Content = {
     billed: "Facturado",
     costs: "Costos",
     profit: "Ganancia",
+    profitTitle: "Ganancia de setiembre",
+    marginLabel: "de margen",
     cols: ["Matrícula", "Ingreso/km", "Costo/km", "Ganancia/km", "Estado"],
     toast: ["El seguro del ", "SBX", " vence en 7 días"],
     demoTag: "Datos de demostración",
+  },
+  journey: {
+    eyebrow: "Cómo funciona",
+    title: "Cargás una vez. Se actualiza todo.",
+    lead: "Cada dato que cargás alimenta a los demás: el viaje mueve el odómetro, el flete genera la comisión del chofer y el gasoil entra en el costo por km.",
+    sr: "Demostración: un viaje Montevideo → São Paulo de 2.010 km. El flete de 90.000 pesos genera solo la comisión del chofer de 13.500. Con gasoil de 19.800 y peajes de 3.500, la ganancia del viaje es de 53.200 pesos, 26,47 por kilómetro.",
+    steps: [
+      ["Cargás el viaje", "Los km del viaje actualizan el odómetro del camión."],
+      ["Cargás el flete", "La comisión del chofer se registra sola: 15 % del flete por defecto, o el porcentaje que definas."],
+      ["Cargás el gasoil y los peajes", "Con los litros y los km, para saber cuánto te cuesta cada kilómetro."],
+      ["Sabés cuánto te dejó", "La ganancia del viaje y del camión, también por kilómetro."],
+    ],
+    window: "Viaje · SBX",
+    route: "Montevideo → São Paulo",
+    odoLabel: "Odómetro",
+    odoFrom: 412150,
+    km: 2010,
+    tripKm: "km del viaje",
+    rows: [
+      ["Flete · Agro Litoral", 90000, "in", 1, false],
+      ["Comisión del chofer · 15 %", 13500, "out", 1, true],
+      ["Gasoil · 412,6 L", 19800, "out", 2, false],
+      ["Peajes", 3500, "out", 2, false],
+    ],
+    autoTag: "automático",
+    result: "Ganancia del viaje",
+    perKm: "por km",
   },
   summary: { billed: 1450440, costs: 1081000, profit: 369440 },
   trucks: [
@@ -465,12 +550,13 @@ const ES: Content = {
     eyebrow: "Cobranza",
     title: "Ningún saldo queda sin cobrar.",
     lead: "Cada flete con su adelanto, su saldo y su peaje. Marcás lo que cobraste con un clic y el ingreso se registra solo. En segundos sabés quién te debe y cuánto.",
-    sr: "Demostración: una tabla de cuatro fletes con adelanto, saldo y peaje. Al marcar como cobrado el saldo de 40.200 pesos de Agro Litoral, el total a cobrar baja de 134.500 a 94.300 pesos.",
-    owedLabel: "A cobrar",
+    sr: "Demostración: al bajar, los saldos y adelantos pendientes de cuatro fletes pasan a cobrados uno por uno y el total a cobrar baja de 134.500 a 13.200 pesos.",
+    owedLabel: "Falta cobrar",
     period: "4 fletes · Setiembre",
     cols: ["Cliente", "Camión", "Adelanto", "Saldo", "Peaje"],
     pending: "Pendiente",
     paid: "Cobrado",
+    of: "de",
   },
   fletes: [
     { client: "Transportes del Este", truck: "SBX", a: [61400, true], s: [26300, false], p: [4500, true] },
@@ -495,7 +581,7 @@ const ES: Content = {
     eyebrow: "Tranquilidad",
     title: "Te avisa antes de que se rompa o se venza.",
     lead: "Seguro, SUCTA, permiso MTOP y los vencimientos que crees: aviso una semana antes y el día anterior. Y cada service por km o por fecha, para no enterarte en la ruta.",
-    sr: "Demostración: calendario de octubre con vencimientos marcados y tres avisos: cambio de aceite del LQB en 800 km, la SUCTA del TMC vence mañana y el seguro del SBX vence en 7 días.",
+    sr: "Demostración: el odómetro del LQB sube hasta pasarse del cambio de aceite, marcado a los 412.000 km, y el aviso pasa de pendiente a vencido. Al lado, un calendario de octubre con vencimientos: la SUCTA del TMC vence mañana y el seguro del SBX en 7 días.",
     month: "Octubre 2026",
     dueDates: "Vencimientos",
     weekdays: ["L", "M", "M", "J", "V", "S", "D"],
@@ -505,6 +591,7 @@ const ES: Content = {
       { label: "SUCTA", plate: "TMC", when: "vence mañana", urgent: true },
       { label: "Seguro", plate: "SBX", when: "vence en 7 días", urgent: false },
     ],
+    odo: { title: "Odómetro · LQB", serviceAt: 412000, from: 411200, to: 412040, left: "faltan", over: "se pasó del cambio", every: "Cambio de aceite cada 20.000 km" },
   },
   bento: {
     title: "Y todo lo demás, también.",

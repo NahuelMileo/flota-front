@@ -23,15 +23,14 @@ function Compare() {
           <div
             role="table"
             aria-label={t.aria}
-            style={{ marginTop: 40, borderRadius: 16, border: "1px solid rgba(11,12,14,0.07)", overflow: "hidden", background: "#FFFFFF" }}
+            style={{ marginTop: 40 }}
           >
             <div
               role="row"
               style={{
                 ...row,
-                padding: "14px 20px",
-                background: "#F7F6F3",
-                borderBottom: "1px solid rgba(11,12,14,0.07)",
+                padding: "0 0 12px",
+                borderBottom: "1px solid rgba(11,12,14,0.12)",
                 fontFamily: MONO,
                 fontSize: 12,
                 letterSpacing: ".08em",
@@ -48,7 +47,7 @@ function Compare() {
               </span>
             </div>
             {t.rows.map((r) => (
-              <div key={r} role="row" data-reveal="" style={{ ...row, alignItems: "center", padding: "18px 20px", borderBottom: "1px solid rgba(11,12,14,0.05)" }}>
+              <div key={r} role="row" data-reveal="" style={{ ...row, alignItems: "center", padding: "18px 0", borderBottom: "1px solid rgba(11,12,14,0.07)" }}>
                 <span role="cell" style={{ fontSize: 17, lineHeight: 1.4, color: "#0B0C0E" }}>
                   {r}
                 </span>
@@ -75,7 +74,7 @@ function Compare() {
             ))}
           </div>
         </div>
-        <aside data-reveal="" aria-labelledby="aca-title" className="kmbr-card" style={{ flex: "1 1 300px", minWidth: 0, padding: 28, marginTop: "clamp(0px,6vw,96px)" }}>
+        <aside data-reveal="" aria-labelledby="aca-title" className="kmbr-open" style={{ flex: "1 1 300px", minWidth: 0, marginTop: "clamp(0px,6vw,96px)" }}>
           <div style={{ fontFamily: MONO, fontSize: 12, letterSpacing: ".12em", textTransform: "uppercase", color: "#13865A" }}>{t.asideEyebrow}</div>
           <h3 id="aca-title" style={{ margin: "12px 0 0", fontSize: 26, fontWeight: 500, letterSpacing: "-0.02em" }}>
             {t.asideTitle}

@@ -39,6 +39,13 @@ Sistema de gestión de flotas de transporte. Next.js 16 + React 19, shadcn/ui, T
 - `/uy` y `/br` son la misma landing (`components/marketing/landing.tsx`) con `locale="es"` o `"pt"`. Todo lo que cambia por país (textos, moneda, matrículas, clientes, vencimientos, montos de la demo) está en `components/marketing/content.ts`: no hardcodear textos en los componentes
 - Los montos de Uruguay son los de Brasil pasados a pesos (≈ 7,3 por real). El total "a cobrar" de la demo se calcula de `fletes`
 - El movimiento vive en `use-landing-motion.ts` (atributos `data-*` + Web Animations + Lenis) y los estilos en `landing.css`, todo bajo `[data-kmbr]` para no tocar el panel
+- Orden: hero → escena del problema (230vh) → "Cargás una vez" (`JourneyScene`) → cobranza (`CobroScene`) → rentabilidad y avisos → "Y todo lo demás" → comparación, pasos, seguridad, precio, preguntas y CTA
+- **Escenas fijadas** (`sections-scenes.tsx`, `data-pin="journey|cobro"`): la sección es alta y su contenido queda `sticky`; `useLandingMotion` le pasa el progreso 0→1. En el celular (`m`) y con movimiento reducido no se fijan (`data-static`): avanzan mientras la sección pasa por la vista, o quedan en su estado final. El markup se renderiza **en el estado final**, así sin JS se ve completo
+  - Journey: viaje → flete con la comisión del chofer (15 %, el default del panel) → gasoil y peajes → ganancia del viaje y por km. Los montos salen de `content.journey.rows`, la ganancia se calcula
+  - Cobranza: las celdas pendientes pasan a cobradas en orden y bajan "Falta cobrar" y la barra; la última queda pendiente a propósito
+- El hero y la ventana de la escena del problema muestran el balance como `MonthBalance` (cifra, margen, `<dl>` en línea y barra), **sin cards de KPI**, igual que el panel. "Y todo lo demás" y la aside de la comparación usan `.kmbr-open` (divisoria arriba, sin caja). Las ventanas de producto (mockups) sí van enmarcadas
+- Odómetro en avisos: el primer aviso de `content.avisos.alerts` lo maneja `content.avisos.odo` (cuenta km y pasa de "faltan X km" a vencido)
+- En el celular hay una barra fija con "Quiero ver una demostración" + WhatsApp que aparece después del hero (`.kmbr-mcta`)
 - `components/home` y `components/landing` son landings viejas que no usa ninguna ruta
 
 ---
