@@ -1,5 +1,6 @@
 "use client";
 import { ColumnDef } from "@tanstack/react-table";
+import Link from "next/link";
 import { createContext, useContext, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { Button } from "@/components/ui/button";
@@ -251,10 +252,21 @@ export function getColumns(
       ),
     },
     {
-      accessorKey: "notes",
+      id: "route",
       header: "Ruta",
-      cell: ({ row }) =>
-        row.original.notes ?? <span className="text-muted-foreground">—</span>,
+      // La ruta es la del viaje del flete y lleva a su detalle (km, egresos, utilidad).
+      // Las cuentas viejas sin viaje muestran las notas, donde se cargaba la ruta.
+      cell: ({ row }) => {
+        const { tripId, origin, destination, notes } = row.original;
+        if (tripId && origin && destination) {
+          return (
+            <Link href={`/trips/${tripId}`} className="hover:underline">
+              {origin} → {destination}
+            </Link>
+          );
+        }
+        return notes ?? <span className="text-muted-foreground">—</span>;
+      },
     },
     {
       accessorKey: "status",

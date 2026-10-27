@@ -21,11 +21,10 @@ import { z } from "zod";
 import { toast } from "sonner";
 import { Income } from "./columns";
 import { Expense } from "@/app/(dashboard)/egresos/columns";
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect } from "react";
+import { TripSelect, useTripSelection } from "@/components/trip-field";
 import { Checkbox } from "@/components/ui/checkbox";
 import { fetchDriverSalary } from "@/lib/driver-salary";
-
-type ActiveTrip = { id: string; origin: string; destination: string };
 
 
 const incomeSchema = z.object({
@@ -65,26 +64,6 @@ export default function AddIncomeForm({
 }) {
   const today = new Date();
   const todayIso = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
-  const [activeTrip, setActiveTrip] = useState<ActiveTrip | null>(null);
-  const activeTripRequestId = useRef(0);
-
-  const fetchActiveTrip = useCallback(async (truckId: string | null) => {
-    const requestId = ++activeTripRequestId.current;
-    if (!truckId || truckId === "none" || tripId) { setActiveTrip(null); return; }
-    try {
-      const res = await fetchWithAuth(`/api/trips/active?truckId=${truckId}`);
-      if (requestId !== activeTripRequestId.current) return; // el camión ya cambió de nuevo, descartar
-      if (res.ok) setActiveTrip(await res.json());
-      else setActiveTrip(null);
-    } catch {
-      if (requestId === activeTripRequestId.current) setActiveTrip(null);
-    }
-  }, [tripId]);
-
-  useEffect(() => {
-    if (defaultTruckId && !tripId) fetchActiveTrip(defaultTruckId);
-  }, [defaultTruckId, tripId, fetchActiveTrip]);
-
   const truckItems = [
     { label: "Empresa", value: "none" },
     ...trucks.map((t) => ({
@@ -121,6 +100,11 @@ export default function AddIncomeForm({
     },
   });
 
+  // Desde el detalle de un viaje (tripId) el viaje es fijo; si no, se sugiere el del
+  // camión en la fecha del ingreso y se puede cambiar.
+  const watchedTruckId = watch("truckId");
+  const tripSelection = useTripSelection(tripId ? null : watchedTruckId, watch("dateUtc"));
+
   const currentType = watch("type");
   const isFlete = currentType === "1";
 
@@ -145,7 +129,7 @@ export default function AddIncomeForm({
             truckId: data.truckId === "none" ? null : data.truckId,
             type: parseInt(data.type),
             currency: data.currency,
-            ...(tripId || activeTrip?.id ? { tripId: tripId ?? activeTrip?.id } : {}),
+            ...(tripId || tripSelection.tripId ? { tripId: tripId ?? tripSelection.tripId } : {}),
             // El backend crea el egreso "Salario chofer (empresa)" vinculado al ingreso,
             // en la misma operación: si falla uno, no se guarda ninguno.
             ...(withDriverSalary
@@ -217,10 +201,6 @@ export default function AddIncomeForm({
                 value={field.value ?? "none"}
                 onValueChange={(value) => {
                   field.onChange(value === "none" ? null : value);
-                  // Limpiar antes de refetchear: si el usuario envía el form mientras
-                  // el fetch está en curso, no debe quedar pegado el viaje del camión anterior.
-                  setActiveTrip(null);
-                  fetchActiveTrip(value === "none" ? null : value);
                 }}
               >
                 <SelectTrigger className="w-full">
@@ -240,15 +220,12 @@ export default function AddIncomeForm({
           />
         )}
 
-        {!tripId && activeTrip && (
-          <Field>
-            <Label>Viaje</Label>
-            <Input
-              disabled
-              value={`${activeTrip.origin} → ${activeTrip.destination}`}
-              className="bg-muted cursor-not-allowed"
-            />
-          </Field>
+        {!tripId && watchedTruckId && watchedTruckId !== "none" && (
+          <TripSelect
+            trips={tripSelection.trips}
+            value={tripSelection.value}
+            onChange={tripSelection.setValue}
+          />
         )}
 
         <Controller

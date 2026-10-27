@@ -36,6 +36,23 @@ export type Receivable = {
   valueUSD: number | null
   valueBRL: number | null
   valueUYU: number | null
+  // Ruta del viaje del flete (FTL: una cuenta = un viaje). Null en las cuentas cargadas
+  // antes de esa regla, que todavía no tienen viaje.
+  origin: string | null
+  destination: string | null
+  driverSalaryExpenseId: string | null
+  driverSalaryPercentage: number | null
+}
+
+// La planilla escribe la ruta como "SPxMdeo". Las cuentas viejas la tienen en las notas:
+// se propone separada solo si hay una única "x" (nombres como "Caxias" quedan afuera).
+export function parseRouteFromNotes(notes: string | null | undefined) {
+  if (!notes) return null
+  const parts = notes.trim().split(/x/i)
+  if (parts.length !== 2) return null
+  const [origin, destination] = parts.map((p) => p.trim())
+  if (origin.length < 2 || destination.length < 2) return null
+  return { origin, destination }
 }
 
 export const RECEIVABLE_ITEM_LABELS: Record<ReceivableItemKind, string> = {

@@ -30,9 +30,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
 import { Expense } from "./columns";
-import { useState, useEffect, useCallback, useRef } from "react";
-
-type ActiveTrip = { id: string; origin: string; destination: string };
+import { useState } from "react";
+import { TripSelect, useTripSelection } from "@/components/trip-field";
 
 const FUEL_CATEGORY_NAMES = new Set(["Gasoil", "Arla 32", "Arla32", "Aceite"])
 
@@ -71,28 +70,9 @@ export default function EditExpenseForm({
   categories: ExpenseCategory[];
   onSuccess: (expense: Expense) => void;
 }) {
-  const [activeTrip, setActiveTrip] = useState<ActiveTrip | null>(null);
-  const activeTripRequestId = useRef(0);
   // Nombre y categoría salen del concepto del mantenimiento: solo se editan desde ahí.
   const isMaintenance = !!expense.maintenanceId;
   const [pendingData, setPendingData] = useState<ExpenseFormValues | null>(null);
-
-  const fetchActiveTrip = useCallback(async (truckId: string | null) => {
-    const requestId = ++activeTripRequestId.current;
-    if (!truckId || truckId === "none") { setActiveTrip(null); return; }
-    try {
-      const res = await fetchWithAuth(`/api/trips/active?truckId=${truckId}`);
-      if (requestId !== activeTripRequestId.current) return; // el camión ya cambió de nuevo, descartar
-      if (res.ok) setActiveTrip(await res.json());
-      else setActiveTrip(null);
-    } catch {
-      if (requestId === activeTripRequestId.current) setActiveTrip(null);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (expense.truckId) fetchActiveTrip(expense.truckId);
-  }, [expense.truckId, fetchActiveTrip]);
 
   const truckItems = [
     ...(isMaintenance ? [] : [{ label: "Empresa", value: "none" }]),
@@ -125,6 +105,14 @@ export default function EditExpenseForm({
     },
   });
 
+  // El viaje guardado se respeta mientras no cambie el camión; con otro camión se
+  // sugiere el de la fecha.
+  const watchedTruckId = watch("truckId");
+  const tripSelection = useTripSelection(watchedTruckId, watch("date"), {
+    truckId: expense.truckId ?? null,
+    tripId: expense.tripId,
+  });
+
   const currentCategoryId = watch("expenseCategoryId");
   const currentCategory = categories.find((c) => c.id === currentCategoryId);
   const isFuelType = currentCategory ? FUEL_CATEGORY_NAMES.has(currentCategory.name) : false;
@@ -152,9 +140,7 @@ export default function EditExpenseForm({
             currency: data.currency,
             kilometers: data.kilometers ?? null,
             liters: data.liters ?? null,
-            // Solo conservar el tripId original si el camión no cambió — si cambió,
-            // ese viaje pertenece al camión anterior y no debe reenviarse.
-            tripId: activeTrip?.id ?? (data.truckId === expense.truckId ? expense.tripId : null) ?? null,
+            tripId: data.truckId && data.truckId !== "none" ? tripSelection.tripId : null,
           }),
         },
       );
@@ -245,10 +231,6 @@ export default function EditExpenseForm({
                 value={field.value ?? "none"}
                 onValueChange={(value) => {
                   field.onChange(value === "none" ? null : value);
-                  // Limpiar antes de refetchear: si el usuario envía el form mientras
-                  // el fetch está en curso, no debe quedar pegado el viaje del camión anterior.
-                  setActiveTrip(null);
-                  fetchActiveTrip(value === "none" ? null : value);
                 }}
               >
                 <SelectTrigger className="w-full">
@@ -268,15 +250,12 @@ export default function EditExpenseForm({
           />
         </Field>
 
-        {activeTrip && (
-          <Field>
-            <Label>Viaje</Label>
-            <Input
-              disabled
-              value={`${activeTrip.origin} → ${activeTrip.destination}`}
-              className="bg-muted cursor-not-allowed"
-            />
-          </Field>
+        {watchedTruckId && watchedTruckId !== "none" && (
+          <TripSelect
+            trips={tripSelection.trips}
+            value={tripSelection.value}
+            onChange={tripSelection.setValue}
+          />
         )}
 
         <Field>

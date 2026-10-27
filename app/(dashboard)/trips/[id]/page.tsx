@@ -43,6 +43,12 @@ import { Income as IncomeFormType, normalizeIncomeType } from "@/app/(dashboard)
 import AddExpenseForm from "@/app/(dashboard)/egresos/AddExpenseForm";
 import EditExpenseForm from "@/app/(dashboard)/egresos/EditExpenseForm";
 import { Expense as ExpenseFormType } from "@/app/(dashboard)/egresos/columns";
+import Link from "next/link";
+import {
+  RECEIVABLE_STATUS_LABELS,
+  splitDisplayTotal,
+  type Receivable,
+} from "@/types/receivable";
 
 
 type Income = {
@@ -91,6 +97,8 @@ type TripDetail = Trip & {
   costPerKm: number | null;
   initialKm: number | null;
   finalKm: number | null;
+  // FTL: la cuenta a recibir del flete de este viaje (null si no tiene).
+  receivable: Receivable | null;
 };
 
 // Recalcula totales, ganancia y costo por km a partir de los ingresos y egresos del viaje.
@@ -323,6 +331,20 @@ export default function TripDetailPage() {
   const fmtMoney2 = (v: number) => formatCurrency2(v, displayCurrency);
 
   const displayTotalIncome = trip ? trip.incomes.reduce((sum, i) => sum + getDisplayValue(i), 0) : 0;
+  // Lo que falta cobrar del flete: el saldo puede llegar 60 días después de terminado el
+  // viaje, y la utilidad tiene que verse igual.
+  const receivablePending = trip?.receivable
+    ? splitDisplayTotal(
+        trip.receivable,
+        getDisplayValue({
+          value: trip.receivable.totalAmount,
+          valueUSD: trip.receivable.valueUSD,
+          valueBRL: trip.receivable.valueBRL,
+          valueUYU: trip.receivable.valueUYU,
+          currency: trip.receivable.currency,
+        }),
+      ).pending
+    : 0;
   const displayTotalExpense = trip ? trip.expenses.reduce((sum, e) => sum + getDisplayValue(e), 0) : 0;
   // Los km reales del viaje si el chofer reportó ambas lecturas; si no, los cargados a mano.
   const tripKm =
@@ -474,6 +496,49 @@ export default function TripDetailPage() {
             </div>
           ) : null}
         </dl>
+      )}
+
+      {/* Sin km el viaje igual tiene utilidad; lo único que falta es el costo por km. */}
+      {!(tripKm && tripKm > 0) && (
+        <p className="text-sm text-muted-foreground">
+          Sin km: cargá el km inicial y final editando el viaje para ver el costo por km.
+        </p>
+      )}
+
+      {trip.receivable && (
+        <section className="space-y-3">
+          <div className="flex items-center justify-between border-b pb-2">
+            <h2 className="font-semibold">Cuenta a recibir</h2>
+            <Link
+              href="/cuentas-a-recibir"
+              className="text-sm text-muted-foreground hover:underline"
+            >
+              Ver cuentas a recibir
+            </Link>
+          </div>
+          <dl className="flex flex-wrap gap-x-6 gap-y-1 text-sm">
+            <div className="flex items-center gap-1.5">
+              <dt className="text-muted-foreground">Cliente</dt>
+              <dd className="font-medium">{trip.receivable.clientName}</dd>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <dt className="text-muted-foreground">Estado</dt>
+              <dd className="font-medium">{RECEIVABLE_STATUS_LABELS[trip.receivable.status]}</dd>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <dt className="text-muted-foreground">Pendiente de cobro</dt>
+              <dd className="font-medium tabular-nums">{fmtMoney(receivablePending)}</dd>
+            </div>
+            {receivablePending > 0 && (
+              <div className="flex items-center gap-1.5">
+                <dt className="text-muted-foreground">Utilidad al cobrar todo</dt>
+                <dd className="font-medium tabular-nums">
+                  {fmtMoney(displayTotalIncome + receivablePending - displayTotalExpense)}
+                </dd>
+              </div>
+            )}
+          </dl>
+        </section>
       )}
 
       {/* Ingresos */}

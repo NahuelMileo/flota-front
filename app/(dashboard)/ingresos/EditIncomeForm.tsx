@@ -21,9 +21,8 @@ import { toast } from "sonner";
 import { Income, normalizeIncomeType } from "./columns";
 import type { Expense } from "@/app/(dashboard)/egresos/columns";
 import { fetchDriverSalary } from "@/lib/driver-salary";
-import { useState, useEffect, useCallback, useRef } from "react";
-
-type ActiveTrip = { id: string; origin: string; destination: string };
+import { useState } from "react";
+import { TripSelect, useTripSelection } from "@/components/trip-field";
 
 
 const incomeSchema = z.object({
@@ -62,25 +61,9 @@ export default function EditIncomeForm({
   const [driverPercentage, setDriverPercentage] = useState(income.driverSalaryPercentage ?? 15);
   const [driverPercentageError, setDriverPercentageError] = useState<string | null>(null);
 
-  const [activeTrip, setActiveTrip] = useState<ActiveTrip | null>(null);
-  const activeTripRequestId = useRef(0);
-
-  const fetchActiveTrip = useCallback(async (truckId: string | null) => {
-    const requestId = ++activeTripRequestId.current;
-    if (!truckId || truckId === "none") { setActiveTrip(null); return; }
-    try {
-      const res = await fetchWithAuth(`/api/trips/active?truckId=${truckId}`);
-      if (requestId !== activeTripRequestId.current) return; // el camión ya cambió de nuevo, descartar
-      if (res.ok) setActiveTrip(await res.json());
-      else setActiveTrip(null);
-    } catch {
-      if (requestId === activeTripRequestId.current) setActiveTrip(null);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (income.truckId) fetchActiveTrip(income.truckId);
-  }, [income.truckId, fetchActiveTrip]);
+  // El cobro de una cuenta a recibir es un espejo de la cuenta: monto, moneda, camión y
+  // viaje se corrigen desde la cuenta, que es la que los sincroniza.
+  const isCollection = !!income.receivableId;
 
   const truckItems = [
     { label: "Empresa", value: "none" },
@@ -94,6 +77,7 @@ export default function EditIncomeForm({
     register,
     handleSubmit,
     control,
+    watch,
     formState: { errors, isSubmitting },
   } = useForm<IncomeFormValues>({
     resolver: zodResolver(incomeSchema),
@@ -105,6 +89,14 @@ export default function EditIncomeForm({
       type: normalizeIncomeType(String(income.type)),
       currency: (income.currency as "USD" | "BRL" | "UYU") ?? "BRL",
     },
+  });
+
+  // El viaje guardado se respeta mientras no cambie el camión; con otro camión se
+  // sugiere el de la fecha.
+  const watchedTruckId = watch("truckId");
+  const tripSelection = useTripSelection(watchedTruckId, watch("dateUtc"), {
+    truckId: income.truckId ?? null,
+    tripId: income.tripId,
   });
 
   async function onSubmit(data: IncomeFormValues) {
@@ -124,9 +116,11 @@ export default function EditIncomeForm({
             truckId: data.truckId === "none" ? null : data.truckId,
             type: parseInt(data.type),
             currency: data.currency,
-            // Solo conservar el tripId original si el camión no cambió — si cambió,
-            // ese viaje pertenece al camión anterior y no debe reenviarse.
-            tripId: activeTrip?.id ?? (data.truckId === income.truckId ? income.tripId : null) ?? null,
+            tripId: isCollection
+              ? (income.tripId ?? null)
+              : data.truckId && data.truckId !== "none"
+                ? tripSelection.tripId
+                : null,
             // El backend recalcula el salario vinculado (valor, fecha, camión, nombre).
             ...(hasDriverSalary ? { driverSalaryPercentage: driverPercentage } : {}),
           }),
@@ -147,6 +141,13 @@ export default function EditIncomeForm({
   return (
     <form onSubmit={handleSubmit(onSubmit)}>
       <FieldGroup>
+        {isCollection && (
+          <p className="text-sm text-muted-foreground">
+            Este ingreso es un cobro de una cuenta a recibir. El monto, la moneda, el camión y el
+            viaje se cambian desde la cuenta.
+          </p>
+        )}
+
         <Field>
           <Label>Descripción</Label>
           <Input {...register("description")} />
@@ -164,6 +165,8 @@ export default function EditIncomeForm({
             })}
             type="number"
             step="0.01"
+            readOnly={isCollection}
+            className={isCollection ? "bg-muted cursor-not-allowed" : undefined}
           />
           <FieldError errors={[errors.value]} />
         </Field>
@@ -182,13 +185,10 @@ export default function EditIncomeForm({
             render={({ field }) => (
               <Select
                 items={truckItems}
+                disabled={isCollection}
                 value={field.value ?? "none"}
                 onValueChange={(value) => {
                   field.onChange(value === "none" ? null : value);
-                  // Limpiar antes de refetchear: si el usuario envía el form mientras
-                  // el fetch está en curso, no debe quedar pegado el viaje del camión anterior.
-                  setActiveTrip(null);
-                  fetchActiveTrip(value === "none" ? null : value);
                 }}
               >
                 <SelectTrigger className="w-full">
@@ -208,15 +208,12 @@ export default function EditIncomeForm({
           />
         </Field>
 
-        {activeTrip && (
-          <Field>
-            <Label>Viaje</Label>
-            <Input
-              disabled
-              value={`${activeTrip.origin} → ${activeTrip.destination}`}
-              className="bg-muted cursor-not-allowed"
-            />
-          </Field>
+        {!isCollection && watchedTruckId && watchedTruckId !== "none" && (
+          <TripSelect
+            trips={tripSelection.trips}
+            value={tripSelection.value}
+            onChange={tripSelection.setValue}
+          />
         )}
 
         <Field>
@@ -255,6 +252,7 @@ export default function EditIncomeForm({
             render={({ field }) => (
               <Select
                 items={currencyItems}
+                disabled={isCollection}
                 value={field.value}
                 onValueChange={(value) => field.onChange(value ?? "BRL")}
               >

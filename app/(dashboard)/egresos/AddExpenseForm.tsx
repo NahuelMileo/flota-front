@@ -21,10 +21,8 @@ import { useForm, Controller, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
-import { useEffect, useState, useCallback, useRef } from "react";
+import { TripSelect, useTripSelection } from "@/components/trip-field";
 import { Expense } from "./columns";
-
-type ActiveTrip = { id: string; origin: string; destination: string };
 
 const FUEL_CATEGORY_NAMES = new Set(["Gasoil", "Arla32", "Arla 32", "Aceite"]);
 
@@ -110,26 +108,6 @@ export default function AddExpenseForm({
 }) {
   const today = new Date();
   const todayIso = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
-  const [activeTrip, setActiveTrip] = useState<ActiveTrip | null>(null);
-  const activeTripRequestId = useRef(0);
-
-  const fetchActiveTrip = useCallback(async (truckId: string | null) => {
-    const requestId = ++activeTripRequestId.current;
-    if (!truckId || truckId === "none" || tripId) { setActiveTrip(null); return; }
-    try {
-      const res = await fetchWithAuth(`/api/trips/active?truckId=${truckId}`);
-      if (requestId !== activeTripRequestId.current) return; // el camión ya cambió de nuevo, descartar
-      if (res.ok) setActiveTrip(await res.json());
-      else setActiveTrip(null);
-    } catch {
-      if (requestId === activeTripRequestId.current) setActiveTrip(null);
-    }
-  }, [tripId]);
-
-  useEffect(() => {
-    if (defaultTruckId && !tripId) fetchActiveTrip(defaultTruckId);
-  }, [defaultTruckId, tripId, fetchActiveTrip]);
-
   const truckItems = [
     { label: "Empresa", value: "none" },
     ...trucks.map((t) => ({
@@ -159,6 +137,11 @@ export default function AddExpenseForm({
 
   const { fields, append, remove } = useFieldArray({ control, name: "items" });
 
+  // Desde el detalle de un viaje (tripId) el viaje es fijo; si no, se sugiere el del
+  // camión en la fecha del gasto y se puede cambiar.
+  const watchedTruckId = watch("truckId");
+  const tripSelection = useTripSelection(tripId ? null : watchedTruckId, watch("date"));
+
   const watchedItems = watch("items");
   const watchedInstallments = watch("installments");
   const isInstallmentPlan = !!onInstallmentsCreated && watchedInstallments > 1;
@@ -175,7 +158,7 @@ export default function AddExpenseForm({
 
   async function onSubmit(data: ExpenseFormValues) {
     try {
-      const effectiveTripId = tripId ?? activeTrip?.id ?? undefined;
+      const effectiveTripId = tripId ?? tripSelection.tripId ?? undefined;
 
       if (onInstallmentsCreated && data.installments > 1) {
         const item = data.items[0];
@@ -266,10 +249,6 @@ export default function AddExpenseForm({
                   value={field.value ?? "none"}
                   onValueChange={(value) => {
                     field.onChange(value === "none" ? null : value);
-                    // Limpiar antes de refetchear: si el usuario envía el form mientras
-                    // el fetch está en curso, no debe quedar pegado el viaje del camión anterior.
-                    setActiveTrip(null);
-                    fetchActiveTrip(value === "none" ? null : value);
                   }}
                 >
                   <SelectTrigger className="w-full">
@@ -314,15 +293,12 @@ export default function AddExpenseForm({
           </Field>
         )}
 
-        {!tripId && activeTrip && (
-          <Field>
-            <Label>Viaje</Label>
-            <Input
-              disabled
-              value={`${activeTrip.origin} → ${activeTrip.destination}`}
-              className="bg-muted cursor-not-allowed"
-            />
-          </Field>
+        {!tripId && watchedTruckId && watchedTruckId !== "none" && (
+          <TripSelect
+            trips={tripSelection.trips}
+            value={tripSelection.value}
+            onChange={tripSelection.setValue}
+          />
         )}
       </FieldGroup>
 

@@ -12,15 +12,20 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { AutoTextarea } from "@/components/ui/auto-textarea";
+import { TripSelect, type TruckTripOption } from "@/components/trip-field";
 import { fetchWithAuth } from "@/lib/api";
 import type { Truck } from "@/types/truck";
 import type { Client } from "@/types/client";
+import type { ExpenseCategory } from "@/types/expense-category";
 import { z } from "zod";
-import { useCallback, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import type { Control, UseFormRegister, UseFormSetValue, FieldErrors } from "react-hook-form";
 import { Controller, useWatch } from "react-hook-form";
 
-export type ActiveTrip = { id: string; origin: string; destination: string };
+// Valor del selector de viaje que pide crear uno nuevo con la ruta del formulario.
+export const NEW_TRIP = "new";
+
+export const DEFAULT_DRIVER_SALARY_PERCENTAGE = 15;
 
 export const currencyItems = [
   { label: "BRL — Real brasileño", value: "BRL" },
@@ -31,10 +36,15 @@ export const currencyItems = [
 const money = (message: string) =>
   z.number({ message }).min(0, "No puede ser negativo");
 
+const place = z.string().max(500, "Máximo 500 caracteres").optional();
+
 export const receivableSchema = z
   .object({
     clientId: z.string().min(1, "El cliente es requerido"),
     truckId: z.string().min(1, "El camión es requerido"),
+    tripChoice: z.string(),
+    origin: place,
+    destination: place,
     dateUtc: z.string().min(1, "La fecha es requerida"),
     currency: z.enum(["USD", "BRL", "UYU"]),
     freightValue: z
@@ -43,6 +53,11 @@ export const receivableSchema = z
     advanceAmount: money("El adelanto es requerido"),
     balanceAmount: money("El saldo es requerido"),
     tollAmount: money("El peaje es requerido"),
+    driverSalaryPercentage: z
+      .number()
+      .gt(0, "Debe ser mayor a 0")
+      .max(100, "Máximo 100")
+      .nullable(),
     notes: z.string().max(500, "Máximo 500 caracteres").optional(),
   })
   // Adelanto, saldo y peaje son las partes del flete: si no suman, la fila miente sobre
@@ -54,7 +69,18 @@ export const receivableSchema = z
       message: "El adelanto, el saldo y el peaje deben sumar el valor del flete",
       path: ["freightValue"],
     },
-  );
+  )
+  // FTL: cada fila es un viaje. Para crearlo hace falta la ruta; con un viaje existente
+  // la ruta es opcional (si viene, lo actualiza).
+  .superRefine((data, ctx) => {
+    if (data.tripChoice !== NEW_TRIP) return;
+    if ((data.origin?.trim().length ?? 0) < 2) {
+      ctx.addIssue({ code: "custom", path: ["origin"], message: "El origen es requerido para crear el viaje" });
+    }
+    if ((data.destination?.trim().length ?? 0) < 2) {
+      ctx.addIssue({ code: "custom", path: ["destination"], message: "El destino es requerido para crear el viaje" });
+    }
+  });
 
 export type ReceivableFormValues = z.infer<typeof receivableSchema>;
 
@@ -62,6 +88,9 @@ export const parseMoney = (v: unknown) =>
   v === "" || v === null || v === undefined
     ? undefined
     : parseFloat(String(v).replace(",", "."));
+
+const parseOptionalNumber = (v: unknown) =>
+  v === "" || v === null || v === undefined ? null : parseFloat(String(v).replace(",", "."));
 
 export const round2 = (v: number) => Math.round(v * 100) / 100;
 
@@ -74,31 +103,32 @@ export function todayIso() {
   ).padStart(2, "0")}`;
 }
 
-// Mismo patrón que AddIncomeForm: el camión puede cambiar mientras un fetch está en
-// vuelo, así que se descarta toda respuesta que no sea la del último pedido.
-export function useActiveTrip(enabled: boolean) {
-  const [activeTrip, setActiveTrip] = useState<ActiveTrip | null>(null);
-  const requestId = useRef(0);
+// Cuerpo del POST/PUT: "Viaje nuevo" viaja como tripId null y la ruta crea el viaje.
+export function toReceivablePayload(data: ReceivableFormValues, salaryCategoryId?: string | null) {
+  const { tripChoice, ...rest } = data;
+  return {
+    ...rest,
+    tripId: tripChoice === NEW_TRIP ? null : tripChoice,
+    origin: data.origin?.trim() ? data.origin.trim() : null,
+    destination: data.destination?.trim() ? data.destination.trim() : null,
+    notes: data.notes?.trim() ? data.notes.trim() : null,
+    ...(salaryCategoryId ? { driverSalaryCategoryId: salaryCategoryId } : {}),
+  };
+}
 
-  const fetchActiveTrip = useCallback(
-    async (truckId: string | null) => {
-      const current = ++requestId.current;
-      if (!truckId || !enabled) {
-        setActiveTrip(null);
-        return;
-      }
-      try {
-        const res = await fetchWithAuth(`/api/trips/active?truckId=${truckId}`);
-        if (current !== requestId.current) return;
-        setActiveTrip(res.ok ? await res.json() : null);
-      } catch {
-        if (current === requestId.current) setActiveTrip(null);
-      }
-    },
-    [enabled],
-  );
-
-  return { activeTrip, setActiveTrip, fetchActiveTrip };
+// Categoría por defecto del egreso de salario: la misma heurística que AddIncomeForm.
+export function useSalaryCategoryId() {
+  const [categoryId, setCategoryId] = useState<string | null>(null);
+  useEffect(() => {
+    fetchWithAuth(`/api/expense-categories`)
+      .then(async (res) => {
+        if (!res.ok) return;
+        const categories: ExpenseCategory[] = await res.json();
+        setCategoryId(categories.find((c) => c.name.toLowerCase().includes("salari"))?.id ?? null);
+      })
+      .catch(() => {});
+  }, []);
+  return categoryId;
 }
 
 type FieldsProps = {
@@ -109,8 +139,13 @@ type FieldsProps = {
   clients: Client[];
   trucks: Truck[];
   tollAmount: number | undefined;
-  activeTrip: ActiveTrip | null;
+  // Viajes recientes del camión elegido (GET /api/trips/by-truck).
+  trips: TruckTripOption[];
+  // Id de la cuenta en edición: su propio viaje se sigue ofreciendo aunque ya tenga cuenta.
+  receivableId?: string;
   onTruckChange: (truckId: string | null) => void;
+  onTripChoice: (value: string) => void;
+  salaryHint?: string;
 };
 
 export function ReceivableFormFields({
@@ -121,20 +156,28 @@ export function ReceivableFormFields({
   clients,
   trucks,
   tollAmount,
-  activeTrip,
+  trips,
+  receivableId,
   onTruckChange,
+  onTripChoice,
+  salaryHint,
 }: FieldsProps) {
   const clientItems = clients.map((c) => ({ label: c.name, value: c.id }));
   const truckItems = trucks.map((t) => ({
     label: `${t.licensePlate}${t.model ? ` - ${t.model}` : ""}`,
     value: t.id,
   }));
+  // FTL: un viaje tiene una sola cuenta. Se ofrecen los viajes libres (y el propio).
+  const freeTrips = trips.filter((t) => !t.receivableId || t.receivableId === receivableId);
 
   // Los dos sentidos van en los onChange y no en efectos, para no pisar los montos de
   // una cuenta existente al abrirla:
   // - Tipear el flete reparte 70/30 lo que queda sin el peaje.
   // - Tipear adelanto, saldo o peaje recalcula el flete como la suma de los tres.
-  const [advanceAmount, balanceAmount] = useWatch({ control, name: ["advanceAmount", "balanceAmount"] });
+  const [truckId, tripChoice, advanceAmount, balanceAmount, driverSalaryPercentage] = useWatch({
+    control,
+    name: ["truckId", "tripChoice", "advanceAmount", "balanceAmount", "driverSalaryPercentage"],
+  });
   const setFreightFromParts = (parts: { advance?: number; balance?: number; toll?: number }) => {
     const value = (v: number | undefined) => (v === undefined || Number.isNaN(v) ? 0 : v);
     const freight = round2(
@@ -142,6 +185,13 @@ export function ReceivableFormFields({
     );
     setValue("freightValue", freight, { shouldValidate: true });
   };
+
+  // El salario es sobre adelanto + saldo: el peaje es un reintegro, no trabajo del chofer.
+  const salaryBase = (Number(advanceAmount) || 0) + (Number(balanceAmount) || 0);
+  const salaryAmount =
+    driverSalaryPercentage && driverSalaryPercentage > 0
+      ? round2((salaryBase * driverSalaryPercentage) / 100)
+      : null;
 
   return (
     <FieldGroup>
@@ -206,19 +256,35 @@ export function ReceivableFormFields({
         <FieldError errors={[errors.truckId]} />
       </Field>
 
-      {activeTrip && (
-        <Field>
-          <Label>Viaje</Label>
-          <Input
-            disabled
-            value={`${activeTrip.origin} → ${activeTrip.destination}`}
-            className="bg-muted cursor-not-allowed"
-          />
-        </Field>
+      {truckId && (
+        <TripSelect
+          trips={freeTrips}
+          value={tripChoice}
+          onChange={onTripChoice}
+          leadingItems={[{ label: "Viaje nuevo", value: NEW_TRIP }]}
+          description={
+            tripChoice === NEW_TRIP
+              ? "Se crea el viaje con esta ruta, sin km. Los km los cargás en el viaje cuando lleguen."
+              : "La fecha, el camión y la ruta del viaje se actualizan con los de esta cuenta."
+          }
+        />
       )}
 
+      <div className="grid grid-cols-2 gap-3">
+        <Field>
+          <Label>Origen</Label>
+          <Input {...register("origin")} placeholder="SP" />
+          <FieldError errors={[errors.origin]} />
+        </Field>
+        <Field>
+          <Label>Destino</Label>
+          <Input {...register("destination")} placeholder="Mdeo" />
+          <FieldError errors={[errors.destination]} />
+        </Field>
+      </div>
+
       <Field>
-        <Label>Fecha</Label>
+        <Label>Fecha del viaje</Label>
         <Input {...register("dateUtc")} type="date" />
         <FieldError errors={[errors.dateUtc]} />
       </Field>
@@ -313,9 +379,27 @@ export function ReceivableFormFields({
       </Field>
 
       <Field>
-        {/* En la planilla original esta columna es la ruta ("MdeoxFranca", "spxMdeo"). */}
-        <Label>Ruta / Notas</Label>
-        <AutoTextarea {...register("notes")} placeholder="MdeoxFranca" />
+        <Label>Salario del chofer (%)</Label>
+        <Input
+          {...register("driverSalaryPercentage", { setValueAs: parseOptionalNumber })}
+          type="number"
+          step="0.1"
+          min={0}
+          max={100}
+          placeholder="Sin salario"
+        />
+        <FieldDescription>
+          {salaryAmount !== null
+            ? `Egreso de ${salaryAmount.toLocaleString("es-UY")} sobre adelanto + saldo, sin el peaje.`
+            : "Sobre adelanto + saldo, sin el peaje."}
+          {salaryHint ? ` ${salaryHint}` : ""}
+        </FieldDescription>
+        <FieldError errors={[errors.driverSalaryPercentage]} />
+      </Field>
+
+      <Field>
+        <Label>Notas</Label>
+        <AutoTextarea {...register("notes")} placeholder="Opcional" />
         <FieldError errors={[errors.notes]} />
       </Field>
     </FieldGroup>

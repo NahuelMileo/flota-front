@@ -139,14 +139,15 @@ export default function ReceivablesPage() {
     try {
       const res = await fetchWithAuth(`/api/receivables/${receivable.id}`, { method: "DELETE" });
       if (!res.ok) throw new Error();
-      const { deletedIncomes } = await res.json();
+      const { deletedIncomes, deletedTrip } = await res.json();
       setReceivables((prev) => prev.filter((r) => r.id !== receivable.id));
+      // El viaje se borra solo si quedó vacío; si tenía km o egresos propios, se conserva.
+      const also = [
+        deletedIncomes > 0 ? `${deletedIncomes} ${deletedIncomes === 1 ? "ingreso" : "ingresos"}` : null,
+        deletedTrip ? "su viaje" : null,
+      ].filter(Boolean);
       toast.success(
-        deletedIncomes > 0
-          ? `Cuenta eliminada junto con ${deletedIncomes} ${
-              deletedIncomes === 1 ? "ingreso" : "ingresos"
-            }`
-          : "Cuenta a recibir eliminada",
+        also.length > 0 ? `Cuenta eliminada junto con ${also.join(" y ")}` : "Cuenta a recibir eliminada",
       );
     } catch {
       toast.error("Error al eliminar la cuenta a recibir");
