@@ -16,6 +16,7 @@ import { toast } from "sonner";
 import { fetchWithAuth } from "@/lib/api";
 import { deleteExpense } from "@/lib/driver-salary";
 import { useTrucks } from "@/hooks/use-trucks";
+import { TruckColorsProvider } from "@/components/truck-plate";
 import type { ExpenseCategory } from "@/types/expense-category";
 import { getColumns, Expense } from "./columns";
 import { TotalLine } from "@/components/total-line";
@@ -292,22 +293,24 @@ export default function ExpensePage() {
       {isLoading ? (
         <DataTableSkeleton columns={7} showToolbarAction />
       ) : (
-        <DataTable
-          columns={columns}
-          data={filteredExpenses}
-          emptyMessage="No hay egresos para el período seleccionado."
-          searchPlaceholder="Buscar egreso..."
-          csvFilename="egresos"
-          csvHeaders={[
-            { key: "name", label: "Nombre" },
-            { key: "categoryName", label: "Tipo" },
-            { key: "value", label: "Valor" },
-            { key: "truckLicensePlate", label: "Camión" },
-            { key: "date", label: "Fecha" },
-            { key: "kilometers", label: "Km" },
-            { key: "liters", label: "Litros" },
-          ]}
-        />
+        <TruckColorsProvider trucks={trucks}>
+          <DataTable
+            columns={columns}
+            data={filteredExpenses}
+            emptyMessage="No hay egresos para el período seleccionado."
+            searchPlaceholder="Buscar egreso..."
+            csvFilename="egresos"
+            csvHeaders={[
+              { key: "name", label: "Nombre" },
+              { key: "categoryName", label: "Tipo" },
+              { key: "value", label: "Valor" },
+              { key: "truckLicensePlate", label: "Camión" },
+              { key: "date", label: "Fecha" },
+              { key: "kilometers", label: "Km" },
+              { key: "liters", label: "Litros" },
+            ]}
+          />
+        </TruckColorsProvider>
       )}
     </div>
   );

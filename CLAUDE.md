@@ -106,7 +106,7 @@ Sistema de gestión de flotas de transporte. Next.js 16 + React 19, shadcn/ui, T
 - Filtros: por camión, por tipo (Flete / Otro)
 - Total con `TotalLine` (cifra, conteo y variación %) — sin card
 - Gráfico: ingresos por camión (barras, ordenado desc, "Sin asignar" para sin camión)
-- Tabla: Descripción, Valor (en moneda de visualización), Moneda original (badge), Camión (badge), Fecha, Tipo (badge), Acciones
+- Tabla: Descripción, Valor (en moneda de visualización), Moneda original (badge), Camión (matrícula con el color del camión, ver `components/truck-plate.tsx`), Fecha, Tipo (badge), Acciones
 - Alta: descripción, valor, fecha, camión (opcional), tipo (Flete/Otro), moneda (BRL/USD/UYU) → POST `/api/incomes`
   - Si tipo = Flete: opción de crear egreso de salario para chofer (default 15%, configurable 0-100%)
 - Edición: mismos campos pre-cargados → PUT `/api/incomes/{id}`
@@ -125,7 +125,7 @@ Sistema de gestión de flotas de transporte. Next.js 16 + React 19, shadcn/ui, T
 - Filtro por camión también coincide por `truckLicensePlate` cuando `truckId` es null
 - Total con `TotalLine` (si hay camión seleccionado, suma el costo fijo mensual del summary) — sin card
 - Gráfico: egresos por categoría (barras, ordenado desc)
-- Tabla: Nombre, Tipo (badge con `categoryName`), Valor (en moneda de visualización), Camión, Fecha, Km, Litros, Acciones
+- Tabla: Nombre, Tipo (`categoryName` en texto plano), Valor (en moneda de visualización), Camión (matrícula con el color del camión), Fecha, Km, Litros, Acciones
 - Alta: nombre (opcional), valor, fecha, camión (opcional), categoría, moneda (BRL/USD/UYU), km y litros solo si la categoría es combustible → POST `/api/expenses`
 - **Detección de combustible por nombre de categoría:** `FUEL_CATEGORY_NAMES` = `Gasoil`, `Arla32`/`Arla 32`, `Aceite` (en AddExpenseForm y EditExpenseForm)
 - Edición: mismos campos → PUT `/api/expenses/{id}`
@@ -169,6 +169,8 @@ Sistema de gestión de flotas de transporte. Next.js 16 + React 19, shadcn/ui, T
 ### Truck.color
 
 Hex `#RRGGBB` opcional, editable en el ABM de camiones con una paleta predefinida. Es cómo se reconoce el camión de un vistazo en cuentas a recibir (en el Excel era el color de fondo de la fila).
+
+También pinta la matrícula en `/ingresos`, `/egresos` y vencimientos con `TruckPlate` (`components/truck-plate.tsx`). En esas dos tablas es un punto del color al lado de la matrícula (el bloque pintado pesaba demasiado con muchas filas). Ingresos y egresos no traen el color en la respuesta: la página envuelve la tabla en `TruckColorsProvider` con `useTrucks()` y la celda (`TruckPlateCell`) lo busca por `truckId` o, si falta, por matrícula. Va por contexto para no meter los camiones en las deps de `getColumns`.
 
 ---
 

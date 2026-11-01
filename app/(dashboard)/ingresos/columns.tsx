@@ -13,6 +13,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
+import { TruckPlateCell } from "@/components/truck-plate";
 import { ConfirmDeleteAction } from "@/components/confirm-delete-action";
 import { formatCurrency, formatDate, DisplayCurrency } from "@/lib/format";
 import { getDisplayValue } from "@/lib/currency";
@@ -92,9 +93,7 @@ export function getColumns(
       accessorKey: "truckLicensePlate",
       header: "Camión",
       cell: ({ row }) => {
-        const plate = row.getValue("truckLicensePlate") as string | null;
-        if (!plate) return <span className="text-muted-foreground">—</span>;
-        return <Badge variant="outline">{plate}</Badge>;
+        return <TruckPlateCell truckId={row.original.truckId} plate={row.getValue("truckLicensePlate") as string | null} />;
       },
     },
     {

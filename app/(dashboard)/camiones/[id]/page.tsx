@@ -243,7 +243,11 @@ function buildExpenseColumns(
       accessorKey: "categoryName",
       header: "Tipo",
       cell: ({ row }) => (
-        <Badge variant="outline">{(row.getValue("categoryName") as string | null) ?? "Sin categoría"}</Badge>
+        (row.getValue("categoryName") as string | null) ? (
+          <span className="text-sm">{row.getValue("categoryName") as string}</span>
+        ) : (
+          <span className="text-sm text-muted-foreground">Sin categoría</span>
+        )
       ),
     },
     {
