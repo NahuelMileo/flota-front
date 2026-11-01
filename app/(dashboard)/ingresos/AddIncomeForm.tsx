@@ -96,7 +96,10 @@ export default function AddIncomeForm({
   const [createDriverExpense, setCreateDriverExpense] = useState(false);
   const [driverPercentage, setDriverPercentage] = useState(15);
   const [driverPercentageError, setDriverPercentageError] = useState<string | null>(null);
-  const defaultSalaryCategory = categories?.find(c => c.name.toLowerCase().includes("salari")) ?? null;
+  // Sin acentos: la categoría sembrada es "Salário". Si no hay ninguna, el backend la resuelve.
+  const defaultSalaryCategory = categories?.find(c =>
+    c.name.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase().includes("salari")
+  ) ?? null;
   const [salaryCategoryId, setSalaryCategoryId] = useState<string | null>(defaultSalaryCategory?.id ?? null);
 
   useEffect(() => {
