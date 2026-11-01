@@ -204,7 +204,12 @@ export function getColumns(
     {
       accessorKey: "categoryName",
       header: "Categoría",
-      cell: ({ row }) => <Badge variant="outline">{row.original.categoryName ?? "Sin categoría"}</Badge>,
+      cell: ({ row }) =>
+        row.original.categoryName ? (
+          <span className="text-sm">{row.original.categoryName}</span>
+        ) : (
+          <span className="text-sm text-muted-foreground">Sin categoría</span>
+        ),
     },
     {
       accessorKey: "scope",

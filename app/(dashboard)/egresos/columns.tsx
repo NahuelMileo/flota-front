@@ -10,7 +10,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Badge } from "@/components/ui/badge";
+import { TruckPlateCell } from "@/components/truck-plate";
 import { ExpenseDeleteFooter } from "@/components/expense-delete-footer";
 import { formatCurrency, formatDate, DisplayCurrency } from "@/lib/format";
 import { getDisplayValue } from "@/lib/currency";
@@ -69,16 +69,14 @@ export function getColumns(
       header: "Tipo",
       cell: ({ row }) => {
         const name = row.getValue("categoryName") as string | null;
-        return <Badge variant="outline">{name ?? "Sin categoría"}</Badge>;
+        return name ? <span className="text-sm">{name}</span> : <span className="text-sm text-muted-foreground">Sin categoría</span>;
       },
     },
     {
       accessorKey: "truckLicensePlate",
       header: "Camión",
       cell: ({ row }) => {
-        const plate = row.getValue("truckLicensePlate") as string | null;
-        if (!plate) return <span className="text-muted-foreground">—</span>;
-        return <Badge variant="outline">{plate}</Badge>;
+        return <TruckPlateCell truckId={row.original.truckId} plate={row.getValue("truckLicensePlate") as string | null} />;
       },
     },
     {

@@ -15,6 +15,7 @@ import {
 import { toast } from "sonner";
 import { fetchWithAuth } from "@/lib/api";
 import { useTrucks } from "@/hooks/use-trucks";
+import { TruckColorsProvider } from "@/components/truck-plate";
 import { getColumns, Income, normalizeIncomeType } from "./columns";
 import { TotalLine } from "@/components/total-line";
 import { IncomeByTruckChart } from "@/components/income-by-truck-chart";
@@ -263,20 +264,22 @@ export default function IncomePage() {
       {isLoading ? (
         <DataTableSkeleton columns={7} showToolbarAction />
       ) : (
-        <DataTable
-          columns={columns}
-          data={filteredIncomes}
-          emptyMessage="No hay ingresos para el período seleccionado."
-          searchPlaceholder="Buscar ingreso..."
-          csvFilename="ingresos"
-          csvHeaders={[
-            { key: "description", label: "Descripción" },
-            { key: "value", label: "Valor" },
-            { key: "truckLicensePlate", label: "Camión" },
-            { key: "dateUtc", label: "Fecha" },
-            { key: "type", label: "Tipo" },
-          ]}
-        />
+        <TruckColorsProvider trucks={trucks}>
+          <DataTable
+            columns={columns}
+            data={filteredIncomes}
+            emptyMessage="No hay ingresos para el período seleccionado."
+            searchPlaceholder="Buscar ingreso..."
+            csvFilename="ingresos"
+            csvHeaders={[
+              { key: "description", label: "Descripción" },
+              { key: "value", label: "Valor" },
+              { key: "truckLicensePlate", label: "Camión" },
+              { key: "dateUtc", label: "Fecha" },
+              { key: "type", label: "Tipo" },
+            ]}
+          />
+        </TruckColorsProvider>
       )}
     </div>
   );
