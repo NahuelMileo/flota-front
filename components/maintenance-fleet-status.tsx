@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { format } from "date-fns"
 import { es } from "date-fns/locale"
+import { XIcon } from "lucide-react"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Button } from "@/components/ui/button"
 import { Refreshing } from "@/components/refreshing"
@@ -15,7 +16,9 @@ import { cn } from "@/lib/utils"
 import type { MaintenanceFleetStatus, MaintenanceStatusItem } from "@/types/maintenance-alert"
 import type { Truck } from "@/types/truck"
 
-const UP_TO_DATE_VISIBLE = 5
+// Cada grupo muestra hasta 10 y "Ver N más". No hay paginación real: para revisar los
+// vencidos se quieren ver todos, y el back devuelve pocas filas (camiones × conceptos).
+const VISIBLE_PER_GROUP = 10
 const kmFormatter = new Intl.NumberFormat("es-UY", { maximumFractionDigits: 0 })
 
 type Tone = "danger" | "warning" | "success"
@@ -29,11 +32,17 @@ export function MaintenanceFleetStatusSection({
   trucks,
   truckId,
   conceptId,
+  conceptName,
+  onClearTruck,
+  onClearConcept,
   refreshKey,
 }: {
   trucks: Truck[]
   truckId: string | null
   conceptId: string | null
+  conceptName: string | null
+  onClearTruck: () => void
+  onClearConcept: () => void
   refreshKey: number
 }) {
   const [status, setStatus] = useState<MaintenanceFleetStatus | null>(null)
@@ -83,6 +92,21 @@ export function MaintenanceFleetStatusSection({
         Estado de mantenimientos
       </h2>
 
+      {/* Los filtros están arriba de la tabla y quedan lejos: se repiten acá para que se
+          note que también recortan esta sección, y se pueden sacar sin subir. */}
+      {(truckId || conceptId) && (
+        <div className="flex flex-wrap items-center gap-1.5 text-sm">
+          <span className="text-muted-foreground">Filtrado:</span>
+          {truckId && (
+            <FilterChip
+              label={trucks.find((t) => t.id === truckId)?.licensePlate ?? "Camión"}
+              onClear={onClearTruck}
+            />
+          )}
+          {conceptId && <FilterChip label={conceptName ?? "Concepto"} onClear={onClearConcept} />}
+        </div>
+      )}
+
       {!filtered && !hasError ? (
         <div className="space-y-2">
           <Skeleton className="h-5 w-72" />
@@ -122,6 +146,7 @@ export function MaintenanceFleetStatusSection({
             items={filtered.overdue}
             emptyMessage="No hay mantenimientos vencidos."
             colorByTruck={colorByTruck}
+            collapseAfter={VISIBLE_PER_GROUP}
           />
           <StatusGroup
             title="Próximos"
@@ -129,6 +154,7 @@ export function MaintenanceFleetStatusSection({
             items={filtered.upcoming}
             emptyMessage="No hay mantenimientos por vencer."
             colorByTruck={colorByTruck}
+            collapseAfter={VISIBLE_PER_GROUP}
           />
           <StatusGroup
             title="Al día"
@@ -136,11 +162,27 @@ export function MaintenanceFleetStatusSection({
             items={filtered.upToDate}
             emptyMessage="Ningún mantenimiento está al día todavía."
             colorByTruck={colorByTruck}
-            collapseAfter={UP_TO_DATE_VISIBLE}
+            collapseAfter={VISIBLE_PER_GROUP}
           />
         </Refreshing>
       ) : null}
     </section>
+  )
+}
+
+function FilterChip({ label, onClear }: { label: string; onClear: () => void }) {
+  return (
+    <span className="inline-flex items-center gap-1 rounded-md bg-muted py-0.5 pr-0.5 pl-2 text-xs font-medium">
+      {label}
+      <button
+        type="button"
+        onClick={onClear}
+        aria-label={`Quitar filtro ${label}`}
+        className="flex size-5 cursor-pointer items-center justify-center rounded text-muted-foreground transition-colors duration-(--dur-fast) hover:bg-background hover:text-foreground"
+      >
+        <XIcon className="size-3" />
+      </button>
+    </span>
   )
 }
 

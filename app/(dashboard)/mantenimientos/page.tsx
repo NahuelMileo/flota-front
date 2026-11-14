@@ -231,6 +231,9 @@ export default function MaintenancePage() {
         trucks={trucks}
         truckId={selectedTruckId}
         conceptId={selectedConceptId}
+        conceptName={concepts.find((c) => c.id === selectedConceptId)?.name ?? null}
+        onClearTruck={() => setSelectedTruckId(null)}
+        onClearConcept={() => setSelectedConceptId(null)}
         refreshKey={statusRefreshKey}
       />
     </div>
