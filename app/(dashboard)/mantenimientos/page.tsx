@@ -25,12 +25,16 @@ import type { Maintenance, MaintenanceConcept } from "@/types/maintenance";
 import { FilterSelect } from "@/components/filter-select";
 import { Settings } from "lucide-react";
 import Link from "next/link";
+import { MaintenanceFleetStatusSection } from "@/components/maintenance-fleet-status";
 
 export default function MaintenancePage() {
   const [maintenances, setMaintenances] = useState<Maintenance[]>([]);
   const trucks = useTrucks();
   const { concepts } = useMaintenanceConcepts();
   const [isLoading, setIsLoading] = useState(false);
+  // Se incrementa en cada alta/edición/baja para que la sección de estado se recalcule.
+  const [statusRefreshKey, setStatusRefreshKey] = useState(0);
+  const refreshStatus = () => setStatusRefreshKey((k) => k + 1);
 
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [editingMaintenance, setEditingMaintenance] =
@@ -97,6 +101,7 @@ export default function MaintenancePage() {
   const handleAddMaintenance = (newMaintenance: Maintenance) => {
     setMaintenances((prev) => [...prev, newMaintenance]);
     setIsAddDialogOpen(false);
+    refreshStatus();
   };
 
   const handleUpdateMaintenance = (updated: Maintenance) => {
@@ -104,6 +109,7 @@ export default function MaintenancePage() {
       prev.map((m) => (m.id === updated.id ? updated : m))
     );
     setEditingMaintenance(null);
+    refreshStatus();
   };
 
   const handleDeleteMaintenance = useCallback(async (maintenance: Maintenance) => {
@@ -115,6 +121,7 @@ export default function MaintenancePage() {
       if (!res.ok) throw new Error();
 
       setMaintenances((prev) => prev.filter((m) => m.id !== maintenance.id));
+      setStatusRefreshKey((k) => k + 1);
       toast.success("Mantenimiento eliminado");
     } catch {
       toast.error("Error al eliminar mantenimiento");
@@ -219,6 +226,16 @@ export default function MaintenancePage() {
           searchPlaceholder="Buscar mantenimiento..."
         />
       )}
+
+      <MaintenanceFleetStatusSection
+        trucks={trucks}
+        truckId={selectedTruckId}
+        conceptId={selectedConceptId}
+        conceptName={concepts.find((c) => c.id === selectedConceptId)?.name ?? null}
+        onClearTruck={() => setSelectedTruckId(null)}
+        onClearConcept={() => setSelectedConceptId(null)}
+        refreshKey={statusRefreshKey}
+      />
     </div>
   );
 }

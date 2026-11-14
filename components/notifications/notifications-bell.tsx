@@ -102,6 +102,8 @@ export function NotificationsBell() {
         hasError={maintenance.hasError}
         onRetry={maintenance.refetch}
         onMarkAsRead={(a) => maintenance.markAsRead(a.id)}
+        onDismiss={(a) => maintenance.dismiss(a.id)}
+        onDismissAll={maintenance.dismissAll}
       />
     )
 
