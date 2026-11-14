@@ -29,6 +29,8 @@ interface MaintenanceAlertsContextType {
   unreadCount: number
   refetch: () => Promise<void>
   markAsRead: (id: string) => Promise<void>
+  dismiss: (id: string) => Promise<void>
+  dismissAll: () => Promise<void>
 }
 
 const MaintenanceAlertsContext = createContext<MaintenanceAlertsContextType | null>(null)
@@ -80,11 +82,37 @@ export function MaintenanceAlertsProvider({ children }: { children: React.ReactN
     }
   }, [alerts])
 
+  // Borrar es por usuario (lo guarda el back): a los demás de la empresa les sigue apareciendo.
+  // Si el mantenimiento empeora, el back crea un aviso nuevo y vuelve a aparecer.
+  const dismiss = useCallback(async (id: string) => {
+    const previous = alerts
+    setAlerts((prev) => prev.filter((alert) => alert.id !== id))
+    try {
+      const res = await fetchWithAuth(`/api/maintenance-alerts/${id}`, { method: "DELETE" })
+      if (!res.ok) throw new Error()
+    } catch {
+      setAlerts(previous)
+      toast.error("No se pudo borrar la notificación")
+    }
+  }, [alerts])
+
+  const dismissAll = useCallback(async () => {
+    const previous = alerts
+    setAlerts([])
+    try {
+      const res = await fetchWithAuth("/api/maintenance-alerts", { method: "DELETE" })
+      if (!res.ok) throw new Error()
+    } catch {
+      setAlerts(previous)
+      toast.error("No se pudieron borrar las notificaciones")
+    }
+  }, [alerts])
+
   const unreadCount = alerts.filter((alert) => !alert.isRead).length
 
   return (
     <MaintenanceAlertsContext.Provider
-      value={{ alerts, isLoading, hasError, unreadCount, refetch: fetchAlerts, markAsRead }}
+      value={{ alerts, isLoading, hasError, unreadCount, refetch: fetchAlerts, markAsRead, dismiss, dismissAll }}
     >
       {children}
     </MaintenanceAlertsContext.Provider>

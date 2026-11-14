@@ -1,4 +1,4 @@
-import { AlertTriangleIcon, CheckCircle2Icon, CheckIcon, ClockIcon } from "lucide-react"
+import { AlertTriangleIcon, CheckCircle2Icon, CheckIcon, ClockIcon, XIcon } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
@@ -8,9 +8,11 @@ import type { MaintenanceAlert } from "@/types/maintenance-alert"
 export function MaintenanceAlertItem({
   alert,
   onMarkAsRead,
+  onDismiss,
 }: {
   alert: MaintenanceAlert
   onMarkAsRead: (alert: MaintenanceAlert) => void
+  onDismiss: (alert: MaintenanceAlert) => void
 }) {
   const isOverdue = alert.status === "Overdue"
   const isResolved = alert.status === "Resolved"
@@ -46,12 +48,24 @@ export function MaintenanceAlertItem({
           <p className={cn("truncate text-sm", !alert.isRead && "font-medium")}>
             {alert.maintenanceConceptName}
           </p>
-          {!alert.isRead && (
-            <span
-              aria-label="No leída"
-              className="mt-1.5 size-1.5 shrink-0 rounded-full bg-primary"
-            />
-          )}
+          <div className="flex shrink-0 items-center gap-1">
+            {!alert.isRead && (
+              <span
+                aria-label="No leída"
+                className="size-1.5 rounded-full bg-primary"
+              />
+            )}
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="-my-1 -mr-1 size-6 text-muted-foreground hover:text-foreground"
+              aria-label={`Borrar aviso de ${alert.maintenanceConceptName} (${alert.truckLicensePlate})`}
+              onClick={() => onDismiss(alert)}
+            >
+              <XIcon className="size-3.5" />
+            </Button>
+          </div>
         </div>
         <p className="truncate text-xs text-muted-foreground">
           {alert.truckLicensePlate}

@@ -1,3 +1,4 @@
+import { useState } from "react"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Button } from "@/components/ui/button"
 import { MaintenanceAlertItem } from "@/components/notifications/maintenance-alert-item"
@@ -10,13 +11,20 @@ export function MaintenanceAlertList({
   hasError,
   onRetry,
   onMarkAsRead,
+  onDismiss,
+  onDismissAll,
 }: {
   alerts: MaintenanceAlert[]
   isLoading: boolean
   hasError: boolean
   onRetry: () => void
   onMarkAsRead: (alert: MaintenanceAlert) => void
+  onDismiss: (alert: MaintenanceAlert) => void
+  onDismissAll: () => void
 }) {
+  // Confirmación en el lugar: un AlertDialog encima del popover de la campanita lo cerraría.
+  const [confirmingDismissAll, setConfirmingDismissAll] = useState(false)
+
   if (isLoading) {
     return (
       <div className="space-y-2 p-1">
@@ -51,10 +59,48 @@ export function MaintenanceAlertList({
   }
 
   return (
-    <div className="max-h-[70vh] space-y-1 overflow-y-auto p-1 sm:max-h-96">
-      {alerts.map((alert) => (
-        <MaintenanceAlertItem key={alert.id} alert={alert} onMarkAsRead={onMarkAsRead} />
-      ))}
+    <div className="space-y-1">
+      <div className="flex min-h-7 items-center justify-end gap-1 px-1">
+        {confirmingDismissAll ? (
+          <>
+            <span className="mr-auto text-xs text-muted-foreground">
+              ¿Borrar las {alerts.length}? Solo se borran para vos.
+            </span>
+            <Button variant="ghost" size="sm" onClick={() => setConfirmingDismissAll(false)}>
+              Cancelar
+            </Button>
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={() => {
+                setConfirmingDismissAll(false)
+                onDismissAll()
+              }}
+            >
+              Borrar
+            </Button>
+          </>
+        ) : (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-muted-foreground"
+            onClick={() => setConfirmingDismissAll(true)}
+          >
+            Borrar todas
+          </Button>
+        )}
+      </div>
+      <div className="max-h-[70vh] space-y-1 overflow-y-auto p-1 sm:max-h-96">
+        {alerts.map((alert) => (
+          <MaintenanceAlertItem
+            key={alert.id}
+            alert={alert}
+            onMarkAsRead={onMarkAsRead}
+            onDismiss={onDismiss}
+          />
+        ))}
+      </div>
     </div>
   )
 }
