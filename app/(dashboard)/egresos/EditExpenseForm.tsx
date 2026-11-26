@@ -31,6 +31,7 @@ import { z } from "zod";
 import { toast } from "sonner";
 import { Expense } from "./columns";
 import { useState, useEffect, useCallback, useRef } from "react";
+import { isMaintenanceCategory } from "@/lib/expense-category-rules";
 
 type ActiveTrip = { id: string; origin: string; destination: string };
 
@@ -128,6 +129,7 @@ export default function EditExpenseForm({
   const currentCategoryId = watch("expenseCategoryId");
   const currentCategory = categories.find((c) => c.id === currentCategoryId);
   const isFuelType = currentCategory ? FUEL_CATEGORY_NAMES.has(currentCategory.name) : false;
+  const isMaintenanceCategoryType = isMaintenanceCategory(currentCategory?.name);
 
   function onSubmit(data: ExpenseFormValues) {
     if (isMaintenance) {
@@ -309,7 +311,7 @@ export default function EditExpenseForm({
           <FieldError errors={[errors.expenseCategoryId]} />
         </Field>
 
-        {(isFuelType || isMaintenance) && (
+        {(isFuelType || isMaintenance || isMaintenanceCategoryType) && (
           <Field>
             <Label>Kilómetros</Label>
             <Input
