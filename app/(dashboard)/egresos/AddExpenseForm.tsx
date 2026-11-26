@@ -23,6 +23,7 @@ import { z } from "zod";
 import { toast } from "sonner";
 import { useEffect, useState, useCallback, useRef } from "react";
 import { Expense } from "./columns";
+import { isMaintenanceCategory } from "@/lib/expense-category-rules";
 
 type ActiveTrip = { id: string; origin: string; destination: string };
 
@@ -165,6 +166,11 @@ export default function AddExpenseForm({
   const hasAnyFuel = watchedItems.some((item) => {
     const cat = categories.find((c) => c.id === item.expenseCategoryId);
     return cat ? FUEL_CATEGORY_NAMES.has(cat.name) : false;
+  });
+  // Mantenimiento también pide km (opcional): actualiza el odómetro y los avisos.
+  const hasAnyMaintenance = watchedItems.some((item) => {
+    const cat = categories.find((c) => c.id === item.expenseCategoryId);
+    return isMaintenanceCategory(cat?.name);
   });
 
   const firstItemValue = watchedItems[0]?.value;
@@ -462,7 +468,7 @@ export default function AddExpenseForm({
         })}
       </div>
 
-      {hasAnyFuel && !isInstallmentPlan && (
+      {(hasAnyFuel || hasAnyMaintenance) && !isInstallmentPlan && (
         <Field className="mt-3">
           <Label>Kilómetros</Label>
           <Input
